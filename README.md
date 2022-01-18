@@ -1,1 +1,1 @@
-# ASH
+# Attributed Stream Hypergraph (ASH)
