@@ -17,6 +17,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.has_node(1, tid=0), True)
         self.assertEqual(a.has_node(1, tid=3), False)
         self.assertEqual(a.has_node(1, tid=2), True)
+        self.assertEqual(a.avg_number_of_nodes(), 2)
 
     def test_node_attributes(self):
         a = ASH(hedge_removal=True)
@@ -67,6 +68,8 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 2, 3], -3, -2)
         a.add_hyperedge([3, 4, 5], 3, 4)
 
+        self.assertEqual(a.get_avg_number_of_hyperedges(), 1.0)
+
         self.assertEqual(a.has_hyperedge([1, 2, 3]), True)
         self.assertEqual(a.has_hyperedge([1, 2, 4]), False)
         self.assertEqual(a.has_hyperedge([1, 2, 3], tid=0), True)
@@ -115,7 +118,6 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.has_hyperedge_id('e1', tid=0), True)
         self.assertEqual(a.has_hyperedge_id('e1', tid=100), False)
 
-
     def test_temporal_slice(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0, 1)
@@ -130,3 +132,14 @@ class ASHTestCase(unittest.TestCase):
         c = a.hypergraph_temporal_slice(5, 7)
         self.assertIsInstance(c, ASH)
         self.assertEqual(c.get_node_set(), {1, 2, 3, 5})
+
+    def test_interactions(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0, 1)
+        a.add_hyperedge([1, 2, 3], 6, 9)
+        a.add_hyperedge([1, 2, 5], 5, 10)
+        a.add_hyperedge([3, 4, 5], 3, 4)
+
+        for he in a.stream_interactions():
+            self.assertEqual(len(he), 3)
+

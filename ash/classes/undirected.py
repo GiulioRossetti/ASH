@@ -36,7 +36,24 @@ class ASH(object):
         """
         return sorted(self.snapshots.keys())
 
+    def stream_interactions(self) -> list:
+        """
+
+        :return:
+        """
+        keys = sorted(self.time_to_edge.keys())
+        for tid in keys:
+            for he, op in self.time_to_edge[tid].items():
+                yield tid, he, op
     ## Nodes
+
+    def avg_number_of_nodes(self) -> float:
+        """
+
+        :return:
+        """
+        nodes_snapshots = [self.get_number_of_nodes(tid) for tid in self.snapshots.keys()]
+        return sum(nodes_snapshots)/len(self.snapshots.keys())
 
     def add_node(
         self, node: int, start: int, end: int = None, attr_dict: dict = None
@@ -63,12 +80,14 @@ class ASH(object):
             else:
                 old_attrs["t"] = [start]
 
+        head = None
         for i in range(start[0], start[1] + 1):
             for key, v in attr_dict.items():
                 if key in old_attrs and key != "t":
-                    old_attrs[key][i] = v
+                    old_attrs[key][i] = head
                 else:
                     old_attrs[key] = {i: v}
+                    head = f"t_{i}"
 
         # compacting intervals
         intervals = []
@@ -114,13 +133,25 @@ class ASH(object):
         :return:
         """
         if tid is None:
-            return self.H.get_node_attributes(node)
+
+            attrs = self.H.get_node_attributes(node)
+            for key, l in attrs.items():
+                if key != "t":
+                    for tid, value in l.items():
+
+                        if "t_" in value:
+                            base_tid = int(value[2:])
+                            attrs[key][tid] = l[base_tid]
+            return attrs
         else:
             res = {}
             attrs = self.H.get_node_attributes(node)
             for key, l in attrs.items():
                 if key != "t":
                     res[key] = l[tid]
+                    if "t_" in l[tid]:
+                        base_tid = int(l[tid][2:])
+                        res[key] = l[base_tid]
         return res
 
     def get_node_attribute(
@@ -134,9 +165,18 @@ class ASH(object):
         :return:
         """
         if tid is None:
-            return self.H.get_node_attribute(node, attribute_name)
+            attrs = self.H.get_node_attribute(node, attribute_name)
+            for tid, value in attrs.items():
+                if "t_" in value:
+                    base_tid = int(value[2:])
+                    attrs[tid] = attrs[base_tid]
+            return attrs
+
         else:
             attrs = self.H.get_node_attribute(node, attribute_name)
+            value = attrs[tid]
+            if 't_' in value:
+                return attrs[int(value[2:])]
             return attrs[tid]
 
     def get_node_set(self, tid: int = None) -> list:
@@ -180,6 +220,19 @@ class ASH(object):
         :param tid:
         :return:
         """
+        neighbors = self.get_neighbors(node, hyperedge_size, tid)
+        return len(neighbors)
+
+    def get_neighbors(
+        self, node: int, hyperedge_size: int = None, tid: int = None
+    ) -> set:
+        """
+
+        :param node:
+        :param hyperedge_size:
+        :param tid:
+        :return:
+        """
         star = self.get_star(node, tid)
         res = []
         if hyperedge_size is not None:
@@ -187,12 +240,12 @@ class ASH(object):
                 nodes = self.get_hyperedge_nodes(s)
                 if len(nodes) == hyperedge_size:
                     res.extend(nodes)
-            return len(set(res))
         else:
             for s in star:
                 nodes = self.get_hyperedge_nodes(s)
                 res.extend(nodes)
-            return len(set(res))
+
+        return set(res)
 
     def get_degree(self, node: int, hyperedge_size: int = None, tid: int = None) -> int:
         """
@@ -473,6 +526,13 @@ class ASH(object):
         :return:
         """
         return len(self.get_hyperedge_id_set(tid))
+
+    def get_avg_number_of_hyperedges(self) -> float:
+        """
+
+        :return:
+        """
+        return sum([len(he) for he in self.snapshots.values()])/len(self.snapshots)
 
     # Slices
 
