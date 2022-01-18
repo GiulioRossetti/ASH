@@ -2,7 +2,6 @@ import json
 
 
 class NProfile(object):
-
     def __init__(self, **kwargs):
         """
 

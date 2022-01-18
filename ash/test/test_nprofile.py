@@ -3,7 +3,6 @@ from ash import NProfile
 
 
 class NProfileTestCase(unittest.TestCase):
-
     def test_profile(self):
 
         p = NProfile()
@@ -15,7 +14,9 @@ class NProfileTestCase(unittest.TestCase):
         self.assertEqual(p.has_attribute("surname"), False)
 
         self.assertEqual(p.get_attribute("name"), "Giulio")
-        self.assertDictEqual(p.get_attributes(), {"name": "Giulio", "age": 37, "opinion": 1})
+        self.assertDictEqual(
+            p.get_attributes(), {"name": "Giulio", "age": 37, "opinion": 1}
+        )
 
         p.add_attributes(surname="Rossetti", location="Pisa")
         self.assertEqual(p.has_attribute("surname"), True)

@@ -5,7 +5,6 @@ from .node_profile import NProfile
 
 
 class ASH(object):
-
     def __init__(self, hedge_removal: bool = False) -> None:
         """
 
@@ -56,11 +55,13 @@ class ASH(object):
 
         :return:
         """
-        nodes_snapshots = [self.get_number_of_nodes(tid) for tid in self.snapshots.keys()]
+        nodes_snapshots = [
+            self.get_number_of_nodes(tid) for tid in self.snapshots.keys()
+        ]
         return sum(nodes_snapshots) / len(self.snapshots.keys())
 
     def add_node(
-            self, node: int, start: int, end: int = None, attr_dict: object = None
+        self, node: int, start: int, end: int = None, attr_dict: object = None
     ) -> None:
         """
 
@@ -115,7 +116,7 @@ class ASH(object):
             self.snapshots[end] = []
 
     def add_nodes(
-            self, nodes: int, start: int, end: int = None, node_attr_dict: dict = None
+        self, nodes: int, start: int, end: int = None, node_attr_dict: dict = None
     ) -> None:
         """
 
@@ -159,7 +160,7 @@ class ASH(object):
         return NProfile(**res)
 
     def get_node_attribute(
-            self, node: int, attribute_name: str, tid: int = None
+        self, node: int, attribute_name: str, tid: int = None
     ) -> object:
         """
 
@@ -171,7 +172,7 @@ class ASH(object):
         if tid is None:
             attrs = self.H.get_node_attribute(node, attribute_name)
             if attribute_name == "t":
-                return {'t': attrs}
+                return {"t": attrs}
             for tid, value in attrs.items():
                 if "t_" in value:
                     base_tid = int(value[2:])
@@ -184,10 +185,10 @@ class ASH(object):
                 for spans in attrs:
                     for span in spans:
                         if span[0] <= tid <= span[1] + 1:
-                            return {'t': [attrs]}
-                return {'t': []}
+                            return {"t": [attrs]}
+                return {"t": []}
             value = attrs[tid]
-            if 't_' in value:
+            if "t_" in value:
                 return attrs[int(value[2:])]
             return attrs[tid]
 
@@ -208,22 +209,41 @@ class ASH(object):
         else:
             return len(self.get_node_set(tid))
 
-    def get_star(self, node: int, tid: int = None) -> list:
+    def get_star(self, node: int, hyperedge_size: int = None, tid: int = None) -> list:
         """
 
+        :param hyperedge_size:
         :param node:
         :param tid:
         :return:
         """
         if tid is None:
-            return self.H.get_star(node)
+            eids = self.H.get_star(node)
+            if hyperedge_size is None:
+                return eids
+            else:
+                return [
+                    eid
+                    for eid in eids
+                    if len(self.get_hyperedge_nodes(eid)) == hyperedge_size
+                ]
         else:
-            return [
-                eid for eid in self.H.get_star(node) if self.has_hyperedge_id(eid, tid)
-            ]
+            if hyperedge_size is None:
+                return [
+                    eid
+                    for eid in self.H.get_star(node)
+                    if self.has_hyperedge_id(eid, tid)
+                ]
+            else:
+                return [
+                    eid
+                    for eid in self.H.get_star(node)
+                    if self.has_hyperedge_id(eid, tid)
+                    and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
+                ]
 
     def get_number_of_neighbors(
-            self, node: int, hyperedge_size: int = None, tid: int = None
+        self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> int:
         """
 
@@ -236,7 +256,7 @@ class ASH(object):
         return len(neighbors)
 
     def get_neighbors(
-            self, node: int, hyperedge_size: int = None, tid: int = None
+        self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> set:
         """
 
@@ -245,7 +265,7 @@ class ASH(object):
         :param tid:
         :return:
         """
-        star = self.get_star(node, tid)
+        star = self.get_star(node, tid=tid)
         res = []
         if hyperedge_size is not None:
             for s in star:
@@ -267,7 +287,7 @@ class ASH(object):
         :param tid:
         :return:
         """
-        star = self.get_star(node, tid)
+        star = self.get_star(node, tid=tid)
 
         if hyperedge_size is not None:
             res = 0
@@ -290,9 +310,9 @@ class ASH(object):
         if presence and tid is not None:
             attrs = self.get_node_profile(node)
             if isinstance(attrs, NProfile):
-                attrs = attrs.get_attribute('t')
+                attrs = attrs.get_attribute("t")
             else:
-                attrs = attrs['t']
+                attrs = attrs["t"]
             for span in attrs:
                 if span[0] <= tid <= span[1]:
                     return True
@@ -347,6 +367,30 @@ class ASH(object):
             ucov += 1 if self.has_node(node, tid) else 0
         return ucov / len(self.snapshots)
 
+    def node_degree_distribution(self, start: int = None, end: int = None) -> dict:
+        """
+
+        :param start:
+        :param end:
+        :return:
+        """
+        dist = defaultdict(int)
+
+        if start is None:
+            for node in self.node_iterator():
+                dist[self.get_degree(node)] += 1
+
+        elif start is not None and end is None:
+            for node in self.node_iterator(tid=start):
+                dist[self.get_degree(node, tid=start)] += 1
+
+        else:
+            S = self.hypergraph_temporal_slice(start=start, end=end)
+            for node in S.node_iterator():
+                dist[S.get_degree(node)] += 1
+
+        return dist
+
     ## Hyperedges
 
     def add_hyperedge(self, nodes: list, start: int, end: int = None) -> None:
@@ -359,9 +403,9 @@ class ASH(object):
         """
         if start is None:
             raise ValueError("The hyperedge appearance time, t, cannot be None")
-        if end is not None and end <= start:
+        if end is not None and end < start:
             raise ValueError(
-                "The vanishing time, e, (if present) must be higher of the appearance one"
+                "The vanishing time, e, (if present) must be equal or greater than the appearance one."
             )
 
         for u in nodes:
@@ -432,7 +476,7 @@ class ASH(object):
             self.add_hyperedge(nodes, start, end)
 
     def get_hyperedge_attribute(
-            self, hyperedge_id: str, attribute_name: str, tid: int = None
+        self, hyperedge_id: str, attribute_name: str, tid: int = None
     ) -> object:
         """
 
@@ -492,23 +536,32 @@ class ASH(object):
         """
         return self.H.get_hyperedge_id(nodes)
 
-    def get_hyperedge_id_set(self, tid: int = None) -> list:
+    def get_hyperedge_id_set(self, hyperedge_size: int = None, tid: int = None) -> list:
         """
 
+        :param hyperedge_size:
         :param tid:
         :return:
         """
 
         if tid is None:
-            return self.H.get_hyperedge_id_set()
-
+            if hyperedge_size is None:
+                return self.H.get_hyperedge_id_set()
+            else:
+                return {
+                    he
+                    for he in self.H.get_hyperedge_id_set()
+                    if len(self.get_hyperedge_nodes(he)) == hyperedge_size
+                }
         else:
             hedges = {}
             for i in range(min(self.time_to_edge.keys()), tid + 1):
                 hest = self.time_to_edge[i]
-
                 for key, v in hest.items():
-                    if v == "+":
+                    if v == "+" and (
+                        hyperedge_size is None
+                        or len(self.get_hyperedge_nodes(key)) == hyperedge_size
+                    ):
                         hedges[key] = None
                     else:
                         if key in hedges:
@@ -578,7 +631,7 @@ class ASH(object):
         :param tid:
         :return:
         """
-        return len(self.get_hyperedge_id_set(tid))
+        return len(self.get_hyperedge_id_set(tid=tid))
 
     def get_avg_number_of_hyperedges(self) -> float:
         """
@@ -588,7 +641,7 @@ class ASH(object):
         return sum([len(he) for he in self.snapshots.values()]) / len(self.snapshots)
 
     def hyperedge_contribution(self, hyperedge_id: str) -> float:
-        attrs = self.get_hyperedge_attributes(hyperedge_id)['t']
+        attrs = self.get_hyperedge_attributes(hyperedge_id)["t"]
         count = 0
         for span in attrs:
             count += len(range(span[0], span[1] + 1))
@@ -627,14 +680,17 @@ class ASH(object):
                         S.add_hyperedge(he, span[0], end)
                 else:
                     if span[0] <= start <= span[1]:
-                        S.add_hyperedge(he, span[0], span[1])
+                        if span[0] != span[1]:
+                            S.add_hyperedge(he, span[0], span[1])
+                        else:
+                            S.add_hyperedge(he, span[0])
 
         for n in self.get_node_set():
             attrs = self.get_node_profile(n)
             if not isinstance(attrs, NProfile):
-                t1 = attrs['t']
+                t1 = attrs["t"]
             else:
-                t1 = attrs.get_attribute('t')
+                t1 = attrs.get_attribute("t")
 
             for span in t1:
                 if end is not None:
@@ -665,3 +721,27 @@ class ASH(object):
                 if self.has_node(u, t) or self.has_node(v, t):
                     denominator += 1
         return numerator / denominator
+
+    def hyperedge_size_distribution(self, start: int = None, end: int = None) -> dict:
+        """
+
+        :param start:
+        :param end:
+        :return:
+        """
+        dist = defaultdict(int)
+
+        if start is None:
+            for he in self.get_hyperedge_id_set():
+                dist[len(self.get_hyperedge_nodes(he))] += 1
+
+        elif start is not None and end is None:
+            for he in self.get_hyperedge_id_set(tid=start):
+                dist[len(self.get_hyperedge_nodes(he))] += 1
+
+        else:
+            for tids in range(start, end + 1):
+                for he in self.get_hyperedge_id_set(tid=tids):
+                    dist[len(self.get_hyperedge_nodes(he))] += 1
+
+        return dist
