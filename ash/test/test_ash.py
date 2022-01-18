@@ -1,5 +1,5 @@
 import unittest
-from ash import ASH
+from ash import ASH, NProfile
 
 
 class ASHTestCase(unittest.TestCase):
@@ -8,6 +8,9 @@ class ASHTestCase(unittest.TestCase):
         a = ASH(hedge_removal=True)
         a.add_node(1, start=0, end=2, attr_dict={"label": "A"})
         self.assertEqual(a.has_node(1), True)
+
+        a.add_node(2, start=4, end=10, attr_dict=NProfile(name="Giulio"))
+        self.assertEqual(a.has_node(2), True)
 
     def test_add_nodes(self):
         a = ASH(hedge_removal=True)
@@ -19,17 +22,23 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.has_node(1, tid=2), True)
         self.assertEqual(a.avg_number_of_nodes(), 2)
 
+        self.assertEqual(a.get_node_snapshots(1), [0, 1, 2])
+
+        self.assertEqual(a.coverage(), 1)
+        self.assertEqual(a.node_contribution(1), 1)
+
     def test_node_attributes(self):
         a = ASH(hedge_removal=True)
         a.add_node(1, start=0, end=2, attr_dict={"label": "A"})
 
-        attr = a.get_node_attributes(1)
-        self.assertEqual(attr, {'t': [[0, 2]], 'label': {0: 'A', 1: 'A', 2: 'A'}})
-        attr = a.get_node_attributes(1, tid=0)
-        self.assertEqual(attr, {'label': 'A'})
+        attr = a.get_node_profile(1)
+        self.assertEqual(attr, NProfile(**{'t': [[0, 2]], 'label': {0: 'A', 1: 'A', 2: 'A'}}))
+        attr = a.get_node_profile(1, tid=0)
+        self.assertEqual(attr, NProfile(**{'label': 'A'}))
 
         label = a.get_node_attribute(1, attribute_name='label')
         self.assertEqual(label, {0: 'A', 1: 'A', 2: 'A'})
+
         label = a.get_node_attribute(1, attribute_name='label', tid=0)
         self.assertEqual(label, 'A')
 
@@ -69,6 +78,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([3, 4, 5], 3, 4)
 
         self.assertEqual(a.get_avg_number_of_hyperedges(), 1.0)
+        self.assertEqual(a.hyperedge_contribution('e1'), 0.8)
 
         self.assertEqual(a.has_hyperedge([1, 2, 3]), True)
         self.assertEqual(a.has_hyperedge([1, 2, 4]), False)
@@ -118,6 +128,8 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.has_hyperedge_id('e1', tid=0), True)
         self.assertEqual(a.has_hyperedge_id('e1', tid=100), False)
 
+        self.assertEqual(a.uniformity(), 0.3157894736842105)
+
     def test_temporal_slice(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0, 1)
@@ -142,4 +154,3 @@ class ASHTestCase(unittest.TestCase):
 
         for he in a.stream_interactions():
             self.assertEqual(len(he), 3)
-

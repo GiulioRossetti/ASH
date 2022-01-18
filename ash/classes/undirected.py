@@ -1,8 +1,11 @@
 from halp.undirected_hypergraph import UndirectedHypergraph
 from collections import defaultdict
+from itertools import combinations
+from .node_profile import NProfile
 
 
 class ASH(object):
+
     def __init__(self, hedge_removal: bool = False) -> None:
         """
 
@@ -45,6 +48,7 @@ class ASH(object):
         for tid in keys:
             for he, op in self.time_to_edge[tid].items():
                 yield tid, he, op
+
     ## Nodes
 
     def avg_number_of_nodes(self) -> float:
@@ -53,10 +57,10 @@ class ASH(object):
         :return:
         """
         nodes_snapshots = [self.get_number_of_nodes(tid) for tid in self.snapshots.keys()]
-        return sum(nodes_snapshots)/len(self.snapshots.keys())
+        return sum(nodes_snapshots) / len(self.snapshots.keys())
 
     def add_node(
-        self, node: int, start: int, end: int = None, attr_dict: dict = None
+            self, node: int, start: int, end: int = None, attr_dict: object = None
     ) -> None:
         """
 
@@ -111,7 +115,7 @@ class ASH(object):
             self.snapshots[end] = []
 
     def add_nodes(
-        self, nodes: int, start: int, end: int = None, node_attr_dict: dict = None
+            self, nodes: int, start: int, end: int = None, node_attr_dict: dict = None
     ) -> None:
         """
 
@@ -125,7 +129,7 @@ class ASH(object):
             attr = None if node not in node_attr_dict else node_attr_dict[node]
             self.add_node(node, start, end, attr)
 
-    def get_node_attributes(self, node: int, tid: int = None) -> dict:
+    def get_node_profile(self, node: int, tid: int = None) -> NProfile:
         """
 
         :param node:
@@ -138,11 +142,11 @@ class ASH(object):
             for key, l in attrs.items():
                 if key != "t":
                     for tid, value in l.items():
-
                         if "t_" in value:
                             base_tid = int(value[2:])
                             attrs[key][tid] = l[base_tid]
-            return attrs
+
+            return NProfile(**attrs)
         else:
             res = {}
             attrs = self.H.get_node_attributes(node)
@@ -152,10 +156,10 @@ class ASH(object):
                     if "t_" in l[tid]:
                         base_tid = int(l[tid][2:])
                         res[key] = l[base_tid]
-        return res
+        return NProfile(**res)
 
     def get_node_attribute(
-        self, node: int, attribute_name: str, tid: int = None
+            self, node: int, attribute_name: str, tid: int = None
     ) -> object:
         """
 
@@ -166,6 +170,8 @@ class ASH(object):
         """
         if tid is None:
             attrs = self.H.get_node_attribute(node, attribute_name)
+            if attribute_name == "t":
+                return {'t': attrs}
             for tid, value in attrs.items():
                 if "t_" in value:
                     base_tid = int(value[2:])
@@ -174,6 +180,12 @@ class ASH(object):
 
         else:
             attrs = self.H.get_node_attribute(node, attribute_name)
+            if attribute_name == "t":
+                for spans in attrs:
+                    for span in spans:
+                        if span[0] <= tid <= span[1] + 1:
+                            return {'t': [attrs]}
+                return {'t': []}
             value = attrs[tid]
             if 't_' in value:
                 return attrs[int(value[2:])]
@@ -211,7 +223,7 @@ class ASH(object):
             ]
 
     def get_number_of_neighbors(
-        self, node: int, hyperedge_size: int = None, tid: int = None
+            self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> int:
         """
 
@@ -224,7 +236,7 @@ class ASH(object):
         return len(neighbors)
 
     def get_neighbors(
-        self, node: int, hyperedge_size: int = None, tid: int = None
+            self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> set:
         """
 
@@ -276,7 +288,11 @@ class ASH(object):
         """
         presence = self.H.has_node(node)
         if presence and tid is not None:
-            attrs = self.get_node_attributes(node)["t"]
+            attrs = self.get_node_profile(node)
+            if isinstance(attrs, NProfile):
+                attrs = attrs.get_attribute('t')
+            else:
+                attrs = attrs['t']
             for span in attrs:
                 if span[0] <= tid <= span[1]:
                     return True
@@ -294,7 +310,44 @@ class ASH(object):
         S = self.hypergraph_temporal_slice(tid)
         return S.H.node_iterator()
 
-    ## Edges
+    def get_node_snapshots(self, node: int) -> list:
+        """
+
+        :param node:
+        :return:
+        """
+        snaps = []
+        tids = self.get_node_attribute(node, "t")
+        for spans in tids.values():
+            for span in spans:
+                snaps.extend(range(span[0], span[1] + 1))
+        return snaps
+
+    def coverage(self) -> float:
+        """
+
+        :return:
+        """
+        T = len(self.snapshots)
+        V = self.get_number_of_nodes()
+        W = 0
+        for tid in self.snapshots:
+            W += self.get_number_of_nodes(tid)
+
+        return W / (T * V)
+
+    def node_contribution(self, node) -> float:
+        """
+
+        :param node:
+        :return:
+        """
+        ucov = 0
+        for tid in self.snapshots:
+            ucov += 1 if self.has_node(node, tid) else 0
+        return ucov / len(self.snapshots)
+
+    ## Hyperedges
 
     def add_hyperedge(self, nodes: list, start: int, end: int = None) -> None:
         """
@@ -379,7 +432,7 @@ class ASH(object):
             self.add_hyperedge(nodes, start, end)
 
     def get_hyperedge_attribute(
-        self, hyperedge_id: str, attribute_name: str, tid: int = None
+            self, hyperedge_id: str, attribute_name: str, tid: int = None
     ) -> object:
         """
 
@@ -532,7 +585,14 @@ class ASH(object):
 
         :return:
         """
-        return sum([len(he) for he in self.snapshots.values()])/len(self.snapshots)
+        return sum([len(he) for he in self.snapshots.values()]) / len(self.snapshots)
+
+    def hyperedge_contribution(self, hyperedge_id: str) -> float:
+        attrs = self.get_hyperedge_attributes(hyperedge_id)['t']
+        count = 0
+        for span in attrs:
+            count += len(range(span[0], span[1] + 1))
+        return count / len(self.snapshots)
 
     # Slices
 
@@ -570,8 +630,12 @@ class ASH(object):
                         S.add_hyperedge(he, span[0], span[1])
 
         for n in self.get_node_set():
-            attrs = self.get_node_attributes(n)
-            t1 = attrs["t"]
+            attrs = self.get_node_profile(n)
+            if not isinstance(attrs, NProfile):
+                t1 = attrs['t']
+            else:
+                t1 = attrs.get_attribute('t')
+
             for span in t1:
                 if end is not None:
                     if span[0] >= start and span[1] <= end:
@@ -582,3 +646,22 @@ class ASH(object):
                     if span[0] <= start <= span[1]:
                         S.add_node(n, span[0], span[1], attr_dict=attrs)
         return S
+
+    def uniformity(self) -> float:
+        """
+            Temporal hypergraph uniformity
+
+            Returns
+            -------
+            uniformity : float
+                Uniformity of the temporal hypergraph in [0, 1]
+        """
+        nds = self.get_node_set()
+        numerator, denominator = 0, 0
+        for u, v in combinations(nds, 2):
+            for t in self.snapshots:
+                if self.has_node(u, t) and self.has_node(v, t):
+                    numerator += 1
+                if self.has_node(u, t) or self.has_node(v, t):
+                    denominator += 1
+        return numerator / denominator
