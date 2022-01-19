@@ -1,7 +1,9 @@
+import numpy as np
 from halp.undirected_hypergraph import UndirectedHypergraph
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import combinations
 from .node_profile import NProfile
+
 
 
 class ASH(object):
@@ -138,7 +140,6 @@ class ASH(object):
         :return:
         """
         if tid is None:
-
             attrs = self.H.get_node_attributes(node)
             for key, l in attrs.items():
                 if key != "t":
@@ -154,7 +155,7 @@ class ASH(object):
             for key, l in attrs.items():
                 if key != "t":
                     res[key] = l[tid]
-                    if "t_" in l[tid]:
+                    if isinstance(l[tid], str) and "t_" in l[tid]:
                         base_tid = int(l[tid][2:])
                         res[key] = l[base_tid]
         return NProfile(**res)
@@ -209,7 +210,7 @@ class ASH(object):
         else:
             return len(self.get_node_set(tid))
 
-    def get_star(self, node: int, hyperedge_size: int = None, tid: int = None) -> list:
+    def get_star(self, node: int, hyperedge_size: int = None, tid: int = None) -> set:
         """
 
         :param hyperedge_size:
@@ -222,25 +223,25 @@ class ASH(object):
             if hyperedge_size is None:
                 return eids
             else:
-                return [
+                return {
                     eid
                     for eid in eids
                     if len(self.get_hyperedge_nodes(eid)) == hyperedge_size
-                ]
+                }
         else:
             if hyperedge_size is None:
-                return [
+                return {
                     eid
                     for eid in self.H.get_star(node)
                     if self.has_hyperedge_id(eid, tid)
-                ]
+                }
             else:
-                return [
+                return {
                     eid
                     for eid in self.H.get_star(node)
                     if self.has_hyperedge_id(eid, tid)
                     and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
-                ]
+                }
 
     def get_number_of_neighbors(
         self, node: int, hyperedge_size: int = None, tid: int = None
@@ -299,6 +300,21 @@ class ASH(object):
         else:
             return len(star)
 
+    def get_degree_by_hyperedge_size(self, node: int, tid: int = None) -> dict:
+        """
+
+        :param node:
+        :param tid:
+        :return:
+        """
+
+        distr = defaultdict(int)
+        star = self.get_star(node, tid=tid)
+        for s in star:
+            nodes = self.get_hyperedge_nodes(s)
+            distr[len(nodes)] += 1
+        return distr
+
     def has_node(self, node: int, tid: int = None) -> bool:
         """
 
@@ -330,7 +346,7 @@ class ASH(object):
         S = self.hypergraph_temporal_slice(tid)
         return S.H.node_iterator()
 
-    def get_node_snapshots(self, node: int) -> list:
+    def get_node_presence(self, node: int) -> list:
         """
 
         :param node:
@@ -646,6 +662,52 @@ class ASH(object):
         for span in attrs:
             count += len(range(span[0], span[1] + 1))
         return count / len(self.snapshots)
+
+    def get_hyperedge_average_node_profile(self, hyperedge_id: str, tid: int) -> NProfile:
+        """
+
+        :param tid:
+        :param hyperedge_id:
+        :return:
+        """
+        nodes = self.get_hyperedge_nodes(hyperedge_id)
+        avg_profile = NProfile()
+        res = defaultdict(list)
+        for node in nodes:
+            profile = self.get_node_profile(node, tid=tid)
+
+            for key, value in profile.items():
+                if not isinstance(value, str):
+                    res[key].append(value)
+
+        for key, value in res.items():
+            avg_profile.add_attribute(key, np.mean(value))
+            avg_profile.add_statistic(key, "std", np.std(value))
+
+        return avg_profile
+
+    def get_hyperedge_most_frequent_node_attribute_value(self, hyperedge_id: str, attribute: str, tid: int) -> dict:
+        """
+
+        :param hyperedge_id:
+        :param attribute:
+        :param tid:
+        :return:
+        """
+        nodes = self.get_hyperedge_nodes(hyperedge_id)
+        res = defaultdict(list)
+        for node in nodes:
+            profile = self.get_node_profile(node, tid=tid)
+            value = profile.get_attribute(attribute)
+            if isinstance(value, str):
+                res[attribute].append(value)
+
+        count = Counter(res[attribute])
+        count = count.most_common(1)[0]
+        del res['party']
+        res[count[0]] = count[1]
+
+        return res
 
     # Slices
 

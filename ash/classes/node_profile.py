@@ -9,6 +9,7 @@ class NProfile(object):
         """
         self.__attrs = {}
         self.add_attributes(**kwargs)
+        self.__stats = {}
 
     def add_attribute(self, key: str, value: object) -> None:
         """
@@ -52,6 +53,72 @@ class NProfile(object):
         :return:
         """
         return key in self.__attrs
+
+    def add_statistic(self, attr_name: str, stat_name: str, value: float) -> None:
+        """
+
+        :param attr_name:
+        :param stat_name:
+        :param value:
+        :return:
+        """
+
+        if attr_name not in self.__attrs:
+            raise ValueError(f"{attr_name} not present in the profile")
+
+        if attr_name in self.__stats:
+            self.__stats[attr_name][stat_name] = value
+        else:
+            self.__stats[attr_name] = {stat_name: value}
+
+    def get_statistic(self, attr_name: str, stats_name: str = None) -> dict:
+        """
+
+        :param attr_name:
+        :param stats_name:
+        :return:
+        """
+        if attr_name not in self.__attrs:
+            raise ValueError(f"{attr_name} not present in the profile")
+
+        if attr_name not in self.__stats:
+            raise ValueError(f"{attr_name} does not have any computed statistic")
+
+        if stats_name is None:
+            return self.__stats[attr_name]
+        else:
+            if stats_name in self.__stats[attr_name]:
+                return {stats_name: self.__stats[attr_name][stats_name]}
+            else:
+                raise ValueError(f"{stats_name} is not computed for {attr_name}")
+
+    def has_statistic(self, attr_name: str, stats_name: str) -> bool:
+        """
+
+        :param attr_name:
+        :param stats_name:
+        :return:
+        """
+        if attr_name not in self.__attrs:
+            raise ValueError(f"{attr_name} not present in the profile")
+
+        if attr_name not in self.__stats:
+            return False
+        if stats_name not in self.__stats[attr_name]:
+            return False
+        return True
+
+    def attribute_computed_statistics(self, attr_name: str) -> list:
+        """
+
+        :param attr_name:
+        :return:
+        """
+        if attr_name not in self.__attrs:
+            raise ValueError(f"{attr_name} not present in the profile")
+        if attr_name not in self.__stats:
+            raise ValueError(f"{attr_name} does not have any computed statistic")
+        return list(self.__stats[attr_name].keys())
 
     def items(self) -> list:
         """

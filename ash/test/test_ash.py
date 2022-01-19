@@ -26,7 +26,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.has_node(1, tid=2), True)
         self.assertEqual(a.avg_number_of_nodes(), 2)
 
-        self.assertEqual(a.get_node_snapshots(1), [0, 1, 2])
+        self.assertEqual(a.get_node_presence(1), [0, 1, 2])
 
         self.assertEqual(a.coverage(), 1)
         self.assertEqual(a.node_contribution(1), 1)
@@ -202,6 +202,9 @@ class ASHTestCase(unittest.TestCase):
             a.hyperedge_size_distribution(start=0, end=1), {2: 1, 3: 3, 4: 3}
         )
 
+        self.assertEqual(a.get_degree_by_hyperedge_size(1), {3: 3, 4: 1})
+        self.assertEqual(a.get_degree_by_hyperedge_size(1, tid=1), {3: 1})
+
     def test_star(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0)
@@ -212,6 +215,18 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([3, 4, 5, 10], 1)
         a.add_hyperedge([3, 4, 5, 12], 1)
 
-        self.assertEqual(a.get_star(1), ["e1", "e3", "e4", "e5"])
-        self.assertEqual(a.get_star(1, tid=0), ["e1", "e3", "e4"])
-        self.assertEqual(a.get_star(1, tid=0, hyperedge_size=4), ["e4"])
+        self.assertEqual(a.get_star(1), {"e1", "e3", "e4", "e5"})
+        self.assertEqual(a.get_star(1, tid=0), {"e1", "e3", "e4"})
+        self.assertEqual(a.get_star(1, tid=0, hyperedge_size=4), {"e4"})
+
+    def test_profiles(self):
+        a = ASH(hedge_removal=True)
+        a.add_node(1, start=1, end=5, attr_dict=NProfile(party="L", age=37))
+        a.add_node(2, start=1, end=5, attr_dict=NProfile(party="L", age=20))
+        a.add_node(3, start=1, end=5, attr_dict=NProfile(party="L", age=11))
+        a.add_node(4, start=1, end=5, attr_dict=NProfile(party="R", age=45))
+        a.add_hyperedge([1, 2, 3, 4], 1, 4)
+
+        self.assertEqual(a.get_hyperedge_average_node_profile('e1', 1).get_attributes(), {'age': 28.25})
+        self.assertEqual(a.get_hyperedge_average_node_profile('e1', 1).get_statistic('age', 'std'), {'std': 13.442005058770064})
+        self.assertEqual(a.get_hyperedge_most_frequent_node_attribute_value('e1', 'party', 1), {'L': 3})

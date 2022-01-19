@@ -39,3 +39,12 @@ class NProfileTestCase(unittest.TestCase):
         p = NProfile(age=20, opinion=1)
         self.assertEqual(p.has_attribute("age"), True)
         self.assertEqual(p.has_attribute("opinion"), True)
+
+    def test_statistic(self):
+        p = NProfile(pippo="pippo")
+        p.add_statistic("pippo", "mean", 3)
+        self.assertDictEqual(p.get_statistic("pippo", "mean"), {"mean": 3})
+        self.assertDictEqual(p.get_statistic("pippo"), {"mean": 3})
+        self.assertEqual(p.has_statistic("pippo", "mean"), True)
+        self.assertEqual(p.has_statistic("pippo", "max"), False)
+        self.assertListEqual(p.attribute_computed_statistics('pippo'), ['mean'])
