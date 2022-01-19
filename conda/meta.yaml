@@ -18,6 +18,7 @@ requirements:
     - numpy
     - halp
     - scipy
+    - networkx
 
 about:
   home: https://github.com/GiulioRossetti/ASH

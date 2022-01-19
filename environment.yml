@@ -7,3 +7,4 @@ dependencies:
 - halp
 - numpy
 - scipy
+- networkx

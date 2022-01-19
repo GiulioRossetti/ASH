@@ -1,10 +1,12 @@
 import unittest
+
+import networkx as nx
+
 from ash import ASH
 import ash.utils as ut
 
 
 class UtilsTestCase(unittest.TestCase):
-
     @staticmethod
     def get_hypergraph():
         a = ASH(hedge_removal=True)
@@ -55,3 +57,33 @@ class UtilsTestCase(unittest.TestCase):
 
         M = ut.get_vertex_degree_matrix(a, 1)
         self.assertIsInstance(M, dict)
+
+    def test_to_graph_decomposition(self):
+        a = self.get_hypergraph()
+
+        b = ut.to_graph_decomposition(a)
+        self.assertIsInstance(b, dict)
+        self.assertEqual(len(b), 2)
+
+        b = ut.to_graph_decomposition(a, 1)
+        self.assertIsInstance(b, dict)
+        self.assertEqual(len(b), 1)
+
+    def test_to_networkx_graph(self):
+        a = self.get_hypergraph()
+
+        b = ut.to_networkx_graph(a)
+        self.assertIsInstance(b, dict)
+        self.assertEqual(len(b), 2)
+
+        b = ut.to_networkx_graph(a, 1)
+        self.assertIsInstance(b, dict)
+        self.assertEqual(len(b), 1)
+
+    def test_from_networkx_graph(self):
+        g = nx.karate_club_graph()
+        a = ut.from_networkx_graph(g, start=1)
+        self.assertIsInstance(a, ASH)
+
+        a = ut.from_networkx_graph(g, start=1, end=2)
+        self.assertIsInstance(a, ASH)

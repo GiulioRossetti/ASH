@@ -24,7 +24,9 @@ def get_hyperedge_id_mapping(h: ASH) -> (dict, dict):
     return um.get_hyperedge_id_mapping(h.H)
 
 
-def get_incidence_matrix(h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None) -> dict:
+def get_incidence_matrix(
+    h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
+) -> dict:
     """
 
     :param h:
@@ -57,12 +59,16 @@ def get_incidence_matrix(h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indice
         node_count = len(nodes_to_indices)
         hyperedge_count = len(hyperedge_ids_to_indices)
 
-        res[tid] = sparse.csc_matrix((values, (rows, cols)), shape=(node_count, hyperedge_count))
+        res[tid] = sparse.csc_matrix(
+            (values, (rows, cols)), shape=(node_count, hyperedge_count)
+        )
 
     return res
 
 
-def get_hyperedge_weight_matrix(h: ASH, hyperedge_ids_to_indices: dict, tid: int = None) -> dict:
+def get_hyperedge_weight_matrix(
+    h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
+) -> dict:
     """
 
     :param h:
@@ -80,8 +86,13 @@ def get_hyperedge_weight_matrix(h: ASH, hyperedge_ids_to_indices: dict, tid: int
     for tid in tids:
         hyperedge_weights = {}
         for hyperedge_id in h.hyperedge_id_iterator():
-            hyperedge_weights.update({hyperedge_ids_to_indices[hyperedge_id]:
-                                          h.get_hyperedge_weight(hyperedge_id)})
+            hyperedge_weights.update(
+                {
+                    hyperedge_ids_to_indices[hyperedge_id]: h.get_hyperedge_weight(
+                        hyperedge_id
+                    )
+                }
+            )
 
         hyperedge_weight_vector = []
         for i in range(len(hyperedge_weights.keys())):
@@ -109,7 +120,14 @@ def get_vertex_degree_matrix(h: ASH, tid: int = None) -> dict:
     for tid in tids:
         _, node_to_index = get_node_mapping(h)
         _, edge_to_index = get_hyperedge_id_mapping(h)
-        W = get_hyperedge_weight_matrix(h, hyperedge_ids_to_indices=edge_to_index, tid=tid)[tid]
-        M = get_incidence_matrix(h, nodes_to_indices=node_to_index, hyperedge_ids_to_indices=edge_to_index, tid=tid)[tid]
+        W = get_hyperedge_weight_matrix(
+            h, hyperedge_ids_to_indices=edge_to_index, tid=tid
+        )[tid]
+        M = get_incidence_matrix(
+            h,
+            nodes_to_indices=node_to_index,
+            hyperedge_ids_to_indices=edge_to_index,
+            tid=tid,
+        )[tid]
         res[tid] = um.get_vertex_degree_matrix(M, W)
     return res

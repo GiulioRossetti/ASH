@@ -1,3 +1,4 @@
 halp
 numpy
 scipy
+networkx
