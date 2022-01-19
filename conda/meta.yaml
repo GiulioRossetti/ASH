@@ -17,6 +17,7 @@ requirements:
     - python>=3.9
     - numpy
     - halp
+    - scipy
 
 about:
   home: https://github.com/GiulioRossetti/ASH

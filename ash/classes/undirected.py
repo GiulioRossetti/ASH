@@ -671,8 +671,10 @@ class ASH(object):
     ) -> NProfile:
         """
 
+        :return:
         :param tid:
         :param hyperedge_id:
+        :param agg_function:
         :return:
         """
         nodes = self.get_hyperedge_nodes(hyperedge_id)
