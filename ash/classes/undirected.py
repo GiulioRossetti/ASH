@@ -3,7 +3,7 @@ from halp.undirected_hypergraph import UndirectedHypergraph
 from collections import defaultdict, Counter
 from itertools import combinations
 from .node_profile import NProfile
-
+from collections.abc import Callable
 
 
 class ASH(object):
@@ -663,7 +663,12 @@ class ASH(object):
             count += len(range(span[0], span[1] + 1))
         return count / len(self.snapshots)
 
-    def get_hyperedge_average_node_profile(self, hyperedge_id: str, tid: int) -> NProfile:
+    def get_hyperedge_aggregate_node_profile(
+        self,
+        hyperedge_id: str,
+        tid: int,
+        agg_function: Callable[[list], float] = np.mean,
+    ) -> NProfile:
         """
 
         :param tid:
@@ -681,12 +686,14 @@ class ASH(object):
                     res[key].append(value)
 
         for key, value in res.items():
-            avg_profile.add_attribute(key, np.mean(value))
+            avg_profile.add_attribute(key, agg_function(value))
             avg_profile.add_statistic(key, "std", np.std(value))
 
         return avg_profile
 
-    def get_hyperedge_most_frequent_node_attribute_value(self, hyperedge_id: str, attribute: str, tid: int) -> dict:
+    def get_hyperedge_most_frequent_node_attribute_value(
+        self, hyperedge_id: str, attribute: str, tid: int
+    ) -> dict:
         """
 
         :param hyperedge_id:
@@ -704,7 +711,7 @@ class ASH(object):
 
         count = Counter(res[attribute])
         count = count.most_common(1)[0]
-        del res['party']
+        del res["party"]
         res[count[0]] = count[1]
 
         return res

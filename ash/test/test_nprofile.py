@@ -47,4 +47,4 @@ class NProfileTestCase(unittest.TestCase):
         self.assertDictEqual(p.get_statistic("pippo"), {"mean": 3})
         self.assertEqual(p.has_statistic("pippo", "mean"), True)
         self.assertEqual(p.has_statistic("pippo", "max"), False)
-        self.assertListEqual(p.attribute_computed_statistics('pippo'), ['mean'])
+        self.assertListEqual(p.attribute_computed_statistics("pippo"), ["mean"])

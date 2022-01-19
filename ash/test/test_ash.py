@@ -227,6 +227,15 @@ class ASHTestCase(unittest.TestCase):
         a.add_node(4, start=1, end=5, attr_dict=NProfile(party="R", age=45))
         a.add_hyperedge([1, 2, 3, 4], 1, 4)
 
-        self.assertEqual(a.get_hyperedge_average_node_profile('e1', 1).get_attributes(), {'age': 28.25})
-        self.assertEqual(a.get_hyperedge_average_node_profile('e1', 1).get_statistic('age', 'std'), {'std': 13.442005058770064})
-        self.assertEqual(a.get_hyperedge_most_frequent_node_attribute_value('e1', 'party', 1), {'L': 3})
+        self.assertEqual(
+            a.get_hyperedge_aggregate_node_profile("e1", 1).get_attributes(),
+            {"age": 28.25},
+        )
+        self.assertEqual(
+            a.get_hyperedge_aggregate_node_profile("e1", 1).get_statistic("age", "std"),
+            {"std": 13.442005058770064},
+        )
+        self.assertEqual(
+            a.get_hyperedge_most_frequent_node_attribute_value("e1", "party", 1),
+            {"L": 3},
+        )
