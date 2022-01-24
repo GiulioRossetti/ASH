@@ -2,7 +2,7 @@ import json
 
 
 class NProfile(object):
-    def __init__(self, **kwargs):
+    def __init__(self, node_id: int = None, **kwargs):
         """
 
         :param kwargs:
@@ -10,6 +10,7 @@ class NProfile(object):
         self.__attrs = {}
         self.add_attributes(**kwargs)
         self.__stats = {}
+        self.node_id = node_id
 
     def add_attribute(self, key: str, value: object) -> None:
         """
@@ -182,3 +183,12 @@ class NProfile(object):
         :return:
         """
         return json.dumps(self.__attrs, indent=2)
+
+    def to_dict(self) -> dict:
+        """
+
+        :return:
+        """
+        descr = {"node_id": self.node_id, "attrs": self.__attrs}
+
+        return descr

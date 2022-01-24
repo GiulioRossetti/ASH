@@ -5,7 +5,7 @@ from ash import NProfile
 class NProfileTestCase(unittest.TestCase):
     def test_profile(self):
 
-        p = NProfile()
+        p = NProfile(node_id=1)
         p.add_attribute("name", "Giulio")
         p.add_attribute("age", 37)
         p.add_attribute("opinion", 1)
@@ -24,10 +24,10 @@ class NProfileTestCase(unittest.TestCase):
 
     def test_compare(self):
 
-        p = NProfile()
+        p = NProfile(node_id=1)
         p.add_attributes(age=20, opinion=1)
 
-        p1 = NProfile()
+        p1 = NProfile(node_id=2)
         p1.add_attributes(age=19, opinion=1)
 
         self.assertEqual(p >= p1, True)
@@ -36,12 +36,12 @@ class NProfileTestCase(unittest.TestCase):
         self.assertEqual(p != p1, True)
 
     def test_creation(self):
-        p = NProfile(age=20, opinion=1)
+        p = NProfile(node_id=1, age=20, opinion=1)
         self.assertEqual(p.has_attribute("age"), True)
         self.assertEqual(p.has_attribute("opinion"), True)
 
     def test_statistic(self):
-        p = NProfile(pippo="pippo")
+        p = NProfile(node_id=1, pippo="pippo")
         p.add_statistic("pippo", "mean", 3)
         self.assertDictEqual(p.get_statistic("pippo", "mean"), {"mean": 3})
         self.assertDictEqual(p.get_statistic("pippo"), {"mean": 3})

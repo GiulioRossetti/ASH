@@ -121,7 +121,7 @@ def from_networkx_graph(nx_graph: nx.Graph, start: int, end: int = None) -> ASH:
             node,
             start=start,
             end=end,
-            attr_dict=NProfile(**copy.copy(nx_graph.nodes[node])),
+            attr_dict=NProfile(node, **copy.copy(nx_graph.nodes[node])),
         )
 
     for edge in nx_graph.edges():

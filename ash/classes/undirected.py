@@ -1,4 +1,5 @@
 import numpy as np
+import json
 from halp.undirected_hypergraph import UndirectedHypergraph
 from collections import defaultdict, Counter
 from itertools import combinations
@@ -89,9 +90,14 @@ class ASH(object):
 
         head = None
         for i in range(start[0], start[1] + 1):
+            if attr_dict is None:
+                continue
             for key, v in attr_dict.items():
                 if key in old_attrs and key != "t":
-                    old_attrs[key][i] = head
+                    if head is not None:
+                        old_attrs[key][i] = head
+                    else:
+                        old_attrs[key][i] = v
                 else:
                     old_attrs[key] = {i: v}
                     head = f"t_{i}"
@@ -144,11 +150,11 @@ class ASH(object):
             for key, l in attrs.items():
                 if key != "t":
                     for tid, value in l.items():
-                        if "t_" in value:
+                        if isinstance(value, str) and "t_" in value:
                             base_tid = int(value[2:])
                             attrs[key][tid] = l[base_tid]
 
-            return NProfile(**attrs)
+            return NProfile(node, **attrs)
         else:
             res = {}
             attrs = self.H.get_node_attributes(node)
@@ -158,7 +164,7 @@ class ASH(object):
                     if isinstance(l[tid], str) and "t_" in l[tid]:
                         base_tid = int(l[tid][2:])
                         res[key] = l[base_tid]
-        return NProfile(**res)
+        return NProfile(node, **res)
 
     def get_node_attribute(
         self, node: int, attribute_name: str, tid: int = None
@@ -357,6 +363,7 @@ class ASH(object):
         for spans in tids.values():
             for span in spans:
                 snaps.extend(range(span[0], span[1] + 1))
+        snaps = sorted(list(set(snaps)))
         return snaps
 
     def coverage(self) -> float:
@@ -678,7 +685,7 @@ class ASH(object):
         :return:
         """
         nodes = self.get_hyperedge_nodes(hyperedge_id)
-        avg_profile = NProfile()
+        avg_profile = NProfile(None)
         res = defaultdict(list)
         for node in nodes:
             profile = self.get_node_profile(node, tid=tid)
@@ -816,3 +823,26 @@ class ASH(object):
                     dist[len(self.get_hyperedge_nodes(he))] += 1
 
         return dist
+
+    def __str__(self) -> str:
+        """
+
+        :return:
+        """
+        return json.dumps(self.to_dict(), indent=2)
+
+    def to_dict(self) -> dict:
+        """
+
+        :return:
+        """
+        descr = {"nodes": {}, 'hedges': {}}
+
+        for hedge in self.hyperedge_id_iterator():
+            e = self.get_hyperedge_attributes(hedge)
+            descr['hedges'][hedge] = e
+
+        for node in self.node_iterator():
+            npr = self.get_node_profile(node)
+            descr['nodes'][node] = npr.get_attributes()
+        return descr

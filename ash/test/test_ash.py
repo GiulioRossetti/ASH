@@ -1,4 +1,5 @@
 import unittest
+import json
 from ash import ASH, NProfile
 
 
@@ -8,7 +9,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_node(1, start=0, end=2, attr_dict={"label": "A"})
         self.assertEqual(a.has_node(1), True)
 
-        a.add_node(2, start=4, end=10, attr_dict=NProfile(name="Giulio"))
+        a.add_node(2, start=4, end=10, attr_dict=NProfile(2, name="Giulio"))
         self.assertEqual(a.has_node(2), True)
 
     def test_add_nodes(self):
@@ -53,16 +54,38 @@ class ASHTestCase(unittest.TestCase):
 
         attr = a.get_node_profile(1)
         self.assertEqual(
-            attr, NProfile(**{"t": [[0, 2]], "label": {0: "A", 1: "A", 2: "A"}})
+            attr, NProfile(1, **{"t": [[0, 2]], "label": {0: "A", 1: "A", 2: "A"}})
         )
         attr = a.get_node_profile(1, tid=0)
-        self.assertEqual(attr, NProfile(**{"label": "A"}))
+        self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
         label = a.get_node_attribute(1, attribute_name="label")
         self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
 
         label = a.get_node_attribute(1, attribute_name="label", tid=0)
         self.assertEqual(label, "A")
+
+    def test_node_profiles(self):
+        a = ASH(hedge_removal=True)
+        a.add_node(1, start=0, end=2, attr_dict=NProfile(1, label="A"))
+
+        attr = a.get_node_profile(1)
+        self.assertEqual(
+            attr, NProfile(1, **{"t": [[0, 2]], "label": {0: "A", 1: "A", 2: "A"}})
+        )
+        attr = a.get_node_profile(1, tid=0)
+        self.assertEqual(attr, NProfile(1, **{"label": "A"}))
+
+        label = a.get_node_attribute(1, attribute_name="label")
+        self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
+
+        label = a.get_node_attribute(1, attribute_name="label", tid=0)
+        self.assertEqual(label, "A")
+
+        a.add_node(1, start=3, end=4, attr_dict=NProfile(1, label="B"))
+        attr = a.get_node_profile(1, 3)
+        self.assertEqual(attr, NProfile(1, **{"label": "B"}))
+
 
     def test_node_set(self):
         a = ASH(hedge_removal=True)
@@ -221,10 +244,10 @@ class ASHTestCase(unittest.TestCase):
 
     def test_profiles(self):
         a = ASH(hedge_removal=True)
-        a.add_node(1, start=1, end=5, attr_dict=NProfile(party="L", age=37))
-        a.add_node(2, start=1, end=5, attr_dict=NProfile(party="L", age=20))
-        a.add_node(3, start=1, end=5, attr_dict=NProfile(party="L", age=11))
-        a.add_node(4, start=1, end=5, attr_dict=NProfile(party="R", age=45))
+        a.add_node(1, start=1, end=5, attr_dict=NProfile(1, party="L", age=37))
+        a.add_node(2, start=1, end=5, attr_dict=NProfile(2, party="L", age=20))
+        a.add_node(3, start=1, end=5, attr_dict=NProfile(3, party="L", age=11))
+        a.add_node(4, start=1, end=5, attr_dict=NProfile(4, party="R", age=45))
         a.add_hyperedge([1, 2, 3, 4], 1, 4)
 
         self.assertEqual(
@@ -239,3 +262,20 @@ class ASHTestCase(unittest.TestCase):
             a.get_hyperedge_most_frequent_node_attribute_value("e1", "party", 1),
             {"L": 3},
         )
+
+    def test_str(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([1, 2, 3, 4], 0)
+        a.add_hyperedge([1, 3, 4], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
+        a.add_node(2, start=0, end=1, attr_dict=NProfile(node_id=2, party="L", age=20))
+        a.add_node(3, start=0, end=1, attr_dict=NProfile(node_id=3, party="L", age=11))
+        a.add_node(4, start=0, end=1, attr_dict=NProfile(node_id=4, party="R", age=45))
+
+        res = a.__str__()
+        obj = json.loads(res)
+        self.assertEqual(list(obj.keys()), ['nodes', 'hedges'])
