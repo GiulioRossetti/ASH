@@ -711,17 +711,17 @@ class ASH(object):
         :return:
         """
         nodes = self.get_hyperedge_nodes(hyperedge_id)
-        res = defaultdict(list)
+        app = defaultdict(list)
         for node in nodes:
             profile = self.get_node_profile(node, tid=tid)
             value = profile.get_attribute(attribute)
             if isinstance(value, str):
-                res[attribute].append(value)
+                app[attribute].append(value)
 
-        count = Counter(res[attribute])
+        count = Counter(app[attribute])
         count = count.most_common(1)[0]
-        del res["party"]
-        res[count[0]] = count[1]
+
+        res = {count[0] : count[1]}
 
         return res
 
