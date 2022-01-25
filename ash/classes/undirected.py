@@ -797,6 +797,8 @@ class ASH(object):
     def line_graph(self, start: int = None, end: int = None) -> object:
         """
 
+        :param start:
+        :param end:
         :return:
         """
         node_to_edges = defaultdict(list)
@@ -811,5 +813,24 @@ class ASH(object):
                 for e in combinations(edges, 2):
                     if not g.has_edge(e[0], e[1]):
                         g.add_edge(e[0], e[1])
+
+        return g
+
+    def bipartite_projection(self, start: int = None, end: int = None) -> object:
+        """
+
+        :param start:
+        :param end:
+        :return:
+        """
+
+        g = nx.Graph()
+        for he in self.hyperedge_id_iterator(start=start, end=end):
+            g.add_node(he, bipartite=1)
+            nodes = self.get_hyperedge_nodes(he)
+            for node in nodes:
+                if not g.has_node(node):
+                    g.add_node(node, bipartite=0)
+                g.add_edge(node, he)
 
         return g

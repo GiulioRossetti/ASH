@@ -1,6 +1,7 @@
 import unittest
 import json
 import networkx as nx
+from networkx.algorithms import bipartite
 from ash import ASH, NProfile
 
 
@@ -279,3 +280,17 @@ class ASHTestCase(unittest.TestCase):
         eds = sorted([('e1', 'e2'), ('e1', 'e3'), ('e2', 'e3')])
 
         self.assertListEqual(sorted(list(g.edges())), eds)
+
+    def test_bipartite(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        g = a.bipartite_projection()
+        self.assertEqual(bipartite.is_bipartite(g), True)
+
+        g = a.bipartite_projection(start=0, end=0)
+        self.assertEqual(bipartite.is_bipartite(g), True)
