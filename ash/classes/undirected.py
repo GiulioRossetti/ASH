@@ -854,3 +854,55 @@ class ASH(object):
 
         return b
 
+    def adjacency(self, node_set: set, start: int = None, end: int = None) -> int:
+        """
+
+        :param node_set:
+        :param start:
+        :param end:
+        :return:
+        """
+        count = 0
+        for he in self.hyperedge_id_iterator(start=start, end=end):
+            nodes = self.get_hyperedge_nodes(he)
+            inc = set(nodes) & set(node_set)
+            if len(inc) == len(node_set):
+                count += 1
+        return count
+
+    def incidence(self, edge_set: set, start: int = None, end: int = None) -> int:
+        """
+
+        :param edge_set:
+        :param start:
+        :param end:
+        :return:
+        """
+
+        first = True
+        if end is None:
+            end = start
+
+        res = set()
+        for he in edge_set:
+            nodes = self.get_hyperedge_nodes(he)
+            filtered_nodes = []
+            if start is None:
+                for node in nodes:
+                    if self.has_node(node):
+                        filtered_nodes.append(node)
+                filtered_nodes = list(set(filtered_nodes))
+            else:
+                for tid in range(start, end+1):
+                    for node in nodes:
+                        if self.has_node(node, tid):
+                            filtered_nodes.append(node)
+                    filtered_nodes = list(set(filtered_nodes))
+
+            if first:
+                first = False
+                res = set(filtered_nodes)
+            else:
+                res = set(filtered_nodes) & res
+
+        return len(res)

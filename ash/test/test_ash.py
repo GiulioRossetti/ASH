@@ -308,3 +308,25 @@ class ASHTestCase(unittest.TestCase):
 
         g = a.dual_hypergraph(start=0, end=0)
         self.assertEqual(g.get_number_of_nodes(), 3)
+
+    def test_incidence(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        self.assertEqual(a.incidence(['e1', 'e2']), 1)
+        self.assertEqual(a.incidence(['e1', 'e3'], start=0, end=0), 2)
+
+    def test_adjacency(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        self.assertEqual(a.adjacency([1, 3]), 2)
+        self.assertEqual(a.adjacency([1, 3], start=0, end=0), 1)
