@@ -294,3 +294,17 @@ class ASHTestCase(unittest.TestCase):
 
         g = a.bipartite_projection(start=0, end=0)
         self.assertEqual(bipartite.is_bipartite(g), True)
+
+    def test_dual(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        g = a.dual_hypergraph()
+        self.assertEqual(g.get_number_of_nodes(), 5)
+
+        g = a.dual_hypergraph(start=0, end=0)
+        self.assertEqual(g.get_number_of_nodes(), 3)

@@ -834,3 +834,23 @@ class ASH(object):
                 g.add_edge(node, he)
 
         return g
+
+    def dual_hypergraph(self, start: int = None, end: int = None) -> object:
+        """
+
+        :param start:
+        :param end:
+        :return:
+        """
+        b = ASH(hedge_removal=True)
+        node_to_edges = defaultdict(list)
+        for he in self.hyperedge_id_iterator(start=start, end=end):
+            nodes = self.get_hyperedge_nodes(he)
+            for node in nodes:
+                node_to_edges[node].append(he)
+
+        for edges in node_to_edges.values():
+            b.add_hyperedge(edges, 0)
+
+        return b
+

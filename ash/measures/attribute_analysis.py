@@ -40,6 +40,7 @@ def hyperedge_most_frequent_node_attribute_value(
 ) -> dict:
     """
 
+        :param h:
         :param hyperedge_id:
         :param attribute:
         :param tid:
@@ -67,8 +68,9 @@ def hyperedge_aggregate_node_profile(
     """
 
         :return:
-        :param tid:
+        :param h:
         :param hyperedge_id:
+        :param tid:
         :param agg_function:
         :return:
         """
