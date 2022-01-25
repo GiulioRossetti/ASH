@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 import json
 from halp.undirected_hypergraph import UndirectedHypergraph
 from collections import defaultdict
@@ -790,3 +791,25 @@ class ASH(object):
             npr = self.get_node_profile(node)
             descr["nodes"][node] = npr.get_attributes()
         return descr
+
+    # Transform
+
+    def line_graph(self, start: int = None, end: int = None) -> object:
+        """
+
+        :return:
+        """
+        node_to_edges = defaultdict(list)
+        for he in self.hyperedge_id_iterator(start=start, end=end):
+            nodes = self.get_hyperedge_nodes(he)
+            for node in nodes:
+                node_to_edges[node].append(he)
+
+        g = nx.Graph()
+        for edges in node_to_edges.values():
+            if len(edges) > 0:
+                for e in combinations(edges, 2):
+                    if not g.has_edge(e[0], e[1]):
+                        g.add_edge(e[0], e[1])
+
+        return g

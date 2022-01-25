@@ -1,5 +1,6 @@
 import unittest
 import json
+import networkx as nx
 from ash import ASH, NProfile
 
 
@@ -257,3 +258,24 @@ class ASHTestCase(unittest.TestCase):
         res = a.__str__()
         obj = json.loads(res)
         self.assertEqual(list(obj.keys()), ["nodes", "hedges"])
+
+    def test_line_graph(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        g = a.line_graph()
+
+        eds = sorted([('e1', 'e2'), ('e1', 'e4'), ('e1', 'e3'), ('e1', 'e5'), ('e2', 'e3'),
+                      ('e2', 'e4'), ('e2', 'e5'), ('e3', 'e5'), ('e4', 'e3'), ('e4', 'e5')])
+
+        self.assertListEqual(sorted(list(g.edges())), eds)
+
+        g = a.line_graph(start=0, end=0)
+
+        eds = sorted([('e1', 'e2'), ('e1', 'e3'), ('e2', 'e3')])
+
+        self.assertListEqual(sorted(list(g.edges())), eds)
