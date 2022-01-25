@@ -1,10 +1,9 @@
 import numpy as np
 import json
 from halp.undirected_hypergraph import UndirectedHypergraph
-from collections import defaultdict, Counter
+from collections import defaultdict
 from itertools import combinations
 from .node_profile import NProfile
-from collections.abc import Callable
 
 
 class ASH(object):
@@ -670,61 +669,6 @@ class ASH(object):
             count += len(range(span[0], span[1] + 1))
         return count / len(self.snapshots)
 
-    def get_hyperedge_aggregate_node_profile(
-        self,
-        hyperedge_id: str,
-        tid: int,
-        agg_function: Callable[[list], float] = np.mean,
-    ) -> NProfile:
-        """
-
-        :return:
-        :param tid:
-        :param hyperedge_id:
-        :param agg_function:
-        :return:
-        """
-        nodes = self.get_hyperedge_nodes(hyperedge_id)
-        avg_profile = NProfile(None)
-        res = defaultdict(list)
-        for node in nodes:
-            profile = self.get_node_profile(node, tid=tid)
-
-            for key, value in profile.items():
-                if not isinstance(value, str):
-                    res[key].append(value)
-
-        for key, value in res.items():
-            avg_profile.add_attribute(key, agg_function(value))
-            avg_profile.add_statistic(key, "std", np.std(value))
-
-        return avg_profile
-
-    def get_hyperedge_most_frequent_node_attribute_value(
-        self, hyperedge_id: str, attribute: str, tid: int
-    ) -> dict:
-        """
-
-        :param hyperedge_id:
-        :param attribute:
-        :param tid:
-        :return:
-        """
-        nodes = self.get_hyperedge_nodes(hyperedge_id)
-        app = defaultdict(list)
-        for node in nodes:
-            profile = self.get_node_profile(node, tid=tid)
-            value = profile.get_attribute(attribute)
-            if isinstance(value, str):
-                app[attribute].append(value)
-
-        count = Counter(app[attribute])
-        count = count.most_common(1)[0]
-
-        res = {count[0] : count[1]}
-
-        return res
-
     # Slices
 
     def hypergraph_temporal_slice(self, start: int, end: int = None) -> object:
@@ -836,13 +780,13 @@ class ASH(object):
 
         :return:
         """
-        descr = {"nodes": {}, 'hedges': {}}
+        descr = {"nodes": {}, "hedges": {}}
 
         for hedge in self.hyperedge_id_iterator():
             e = self.get_hyperedge_attributes(hedge)
-            descr['hedges'][hedge] = e
+            descr["hedges"][hedge] = e
 
         for node in self.node_iterator():
             npr = self.get_node_profile(node)
-            descr['nodes'][node] = npr.get_attributes()
+            descr["nodes"][node] = npr.get_attributes()
         return descr

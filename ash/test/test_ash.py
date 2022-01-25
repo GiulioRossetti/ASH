@@ -86,7 +86,6 @@ class ASHTestCase(unittest.TestCase):
         attr = a.get_node_profile(1, 3)
         self.assertEqual(attr, NProfile(1, **{"label": "B"}))
 
-
     def test_node_set(self):
         a = ASH(hedge_removal=True)
         a.add_node(1, start=0, end=0, attr_dict={"label": "A"})
@@ -242,27 +241,6 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.get_star(1, tid=0), {"e1", "e3", "e4"})
         self.assertEqual(a.get_star(1, tid=0, hyperedge_size=4), {"e4"})
 
-    def test_profiles(self):
-        a = ASH(hedge_removal=True)
-        a.add_node(1, start=1, end=5, attr_dict=NProfile(1, party="L", age=37))
-        a.add_node(2, start=1, end=5, attr_dict=NProfile(2, party="L", age=20))
-        a.add_node(3, start=1, end=5, attr_dict=NProfile(3, party="L", age=11))
-        a.add_node(4, start=1, end=5, attr_dict=NProfile(4, party="R", age=45))
-        a.add_hyperedge([1, 2, 3, 4], 1, 4)
-
-        self.assertEqual(
-            a.get_hyperedge_aggregate_node_profile("e1", 1).get_attributes(),
-            {"age": 28.25},
-        )
-        self.assertEqual(
-            a.get_hyperedge_aggregate_node_profile("e1", 1).get_statistic("age", "std"),
-            {"std": 13.442005058770064},
-        )
-        self.assertEqual(
-            a.get_hyperedge_most_frequent_node_attribute_value("e1", "party", 1),
-            {"L": 3},
-        )
-
     def test_str(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0)
@@ -278,4 +256,4 @@ class ASHTestCase(unittest.TestCase):
 
         res = a.__str__()
         obj = json.loads(res)
-        self.assertEqual(list(obj.keys()), ['nodes', 'hedges'])
+        self.assertEqual(list(obj.keys()), ["nodes", "hedges"])

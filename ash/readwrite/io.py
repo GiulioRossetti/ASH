@@ -4,18 +4,20 @@ import gzip
 
 
 __all__ = [
-    'write_profiles_to_csv',
-    'read_profiles_from_csv',
-    'write_profiles_to_jsonl',
-    'read_profiles_from_jsonl',
-    'write_sh_to_csv',
-    'read_sh_from_csv',
-    'write_ash_to_json',
-    'read_ash_from_json'
+    "write_profiles_to_csv",
+    "read_profiles_from_csv",
+    "write_profiles_to_jsonl",
+    "read_profiles_from_jsonl",
+    "write_sh_to_csv",
+    "read_sh_from_csv",
+    "write_ash_to_json",
+    "read_ash_from_json",
 ]
 
 
-def __write_profile_to_csv(h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False) -> None:
+def __write_profile_to_csv(
+    h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
+) -> None:
     """
 
     :param h:
@@ -88,7 +90,9 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
     return res
 
 
-def __write_profile_to_json(profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False) -> None:
+def __write_profile_to_json(
+    profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
+) -> None:
     """
 
     :param profile:
@@ -99,7 +103,7 @@ def __write_profile_to_json(profile: NProfile, tid: int, path: str, compress: bo
     """
 
     js_dmp = profile.to_dict()
-    js_dmp['t'] = tid
+    js_dmp["t"] = tid
 
     if compress:
         op = gzip.open
@@ -145,10 +149,12 @@ def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
         for l in f:
             rep = json.loads(l)
 
-            if rep['node_id'] not in res:
-                res[rep['node_id']] = {rep['t']: NProfile(rep['node_id'], **rep['attrs'])}
+            if rep["node_id"] not in res:
+                res[rep["node_id"]] = {
+                    rep["t"]: NProfile(rep["node_id"], **rep["attrs"])
+                }
             else:
-                res[rep['node_id']][rep['t']] = NProfile(rep['node_id'], **rep['attrs'])
+                res[rep["node_id"]][rep["t"]] = NProfile(rep["node_id"], **rep["attrs"])
 
     return res
 
@@ -164,8 +170,8 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
         o.write("nodes\tstart,end\n")
         for he in h.hyperedge_id_iterator():
             attrs = h.get_hyperedge_attributes(he)
-            for span in attrs['t']:
-                nodes = [str(n) for n in attrs['nodes']]
+            for span in attrs["t"]:
+                nodes = [str(n) for n in attrs["nodes"]]
                 desc = ",".join(nodes)
                 desc = f"{desc}\t{span[0]},{span[1]}\n"
                 o.write(desc)
@@ -227,15 +233,15 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     with op(path, "rt") as f:
         data = json.loads(f.read())
 
-    for _, v in data['hedges'].items():
-        nodes = v['nodes']
-        spans = v['t']
+    for _, v in data["hedges"].items():
+        nodes = v["nodes"]
+        spans = v["t"]
         for span in spans:
             h.add_hyperedge(nodes, start=span[0], end=span[1])
 
-    for nid, attrs in data['nodes'].items():
+    for nid, attrs in data["nodes"].items():
         nid = int(nid)
-        spans = attrs['t']
+        spans = attrs["t"]
         for span in spans:
             h.add_node(nid, span[0], span[1])
 
