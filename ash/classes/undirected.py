@@ -869,7 +869,7 @@ class ASH(object):
 
         node_to_eid = {}
         for node, edges in node_to_edges.items():
-            b.add_hyperedge(edges, 0, end=None, **{'name': node})
+            b.add_hyperedge(edges, 0, end=None, **{"name": node})
             eid = b.get_hyperedge_id(edges)
             node_to_eid[node] = eid
 
@@ -914,7 +914,7 @@ class ASH(object):
                         filtered_nodes.append(node)
                 filtered_nodes = list(set(filtered_nodes))
             else:
-                for tid in range(start, end+1):
+                for tid in range(start, end + 1):
                     for node in nodes:
                         if self.has_node(node, tid):
                             filtered_nodes.append(node)
