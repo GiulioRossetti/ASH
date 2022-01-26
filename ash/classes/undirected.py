@@ -321,6 +321,21 @@ class ASH(object):
             distr[len(nodes)] += 1
         return distr
 
+    def get_s_degree(self, node: int, s: int, tid: int = None) -> int:
+        """
+
+        :param node:
+        :param s:
+        :param tid:
+        :return:
+        """
+        degs = self.get_degree_by_hyperedge_size(node, tid)
+        res = 0
+        for k, v in degs.items():
+            if k >= s:
+                res += v
+        return res
+
     def has_node(self, node: int, tid: int = None) -> bool:
         """
 
@@ -416,7 +431,7 @@ class ASH(object):
 
     ## Hyperedges
 
-    def add_hyperedge(self, nodes: list, start: int, end: int = None) -> None:
+    def add_hyperedge(self, nodes: list, start: int, end: int = None, **attrs) -> None:
         """
 
         :param nodes:
@@ -444,6 +459,9 @@ class ASH(object):
         if not self.H.has_hyperedge(nodes):  # new hyperedge
 
             presence = {"t": [start]}  # : attr_dict}}
+            for k, v in attrs.items():
+                presence[k] = v
+
             self.H.add_hyperedge(nodes, attr_dict=presence)
 
         else:  # update existing one
@@ -835,7 +853,7 @@ class ASH(object):
 
         return g
 
-    def dual_hypergraph(self, start: int = None, end: int = None) -> object:
+    def dual_hypergraph(self, start: int = None, end: int = None) -> tuple:
         """
 
         :param start:
@@ -849,10 +867,13 @@ class ASH(object):
             for node in nodes:
                 node_to_edges[node].append(he)
 
-        for edges in node_to_edges.values():
-            b.add_hyperedge(edges, 0)
+        node_to_eid = {}
+        for node, edges in node_to_edges.items():
+            b.add_hyperedge(edges, 0, end=None, **{'name': node})
+            eid = b.get_hyperedge_id(edges)
+            node_to_eid[node] = eid
 
-        return b
+        return b, node_to_eid
 
     def adjacency(self, node_set: set, start: int = None, end: int = None) -> int:
         """

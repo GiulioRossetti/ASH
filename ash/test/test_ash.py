@@ -229,6 +229,9 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.get_degree_by_hyperedge_size(1), {3: 3, 4: 1})
         self.assertEqual(a.get_degree_by_hyperedge_size(1, tid=1), {3: 1})
 
+        self.assertEqual(a.get_s_degree(1, 4), 1)
+        self.assertEqual(a.get_s_degree(1, 4, 0), 1)
+
     def test_star(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0)
@@ -303,10 +306,10 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 3], 1)
         a.add_hyperedge([3, 4], 1)
 
-        g = a.dual_hypergraph()
+        g, _ = a.dual_hypergraph()
         self.assertEqual(g.get_number_of_nodes(), 5)
 
-        g = a.dual_hypergraph(start=0, end=0)
+        g, _ = a.dual_hypergraph(start=0, end=0)
         self.assertEqual(g.get_number_of_nodes(), 3)
 
     def test_incidence(self):
