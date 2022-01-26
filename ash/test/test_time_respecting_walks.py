@@ -33,6 +33,3 @@ class TimeRespectingWalksCase(unittest.TestCase):
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 2)
 
-
-if __name__ == '__main__':
-    unittest.main()

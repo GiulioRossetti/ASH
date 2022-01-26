@@ -973,7 +973,6 @@ class ASH(object):
 
     def get_s_incident(self, hyperedge_id: str, s: int, start: int = None, end: int = None) -> list:
         """
-        @todo testcase
 
         :param hyperedge_id:
         :param s:
