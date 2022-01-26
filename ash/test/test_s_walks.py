@@ -204,7 +204,7 @@ class SWalksCase(unittest.TestCase):
         self.assertEqual(has_node_s_walk(a, 2, 1, 2), True)
         self.assertEqual(has_node_s_walk(a, 8, 1, 2), False)
         self.assertEqual(has_node_s_walk(a, 2, 1, 2, start=0, end=0), True)
-        self.assertEqual(has_node_s_walk(a, 2, 2, 4, start=1, end=1), False)
+        self.assertEqual(has_node_s_walk(a, 2, 1, 4, start=1, end=1), False)
 
     def test_node_diameter(self):
         a = self.get_hypergraph()

@@ -45,7 +45,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([3, 4, 5, 12], 1)
 
         self.assertDictEqual(a.node_degree_distribution(), {4: 2, 3: 2, 1: 7, 2: 1})
-        self.assertDictEqual(a.node_degree_distribution(start=0), {3: 1, 1: 7, 2: 1})
+        self.assertDictEqual(a.node_degree_distribution(start=0), {1: 7, 0: 3, 3: 1, 2: 1})
         self.assertDictEqual(
             a.node_degree_distribution(start=0, end=1), {4: 2, 3: 2, 1: 7, 2: 1}
         )
@@ -192,11 +192,15 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 2, 5], 5, 10)
         a.add_hyperedge([3, 4, 5], 3, 4)
 
-        b = a.hypergraph_temporal_slice(0)
+        b, old_to_new = a.hypergraph_temporal_slice(0)
+        self.assertIsInstance(b, ASH)
+        self.assertEqual(b.get_node_set(), {1, 2, 3, 4, 5})
+
+        b, old_to_new = a.hypergraph_temporal_slice(0, 0)
         self.assertIsInstance(b, ASH)
         self.assertEqual(b.get_node_set(), {1, 2, 3})
 
-        c = a.hypergraph_temporal_slice(5, 7)
+        c, old_to_new = a.hypergraph_temporal_slice(5, 7)
         self.assertIsInstance(c, ASH)
         self.assertEqual(c.get_node_set(), {1, 2, 3, 5})
 
@@ -292,9 +296,10 @@ class ASHTestCase(unittest.TestCase):
 
         g = a.line_graph(start=0, end=0)
 
-        eds = sorted([("e1", "e2"), ("e1", "e3"), ("e2", "e3")])
+        eds = sorted([('e1', 'e2'), ('e1', 'e3'), ('e2', 'e3')])
+        res = sorted([tuple(sorted(i)) for i in list(g.edges())])
 
-        self.assertListEqual(sorted(list(g.edges())), eds)
+        self.assertListEqual(res, eds)
 
     def test_bipartite(self):
         a = ASH(hedge_removal=True)
@@ -345,3 +350,27 @@ class ASHTestCase(unittest.TestCase):
 
         self.assertEqual(a.adjacency([1, 3]), 2)
         self.assertEqual(a.adjacency([1, 3], start=0, end=0), 1)
+
+    def test_s_incidente(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([1, 2, 4], 0)
+
+        self.assertEqual(a.get_s_incident('e1', s=1), ['e2', 'e3'])
+        self.assertEqual(a.get_s_incident('e1', s=2), ['e3'])
+        self.assertEqual(a.get_s_incident('e1', s=3), [])
+
+    def test_hyperedge_id_iterator(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0, 1)
+        a.add_hyperedge([1, 4], 0, 2)
+        a.add_hyperedge([1, 2, 4], 2, 3)
+
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator())), ['e1', 'e2', 'e3'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0))), ['e1', 'e2', 'e3'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=2))), ['e2', 'e3'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3))), ['e3'])
+
+        #self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0, end=1))), ['e1', 'e2'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3, end=3))), ['e3'])

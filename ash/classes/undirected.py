@@ -364,7 +364,7 @@ class ASH(object):
         """
         if tid is None:
             return self.H.node_iterator()
-        S = self.hypergraph_temporal_slice(tid)
+        S, _ = self.hypergraph_temporal_slice(tid)
         return S.H.node_iterator()
 
     def get_node_presence(self, node: int) -> list:
@@ -423,7 +423,7 @@ class ASH(object):
                 dist[self.get_degree(node, tid=start)] += 1
 
         else:
-            S = self.hypergraph_temporal_slice(start=start, end=end)
+            S, old_to_new = self.hypergraph_temporal_slice(start=start, end=end)
             for node in S.node_iterator():
                 dist[S.get_degree(node)] += 1
 
@@ -663,8 +663,12 @@ class ASH(object):
         """
         if start is None:
             return self.H.hyperedge_id_iterator()
-        S = self.hypergraph_temporal_slice(start, end)
-        return S.H.hyperedge_id_iterator()
+        S, eid_to_new_eid = self.hypergraph_temporal_slice(start, end)
+        new_eid_to_old_eid = {v: k for k, v in eid_to_new_eid.items()}
+
+        edges = list(S.H.hyperedge_id_iterator())
+        return[new_eid_to_old_eid[e] for e in edges]
+
 
     def get_size(self, tid: int = None) -> int:
         """
@@ -690,7 +694,7 @@ class ASH(object):
 
     # Slices
 
-    def hypergraph_temporal_slice(self, start: int, end: int = None) -> object:
+    def hypergraph_temporal_slice(self, start: int, end: int = None) -> tuple:
         """
 
         :param start:
@@ -698,33 +702,62 @@ class ASH(object):
         :return:
         """
         if end is None and start in self.snapshots:
-            edges = self.snapshots[start]
+            edges = set([
+                e1
+                for obs in range(min(self.snapshots), max(self.snapshots)+1)
+                for e1 in self.snapshots.get(obs, [])
+            ])
+
         elif end is None and start not in self.snapshots:
             edges = []
         else:
-            edges = [
+            edges = set([
                 e1
-                for obs in range(start, end + 1)
+                for obs in range(min(self.snapshots), end + 1)
                 for e1 in self.snapshots.get(obs, [])
-            ]
+            ])
 
         S = ASH()
+        eid_to_new_eid = {}
         for e1 in edges:
             he = self.get_hyperedge_nodes(e1)
             e_attrs = self.get_hyperedge_attributes(e1)
             t1 = e_attrs["t"]
+
             for span in t1:
+
                 if end is not None:
                     if span[0] >= start and span[1] <= end:
                         S.add_hyperedge(he, span[0], span[1])
-                    elif span[0] >= start and span[1] >= end:
-                        S.add_hyperedge(he, span[0], end)
+                        new_eid = S.get_hyperedge_id(he)
+                        eid_to_new_eid[e1] = new_eid
+
+                    elif end >= span[0] >= start and span[1] >= end:
+                        S.add_hyperedge(he, start=span[0], end=end)
+                        new_eid = S.get_hyperedge_id(he)
+                        eid_to_new_eid[e1] = new_eid
+
+                    elif span[0] < start and span[1] >= end:
+                        S.add_hyperedge(he, start, span[1])
+                        new_eid = S.get_hyperedge_id(he)
+                        eid_to_new_eid[e1] = new_eid
+
+                    #else:
+                    #    S.add_hyperedge(he, start, end)
+                    #    new_eid = S.get_hyperedge_id(he)
+                    #    eid_to_new_eid[e1] = new_eid
+
                 else:
-                    if span[0] <= start <= span[1]:
+                    if span[0] >= start or start <= span[1]:
                         if span[0] != span[1]:
                             S.add_hyperedge(he, span[0], span[1])
+                            new_eid = S.get_hyperedge_id(he)
+                            eid_to_new_eid[e1] = new_eid
+
                         else:
                             S.add_hyperedge(he, span[0])
+                            new_eid = S.get_hyperedge_id(he)
+                            eid_to_new_eid[e1] = new_eid
 
         for n in self.get_node_set():
             attrs = self.get_node_profile(n)
@@ -737,12 +770,20 @@ class ASH(object):
                 if end is not None:
                     if span[0] >= start and span[1] <= end:
                         S.add_node(n, span[0], span[1], attr_dict=attrs)
-                    if span[0] >= start and span[1] >= end:
+                    elif end >= span[0] >= start and span[1] >= end:
                         S.add_node(n, span[0], end, attr_dict=attrs)
+                    elif span[0] < start and span[1] >= end:
+                        S.add_node(n, start, span[1], attr_dict=attrs)
+
                 else:
                     if span[0] <= start <= span[1]:
-                        S.add_node(n, span[0], span[1], attr_dict=attrs)
-        return S
+                        if span[0] != span[1]:
+                            S.add_node(n, span[0], span[1], attr_dict=attrs)
+
+                        else:
+                            S.add_node(n, span[0], attr_dict=attrs)
+
+        return S, eid_to_new_eid
 
     def uniformity(self) -> float:
         """
@@ -884,7 +925,9 @@ class ASH(object):
         :return:
         """
         count = 0
+
         for he in self.hyperedge_id_iterator(start=start, end=end):
+
             nodes = self.get_hyperedge_nodes(he)
             inc = set(nodes) & set(node_set)
             if len(inc) == len(node_set):
@@ -927,3 +970,25 @@ class ASH(object):
                 res = set(filtered_nodes) & res
 
         return len(res)
+
+    def get_s_incident(self, hyperedge_id: str, s: int, start: int = None, end: int = None) -> list:
+        """
+        @todo testcase
+
+        :param hyperedge_id:
+        :param s:
+        :param start:
+        :param end:
+        :return:
+        """
+
+        res = []
+        nodes = set(self.get_hyperedge_nodes(hyperedge_id))
+        for he in self.hyperedge_id_iterator(start=start, end=end):
+            if he != hyperedge_id:
+                he_nodes = set(self.get_hyperedge_nodes(he))
+                incident = len(nodes & he_nodes)
+                if incident >= s:
+                    res.append(he)
+
+        return res
