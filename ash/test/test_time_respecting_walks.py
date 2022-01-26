@@ -33,3 +33,33 @@ class TimeRespectingWalksCase(unittest.TestCase):
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 2)
 
+    def test_time_respecting_s_walks(self):
+        a = self.get_hypergraph()
+        pts = time_respecting_s_walks(a, 1, "e1", "e5")
+
+        for p in pts:
+            self.assertIsInstance(p, tuple)
+
+        self.assertEqual(len(time_respecting_s_walks(a, 1, "e1", "e5", start=4, end=4)), 1)
+
+        pts = time_respecting_s_walks(a, 1, "e1", "e5", sample=0.5)
+
+        for p in pts:
+            self.assertIsInstance(p, tuple)
+
+    def test_all_time_respecting_paths(self):
+        a = self.get_hypergraph()
+        pts = all_time_respecting_s_walks(a, s=1)
+
+        for p in pts:
+            self.assertIsInstance(p, tuple)
+
+    def test_annotated_paths(self):
+        a = self.get_hypergraph()
+        pts = all_time_respecting_s_walks(a, s=1)
+
+        for _, ap in pts.items():
+            v = annotate_walks(ap)
+            for k, i in v.items():
+                self.assertIn(k, ['shortest', 'fastest', 'foremost', 'fastest_shortest', 'shortest_fastest'])
+                self.assertIsInstance(i, list)

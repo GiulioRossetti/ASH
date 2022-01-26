@@ -7,7 +7,14 @@ import numpy as np
 import copy
 
 
-def temporal_s_dag(h: ASH, s: int, hyperedge_from: str, hyperedge_to: str = None, start: int = None, end: int = None) -> nx.DiGraph:
+def temporal_s_dag(
+    h: ASH,
+    s: int,
+    hyperedge_from: str,
+    hyperedge_to: str = None,
+    start: int = None,
+    end: int = None,
+) -> nx.DiGraph:
     """
 
     :param h:
@@ -30,13 +37,15 @@ def temporal_s_dag(h: ASH, s: int, hyperedge_from: str, hyperedge_to: str = None
         start = ids[0]
 
     if start < min(ids) or start > end or end > max(ids) or start > max(ids):
-        raise ValueError(f"The specified interval {[start, end]} is not a proper subset of the network timestamps "
-                         f"{[min(ids), max(ids)]}.")
+        raise ValueError(
+            f"The specified interval {[start, end]} is not a proper subset of the network timestamps "
+            f"{[min(ids), max(ids)]}."
+        )
 
     # adjusting temporal window
     start = list([i >= start for i in ids]).index(True)
     end = end if end == ids[-1] else list([i >= end for i in ids]).index(True)
-    ids = ids[start:end+1]
+    ids = ids[start : end + 1]
 
     # creating empty DAG
     DG = nx.DiGraph()
@@ -53,7 +62,12 @@ def temporal_s_dag(h: ASH, s: int, hyperedge_from: str, hyperedge_to: str = None
             if not h.has_hyperedge_id(str(an).split("_")[0], tid=tid):
                 continue
 
-            neighbors = {f"{n}_{tid}": None for n in h.get_s_incident(str(an).split("_")[0], s=s, start=tid, end=tid)}
+            neighbors = {
+                f"{n}_{tid}": None
+                for n in h.get_s_incident(
+                    str(an).split("_")[0], s=s, start=tid, end=tid
+                )
+            }
 
             if hyperedge_to is not None:
                 if f"{hyperedge_to}_{tid}" in neighbors:
@@ -66,7 +80,7 @@ def temporal_s_dag(h: ASH, s: int, hyperedge_from: str, hyperedge_to: str = None
                 to_remove.append(an)
 
             for n in neighbors:
-                if '_' not in an:
+                if "_" not in an:
                     an = f"{an}_{tid}"
                     sources[an] = None
 
@@ -82,3 +96,171 @@ def temporal_s_dag(h: ASH, s: int, hyperedge_from: str, hyperedge_to: str = None
     targets = [t for t in targets if t.split("_")[0] != hyperedge_from]
 
     return DG, list(sources), list(targets)
+
+
+def time_respecting_s_walks(
+    h: ASH,
+    s: int,
+    hyperedge_from: str,
+    hyperedge_to: str = None,
+    start: int = None,
+    end: int = None,
+    sample: float = 1,
+) -> dict:
+    """
+
+    :param h:
+    :param s:
+    :param hyperedge_from:
+    :param hyperedge_to:
+    :param start:
+    :param end:
+    :param sample:
+    :return:
+    """
+
+    DAG, sources, targets = temporal_s_dag(
+        h, s, hyperedge_from, hyperedge_to, start=start, end=end
+    )
+
+    pairs = [(x, y) for x in sources for y in targets]
+
+    if sample < 1:
+        to_sample = int(len(pairs) * sample)
+        pairs_idx = np.random.choice(len(pairs), size=to_sample, replace=False)
+        pairs = np.array(pairs)[pairs_idx]
+
+    paths = []
+    for pair in pairs:
+        path = list(nx.all_simple_paths(DAG, pair[0], pair[1]))
+
+        for p in path:
+            pt = []
+            for first, second in zip(p, p[1:]):
+                hyperedge_from = first.split("_")
+                if len(hyperedge_from) == 2:
+                    hyperedge_from = hyperedge_from[0]
+                else:
+                    hyperedge_from = "_".join(hyperedge_from[0:-1])
+
+                hyperedge_to = second.split("_")
+                if len(hyperedge_to) == 2:
+                    t = hyperedge_to[1]
+                    hyperedge_to = hyperedge_to[0]
+                else:
+                    t = hyperedge_to[-1]
+                    hyperedge_to = "_".join(hyperedge_to[0:-1])
+
+                pt.append((hyperedge_from, hyperedge_to, t))
+            # check ping pong
+
+            flag = True
+            if len(pt) > 1:
+                s = pt[0]
+                for l in pt[1:]:
+                    if l[0] == s[1] and l[1] == s[0] or l[2] == s[2]:
+                        flag = False
+                        continue
+                    s = l
+
+            if flag:
+                paths.append(pt)
+
+    pa = list(dict.fromkeys([tuple(x) for x in paths]))
+
+    res = defaultdict(list)
+    for p in pa:
+        k = (p[0][0], p[-1][1])
+        res[k].append(p)
+
+    return res
+
+
+def all_time_respecting_s_walks(h: ASH, s: int, start: int = None, end: int = None, sample: float = 1) -> dict:
+    """
+
+    :param h:
+    :param s:
+    :param start:
+    :param end:
+    :param sample:
+    :param min_t:
+    :return:
+    """
+    res = {}
+    for he in h.hyperedge_id_iterator():
+        paths = time_respecting_s_walks(h, s=s, hyperedge_from=he, hyperedge_to=None, start=start, end=end, sample=sample)
+        if len(paths) > 0:
+            for k, path in paths.items():
+                v = k[-1]
+                res[(he, v)] = path
+
+    return res
+
+
+def annotate_walks(paths: list) -> dict:
+    """
+
+    :param paths:
+    :return:
+    """
+    annotated = {"shortest": None, "fastest": None, "shortest_fastest": None,
+                 "fastest_shortest": None, "foremost": None}
+
+    min_to_reach = None
+    shortest = None
+    fastest = None
+
+    for path in paths:
+        length = walk_length(path)
+        duration = walk_duration(path)
+        reach = path[-1][-1]
+
+        if shortest is None or length < shortest:
+            shortest = length
+            annotated['shortest'] = [copy.copy(path)]
+        elif length == shortest:
+            annotated['shortest'].append(copy.copy(path))
+
+        if fastest is None or duration < fastest:
+            fastest = duration
+            annotated['fastest'] = [copy.copy(path)]
+        elif duration == fastest:
+            annotated['fastest'].append(copy.copy(path))
+
+        if min_to_reach is None or reach < min_to_reach:
+            min_to_reach = reach
+            annotated['foremost'] = [copy.copy(path)]
+        elif reach == min_to_reach:
+            annotated['foremost'].append(copy.copy(path))
+
+    fastest_shortest = {tuple(path): walk_duration(path) for path in annotated['shortest']}
+    minval = min(fastest_shortest.values())
+    fastest_shortest = list([x for x in fastest_shortest if fastest_shortest[x] == minval])
+
+    shortest_fastest = {tuple(path): walk_length(path) for path in annotated['fastest']}
+    minval = min(shortest_fastest.values())
+    shortest_fastest = list([x for x in shortest_fastest if shortest_fastest[x] == minval])
+
+    annotated['fastest_shortest'] = [list(p) for p in fastest_shortest]
+    annotated['shortest_fastest'] = [list(p) for p in shortest_fastest]
+    return annotated
+
+
+def walk_length(path: list) -> int:
+    """
+
+    :param path:
+    :return:
+    """
+    return len(path)
+
+
+def walk_duration(path: list) -> int:
+    """
+
+    :param path:
+    :return:
+    """
+
+    return int(path[-1][-1]) - int(path[0][-1])
