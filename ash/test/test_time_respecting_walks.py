@@ -5,7 +5,6 @@ import networkx as nx
 
 
 class TimeRespectingWalksCase(unittest.TestCase):
-
     @staticmethod
     def get_hypergraph():
         a = ASH(hedge_removal=True)
@@ -18,18 +17,24 @@ class TimeRespectingWalksCase(unittest.TestCase):
 
     def test_incidence(self):
         a = self.get_hypergraph()
-        self.assertEqual(sorted(a.get_s_incident('e1', s=1, start=1, end=1)), ['e2'])
-        self.assertEqual(sorted(a.get_s_incident('e1', s=1, start=2, end=2)), ['e3', 'e4'])
-        self.assertEqual(sorted(a.get_s_incident('e1', s=1, start=0, end=2)), ['e2', 'e3', 'e4'])
+        self.assertEqual(sorted(a.get_s_incident("e1", s=1, start=1, end=1)), ["e2"])
+        self.assertEqual(
+            sorted(a.get_s_incident("e1", s=1, start=2, end=2)), ["e3", "e4"]
+        )
+        self.assertEqual(
+            sorted(a.get_s_incident("e1", s=1, start=0, end=2)), ["e2", "e3", "e4"]
+        )
 
     def test_temporal_dag(self):
         a = self.get_hypergraph()
-        dg, sources, targets = temporal_s_dag(a, s=2, hyperedge_from='e1')
+        dg, sources, targets = temporal_s_dag(a, s=2, hyperedge_from="e1")
 
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 5)
 
-        dg, sources, targets = temporal_s_dag(a, s=1, hyperedge_from='e1', start=0, end=1)
+        dg, sources, targets = temporal_s_dag(
+            a, s=1, hyperedge_from="e1", start=0, end=1
+        )
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 2)
 
@@ -40,7 +45,9 @@ class TimeRespectingWalksCase(unittest.TestCase):
         for p in pts:
             self.assertIsInstance(p, tuple)
 
-        self.assertEqual(len(time_respecting_s_walks(a, 1, "e1", "e5", start=4, end=4)), 1)
+        self.assertEqual(
+            len(time_respecting_s_walks(a, 1, "e1", "e5", start=4, end=4)), 1
+        )
 
         pts = time_respecting_s_walks(a, 1, "e1", "e5", sample=0.5)
 
@@ -61,5 +68,14 @@ class TimeRespectingWalksCase(unittest.TestCase):
         for _, ap in pts.items():
             v = annotate_walks(ap)
             for k, i in v.items():
-                self.assertIn(k, ['shortest', 'fastest', 'foremost', 'fastest_shortest', 'shortest_fastest'])
+                self.assertIn(
+                    k,
+                    [
+                        "shortest",
+                        "fastest",
+                        "foremost",
+                        "fastest_shortest",
+                        "shortest_fastest",
+                    ],
+                )
                 self.assertIsInstance(i, list)

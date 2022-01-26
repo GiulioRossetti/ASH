@@ -45,7 +45,9 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([3, 4, 5, 12], 1)
 
         self.assertDictEqual(a.node_degree_distribution(), {4: 2, 3: 2, 1: 7, 2: 1})
-        self.assertDictEqual(a.node_degree_distribution(start=0), {1: 7, 0: 3, 3: 1, 2: 1})
+        self.assertDictEqual(
+            a.node_degree_distribution(start=0), {1: 7, 0: 3, 3: 1, 2: 1}
+        )
         self.assertDictEqual(
             a.node_degree_distribution(start=0, end=1), {4: 2, 3: 2, 1: 7, 2: 1}
         )
@@ -296,7 +298,7 @@ class ASHTestCase(unittest.TestCase):
 
         g = a.line_graph(start=0, end=0)
 
-        eds = sorted([('e1', 'e2'), ('e1', 'e3'), ('e2', 'e3')])
+        eds = sorted([("e1", "e2"), ("e1", "e3"), ("e2", "e3")])
         res = sorted([tuple(sorted(i)) for i in list(g.edges())])
 
         self.assertListEqual(res, eds)
@@ -357,9 +359,9 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 4], 0)
         a.add_hyperedge([1, 2, 4], 0)
 
-        self.assertEqual(a.get_s_incident('e1', s=1), ['e2', 'e3'])
-        self.assertEqual(a.get_s_incident('e1', s=2), ['e3'])
-        self.assertEqual(a.get_s_incident('e1', s=3), [])
+        self.assertEqual(a.get_s_incident("e1", s=1), ["e2", "e3"])
+        self.assertEqual(a.get_s_incident("e1", s=2), ["e3"])
+        self.assertEqual(a.get_s_incident("e1", s=3), [])
 
     def test_hyperedge_id_iterator(self):
         a = ASH(hedge_removal=True)
@@ -367,10 +369,12 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 4], 0, 2)
         a.add_hyperedge([1, 2, 4], 2, 3)
 
-        self.assertEqual(sorted(list(a.hyperedge_id_iterator())), ['e1', 'e2', 'e3'])
-        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0))), ['e1', 'e2', 'e3'])
-        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=2))), ['e2', 'e3'])
-        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3))), ['e3'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator())), ["e1", "e2", "e3"])
+        self.assertEqual(
+            sorted(list(a.hyperedge_id_iterator(start=0))), ["e1", "e2", "e3"]
+        )
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=2))), ["e2", "e3"])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3))), ["e3"])
 
-        #self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0, end=1))), ['e1', 'e2'])
-        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3, end=3))), ['e3'])
+        # self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0, end=1))), ['e1', 'e2'])
+        self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3, end=3))), ["e3"])

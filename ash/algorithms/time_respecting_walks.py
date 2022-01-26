@@ -176,7 +176,9 @@ def time_respecting_s_walks(
     return res
 
 
-def all_time_respecting_s_walks(h: ASH, s: int, start: int = None, end: int = None, sample: float = 1) -> dict:
+def all_time_respecting_s_walks(
+    h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
+) -> dict:
     """
 
     :param h:
@@ -189,7 +191,15 @@ def all_time_respecting_s_walks(h: ASH, s: int, start: int = None, end: int = No
     """
     res = {}
     for he in h.hyperedge_id_iterator():
-        paths = time_respecting_s_walks(h, s=s, hyperedge_from=he, hyperedge_to=None, start=start, end=end, sample=sample)
+        paths = time_respecting_s_walks(
+            h,
+            s=s,
+            hyperedge_from=he,
+            hyperedge_to=None,
+            start=start,
+            end=end,
+            sample=sample,
+        )
         if len(paths) > 0:
             for k, path in paths.items():
                 v = k[-1]
@@ -204,8 +214,13 @@ def annotate_walks(paths: list) -> dict:
     :param paths:
     :return:
     """
-    annotated = {"shortest": None, "fastest": None, "shortest_fastest": None,
-                 "fastest_shortest": None, "foremost": None}
+    annotated = {
+        "shortest": None,
+        "fastest": None,
+        "shortest_fastest": None,
+        "fastest_shortest": None,
+        "foremost": None,
+    }
 
     min_to_reach = None
     shortest = None
@@ -218,32 +233,38 @@ def annotate_walks(paths: list) -> dict:
 
         if shortest is None or length < shortest:
             shortest = length
-            annotated['shortest'] = [copy.copy(path)]
+            annotated["shortest"] = [copy.copy(path)]
         elif length == shortest:
-            annotated['shortest'].append(copy.copy(path))
+            annotated["shortest"].append(copy.copy(path))
 
         if fastest is None or duration < fastest:
             fastest = duration
-            annotated['fastest'] = [copy.copy(path)]
+            annotated["fastest"] = [copy.copy(path)]
         elif duration == fastest:
-            annotated['fastest'].append(copy.copy(path))
+            annotated["fastest"].append(copy.copy(path))
 
         if min_to_reach is None or reach < min_to_reach:
             min_to_reach = reach
-            annotated['foremost'] = [copy.copy(path)]
+            annotated["foremost"] = [copy.copy(path)]
         elif reach == min_to_reach:
-            annotated['foremost'].append(copy.copy(path))
+            annotated["foremost"].append(copy.copy(path))
 
-    fastest_shortest = {tuple(path): walk_duration(path) for path in annotated['shortest']}
+    fastest_shortest = {
+        tuple(path): walk_duration(path) for path in annotated["shortest"]
+    }
     minval = min(fastest_shortest.values())
-    fastest_shortest = list([x for x in fastest_shortest if fastest_shortest[x] == minval])
+    fastest_shortest = list(
+        [x for x in fastest_shortest if fastest_shortest[x] == minval]
+    )
 
-    shortest_fastest = {tuple(path): walk_length(path) for path in annotated['fastest']}
+    shortest_fastest = {tuple(path): walk_length(path) for path in annotated["fastest"]}
     minval = min(shortest_fastest.values())
-    shortest_fastest = list([x for x in shortest_fastest if shortest_fastest[x] == minval])
+    shortest_fastest = list(
+        [x for x in shortest_fastest if shortest_fastest[x] == minval]
+    )
 
-    annotated['fastest_shortest'] = [list(p) for p in fastest_shortest]
-    annotated['shortest_fastest'] = [list(p) for p in shortest_fastest]
+    annotated["fastest_shortest"] = [list(p) for p in fastest_shortest]
+    annotated["shortest_fastest"] = [list(p) for p in shortest_fastest]
     return annotated
 
 
