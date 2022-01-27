@@ -17,12 +17,12 @@ class TimeRespectingWalksCase(unittest.TestCase):
 
     def test_incidence(self):
         a = self.get_hypergraph()
-        self.assertEqual(sorted(a.get_s_incident("e1", s=1, start=1, end=1)), ["e2"])
+        self.assertEqual(sorted(a.get_s_incident("e1", s=1, start=1, end=1)), [('e2', 1)])
         self.assertEqual(
-            sorted(a.get_s_incident("e1", s=1, start=2, end=2)), ["e3", "e4"]
+            sorted(a.get_s_incident("e1", s=1, start=2, end=2)), [('e3', 3), ('e4', 2)]
         )
         self.assertEqual(
-            sorted(a.get_s_incident("e1", s=1, start=0, end=2)), ["e2", "e3", "e4"]
+            sorted(a.get_s_incident("e1", s=1, start=0, end=2)), [('e2', 1), ('e3', 3), ('e4', 2)]
         )
 
     def test_temporal_dag(self):
@@ -74,8 +74,13 @@ class TimeRespectingWalksCase(unittest.TestCase):
                         "shortest",
                         "fastest",
                         "foremost",
+                        "heaviest",
                         "fastest_shortest",
+                        "fastest_heaviest",
                         "shortest_fastest",
+                        "shortest_heaviest",
+                        "heaviest_shortest",
+                        "heaviest_fastest"
                     ],
                 )
                 self.assertIsInstance(i, list)

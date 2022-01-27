@@ -988,6 +988,6 @@ class ASH(object):
                 he_nodes = set(self.get_hyperedge_nodes(he))
                 incident = len(nodes & he_nodes)
                 if incident >= s:
-                    res.append(he)
+                    res.append((he, incident))
 
         return res

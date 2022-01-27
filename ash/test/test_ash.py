@@ -359,8 +359,8 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 4], 0)
         a.add_hyperedge([1, 2, 4], 0)
 
-        self.assertEqual(a.get_s_incident("e1", s=1), ["e2", "e3"])
-        self.assertEqual(a.get_s_incident("e1", s=2), ["e3"])
+        self.assertEqual(a.get_s_incident("e1", s=1), [('e2', 1), ('e3', 2)])
+        self.assertEqual(a.get_s_incident("e1", s=2), [('e3', 2)])
         self.assertEqual(a.get_s_incident("e1", s=3), [])
 
     def test_hyperedge_id_iterator(self):
