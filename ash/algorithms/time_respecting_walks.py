@@ -189,7 +189,6 @@ def all_time_respecting_s_walks(
     :param start:
     :param end:
     :param sample:
-    :param min_t:
     :return:
     """
     res = {}

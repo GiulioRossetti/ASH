@@ -4,39 +4,6 @@ from collections import defaultdict
 from itertools import combinations
 
 
-def __s_weighted_line_graph(
-    h: ASH, s: int, start: int = None, end: int = None
-) -> nx.Graph:
-    """
-
-    :param h:
-    :param s:
-    :param start:
-    :param end:
-    :return:
-    """
-    # computing s-weighted hypergraph
-    node_to_edges = defaultdict(list)
-    for he in h.hyperedge_id_iterator(start=start, end=end):
-        nodes = h.get_hyperedge_nodes(he)
-        for node in nodes:
-            node_to_edges[node].append(he)
-
-    g = nx.Graph()
-    edges = defaultdict(int)
-    for eds in node_to_edges.values():
-        if len(eds) > 0:
-            for e in combinations(eds, 2):
-                e = sorted(e)
-                edges[tuple(e)] += 1
-
-    for e, v in edges.items():
-        if v >= s:
-            g.add_edge(e[0], e[1], w=v)
-
-    return g
-
-
 def shortest_s_walk(
     h: ASH,
     s: int,
@@ -68,7 +35,7 @@ def shortest_s_walk(
     :return:
     """
 
-    g = __s_weighted_line_graph(h, s, start, end)
+    g = h.s_line_graph(s, start, end)
 
     if hyperedge_a is not None and hyperedge_b is not None:
         if not g.has_node(hyperedge_a) or not g.has_node(hyperedge_b):
@@ -139,7 +106,7 @@ def s_distance(
     :param weight:
     :return:
     """
-    g = __s_weighted_line_graph(h, s, start, end)
+    g = h.s_line_graph(s, start, end)
 
     if hyperedge_a is not None and hyperedge_b is not None:
         if not g.has_node(hyperedge_a) or not g.has_node(hyperedge_b):
@@ -209,7 +176,7 @@ def average_s_distance(
     :param weight:
     :return:
     """
-    g = __s_weighted_line_graph(h, s, start, end)
+    g = h.s_line_graph(s, start, end)
 
     if weight:
         return nx.average_shortest_path_length(g, weight="w")
@@ -251,7 +218,7 @@ def has_s_walk(
     :return:
     """
 
-    g = __s_weighted_line_graph(h, s, start, end)
+    g = h.s_line_graph(s, start, end)
 
     if hyperedge_a is not None and hyperedge_b is not None:
         if not g.has_node(hyperedge_a) or not g.has_node(hyperedge_b):
@@ -340,7 +307,7 @@ def s_components(h: ASH, s: int, start: int = None, end: int = None) -> list:
     :param end:
     :return:
     """
-    g = __s_weighted_line_graph(h, s, start, end)
+    g = h.s_line_graph(s, start, end)
     for comp in nx.connected_components(g):
         yield comp
 

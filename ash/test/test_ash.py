@@ -277,7 +277,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 3], 1)
         a.add_hyperedge([3, 4], 1)
 
-        g = a.line_graph()
+        g = a.s_line_graph()
 
         eds = sorted(
             [
@@ -296,7 +296,7 @@ class ASHTestCase(unittest.TestCase):
 
         self.assertListEqual(sorted(list(g.edges())), eds)
 
-        g = a.line_graph(start=0, end=0)
+        g = a.s_line_graph(start=0, end=0)
 
         eds = sorted([("e1", "e2"), ("e1", "e3"), ("e2", "e3")])
         res = sorted([tuple(sorted(i)) for i in list(g.edges())])
@@ -359,8 +359,8 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 4], 0)
         a.add_hyperedge([1, 2, 4], 0)
 
-        self.assertEqual(a.get_s_incident("e1", s=1), [('e2', 1), ('e3', 2)])
-        self.assertEqual(a.get_s_incident("e1", s=2), [('e3', 2)])
+        self.assertEqual(a.get_s_incident("e1", s=1), [("e2", 1), ("e3", 2)])
+        self.assertEqual(a.get_s_incident("e1", s=2), [("e3", 2)])
         self.assertEqual(a.get_s_incident("e1", s=3), [])
 
     def test_hyperedge_id_iterator(self):

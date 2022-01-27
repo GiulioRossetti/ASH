@@ -669,7 +669,6 @@ class ASH(object):
         edges = list(S.H.hyperedge_id_iterator())
         return[new_eid_to_old_eid[e] for e in edges]
 
-
     def get_size(self, tid: int = None) -> int:
         """
 
@@ -853,9 +852,10 @@ class ASH(object):
 
     # Transform
 
-    def line_graph(self, start: int = None, end: int = None) -> object:
+    def s_line_graph(self, s: int = 1, start: int = None, end: int = None) -> object:
         """
 
+        :param s:
         :param start:
         :param end:
         :return:
@@ -867,11 +867,16 @@ class ASH(object):
                 node_to_edges[node].append(he)
 
         g = nx.Graph()
-        for edges in node_to_edges.values():
-            if len(edges) > 0:
-                for e in combinations(edges, 2):
-                    if not g.has_edge(e[0], e[1]):
-                        g.add_edge(e[0], e[1])
+        edges = defaultdict(int)
+        for eds in node_to_edges.values():
+            if len(eds) > 0:
+                for e in combinations(eds, 2):
+                    e = sorted(e)
+                    edges[tuple(e)] += 1
+
+        for e, v in edges.items():
+            if v >= s:
+                g.add_edge(e[0], e[1], w=v)
 
         return g
 
