@@ -1,6 +1,6 @@
 from ash import ASH
 import networkx as nx
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import combinations
 
 
@@ -46,6 +46,25 @@ def shortest_s_walk(
     if weight:
         return nx.shortest_path(g, source=hyperedge_a, target=hyperedge_b, weight="w")
     return nx.shortest_path(g, source=hyperedge_a, target=hyperedge_b)
+
+
+def closed_s_walk(
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+) -> object:
+    """
+
+    :param h:
+    :param s:
+    :param hyperedge_a:
+    :param start:
+    :param end:
+    :return:
+    """
+    g = h.s_line_graph(s, start, end)
+
+    if not g.has_node(hyperedge_a):
+        return []
+    return nx.cycle_basis(g, hyperedge_a)
 
 
 def shortest_node_s_walk(
@@ -327,3 +346,26 @@ def node_s_components(h: ASH, s: int, start: int = None, end: int = None) -> lis
 
     for comp in s_components(h1, s):
         yield {eid_to_node[i] for i in comp}
+
+
+def is_s_path(h: ASH, walk: list) -> bool:
+    """
+
+    :param h:
+    :param walk:
+    :return:
+    """
+    p = Counter(walk)
+    if max(p.values()) > 1:
+        return False
+
+    res = []
+    for u, v in combinations(walk, 2):
+        intersect = set(h.get_hyperedge_nodes(u)) & set(h.get_hyperedge_nodes(v))
+        res.extend(list(intersect))
+
+    p = Counter(res)
+    if max(p.values()) > 1:
+        return False
+    else:
+        return True

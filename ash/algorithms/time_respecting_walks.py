@@ -154,7 +154,14 @@ def time_respecting_s_walks(
                     t = hyperedge_to[-1]
                     hyperedge_to = "_".join(hyperedge_to[0:-1])
 
-                pt.append(TemporalEdge(hyperedge_from, hyperedge_to, DAG[first][second]["weight"], int(t)))
+                pt.append(
+                    TemporalEdge(
+                        hyperedge_from,
+                        hyperedge_to,
+                        DAG[first][second]["weight"],
+                        int(t),
+                    )
+                )
             # check ping pong
 
             flag = True
@@ -226,7 +233,7 @@ def annotate_walks(paths: list) -> dict:
         "foremost": None,
         "heaviest": None,
         "heaviest_fastest": None,
-        "heaviest_shortest": None
+        "heaviest_shortest": None,
     }
 
     min_to_reach = None
@@ -242,9 +249,9 @@ def annotate_walks(paths: list) -> dict:
 
         if p_weight is None or weight > p_weight:
             p_weight = weight
-            annotated['heaviest'] = [copy.copy(path)]
+            annotated["heaviest"] = [copy.copy(path)]
         else:
-            annotated['heaviest'].append(copy.copy(path))
+            annotated["heaviest"].append(copy.copy(path))
 
         if shortest is None or length < shortest:
             shortest = length
@@ -286,13 +293,17 @@ def annotate_walks(paths: list) -> dict:
         [x for x in shortest_fastest if shortest_fastest[x] == minval]
     )
 
-    shortest_heaviest = {tuple(path): walk_weight(path) for path in annotated["heaviest"]}
+    shortest_heaviest = {
+        tuple(path): walk_weight(path) for path in annotated["heaviest"]
+    }
     minval = min(shortest_heaviest.values())
     shortest_heaviest = list(
         [x for x in shortest_heaviest if shortest_heaviest[x] == minval]
     )
 
-    heaviest_shortest = {tuple(path): walk_weight(path) for path in annotated["shortest"]}
+    heaviest_shortest = {
+        tuple(path): walk_weight(path) for path in annotated["shortest"]
+    }
     maxval = max(heaviest_shortest.values())
     heaviest_shortest = list(
         [x for x in heaviest_shortest if heaviest_shortest[x] == maxval]
@@ -307,9 +318,9 @@ def annotate_walks(paths: list) -> dict:
     annotated["fastest_shortest"] = [list(p) for p in fastest_shortest]
     annotated["fastest_heaviest"] = [list(p) for p in fastest_heaviest]
     annotated["shortest_fastest"] = [list(p) for p in shortest_fastest]
-    annotated['shortest_heaviest'] = [list(p) for p in shortest_heaviest]
-    annotated['heaviest_shortest'] = [list(p) for p in heaviest_shortest]
-    annotated['heaviest_fastest'] = [list(p) for p in heaviest_fastest]
+    annotated["shortest_heaviest"] = [list(p) for p in shortest_heaviest]
+    annotated["heaviest_shortest"] = [list(p) for p in heaviest_shortest]
+    annotated["heaviest_fastest"] = [list(p) for p in heaviest_fastest]
 
     return annotated
 

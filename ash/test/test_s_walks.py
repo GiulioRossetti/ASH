@@ -218,3 +218,44 @@ class SWalksCase(unittest.TestCase):
         self.assertEqual(list(node_s_components(a, 2)), [{1, 2, 3, 4}])
         self.assertEqual(list(node_s_components(a, 3)), [{1, 3, 4}])
         self.assertEqual(list(node_s_components(a, 2, start=0, end=0)), [{1, 3, 4}])
+
+    def test_is_path(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2], 0)
+        a.add_hyperedge([1, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        self.assertEqual(is_s_path(a, ["e1", "e2", "e3"]), False)
+
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3, 5], 0)
+        a.add_hyperedge([1, 2, 3, 4], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        self.assertEqual(is_s_path(a, ["e1", "e2", "e3"]), False)
+
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 6, 7], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        a.add_hyperedge([3, 4, 5, 6, 7], 0)
+        self.assertEqual(is_s_path(a, ["e1", "e2", "e3"]), True)
+
+    def test_closed_s_walk(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2], 0)
+        a.add_hyperedge([1, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        for w in closed_s_walk(a, 1, "e1"):
+            self.assertEqual(is_s_path(a, w), False)
+
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3, 5], 0)
+        a.add_hyperedge([1, 2, 3, 4], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        for w in closed_s_walk(a, 1, "e1"):
+            self.assertEqual(is_s_path(a, w), False)
+
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 6, 7], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        a.add_hyperedge([3, 4, 5, 6, 7], 0)
+        for w in closed_s_walk(a, 1, "e1"):
+            self.assertEqual(is_s_path(a, w), True)
