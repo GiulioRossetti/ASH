@@ -1,7 +1,7 @@
 import networkx as nx
 from ash import ASH
 from ash.measures import *
-from ash.algorithms.walks import *
+from ash.paths.walks import *
 from itertools import combinations
 from collections import defaultdict
 

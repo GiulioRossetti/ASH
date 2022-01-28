@@ -1,5 +1,5 @@
 from ash import ASH
-from ash.algorithms import *
+from ash.paths import *
 import networkx as nx
 from math import comb
 

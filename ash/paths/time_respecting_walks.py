@@ -1,5 +1,5 @@
 from ash import ASH
-from ash.algorithms.walks import is_s_path
+from ash.paths.walks import is_s_path
 import networkx as nx
 import itertools
 from collections import defaultdict, namedtuple
