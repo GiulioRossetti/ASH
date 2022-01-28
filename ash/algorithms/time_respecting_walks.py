@@ -1,4 +1,5 @@
 from ash import ASH
+from ash.algorithms.walks import is_s_path
 import networkx as nx
 import itertools
 from collections import defaultdict, namedtuple
@@ -220,20 +221,21 @@ def all_time_respecting_s_walks(
 def annotate_walks(paths: list) -> dict:
     """
 
+    :param h:
     :param paths:
     :return:
     """
     annotated = {
-        "shortest": None,
-        "fastest": None,
-        "shortest_fastest": None,
-        "shortest_heaviest": None,
-        "fastest_shortest": None,
-        "fastest_heaviest": None,
-        "foremost": None,
-        "heaviest": None,
-        "heaviest_fastest": None,
-        "heaviest_shortest": None,
+        "shortest": [],
+        "fastest": [],
+        "shortest_fastest": [],
+        "shortest_heaviest": [],
+        "fastest_shortest": [],
+        "fastest_heaviest": [],
+        "foremost": [],
+        "heaviest": [],
+        "heaviest_fastest": [],
+        "heaviest_shortest": [],
     }
 
     min_to_reach = None
@@ -242,6 +244,7 @@ def annotate_walks(paths: list) -> dict:
     p_weight = None
 
     for path in paths:
+
         length = walk_length(path)
         duration = walk_duration(path)
         weight = walk_weight(path)

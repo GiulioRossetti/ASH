@@ -51,8 +51,13 @@ def hyperedge_most_frequent_node_attribute_value(
     for node in nodes:
         profile = h.get_node_profile(node, tid=tid)
         value = profile.get_attribute(attribute)
+
         if isinstance(value, str):
             app[attribute].append(value)
+
+        if isinstance(value, dict):
+            vals = [v for v in value.values()]
+            app[attribute].extend(vals)
 
     count = Counter(app[attribute])
     count = count.most_common(1)[0]

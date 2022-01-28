@@ -119,8 +119,8 @@ class SWalksCase(unittest.TestCase):
 
     def test_average_s_distance(self):
         a = self.get_hypergraph()
-        self.assertEqual(average_s_distance(a, 2), 1.3)
-        self.assertEqual(average_s_distance(a, 3), 1.3333333333333333)
+        self.assertEqual(average_s_distance(a, 2), 1.1666666666666667)
+        self.assertEqual(average_s_distance(a, 3), 1)
         self.assertEqual(average_s_distance(a, 2, start=0, end=0), 1.3333333333333333)
 
     def test_has_s_walk(self):
@@ -133,9 +133,9 @@ class SWalksCase(unittest.TestCase):
     def test_diameter(self):
         a = self.get_hypergraph()
         self.assertEqual(s_diameter(a, 2), 2)
-        self.assertEqual(s_diameter(a, 3), 2)
+        self.assertEqual(s_diameter(a, 3), 1)
         self.assertEqual(s_diameter(a, 2, start=0, end=0), 2)
-        self.assertEqual(s_diameter(a, 2, start=0, end=0, weight=True), 5)
+        self.assertEqual(s_diameter(a, 2, start=0, end=0, weight=True), 4)
 
     def test_s_components(self):
         a = self.get_hypergraph()
@@ -148,41 +148,41 @@ class SWalksCase(unittest.TestCase):
     def test_node_shortest_s_walk(self):
 
         a = self.get_hypergraph()
-        s_w = shortest_node_s_walk(a, 2, 1, 4)
+        s_w = shortest_s_walk(a, 2, 1, 4, edge=False)
         self.assertEqual(len(s_w), 2)
-        s_w = shortest_node_s_walk(a, 3, 1, 4)
-        self.assertEqual(len(s_w), 2)
-
-        s_w = shortest_node_s_walk(a, 2, 1, 4, weight=True)
+        s_w = shortest_s_walk(a, 3, 1, 4, edge=False)
         self.assertEqual(len(s_w), 2)
 
-        s_w = shortest_node_s_walk(a, 2, 1, 4, start=1, end=1, weight=True)
+        s_w = shortest_s_walk(a, 2, 1, 4, weight=True, edge=False)
+        self.assertEqual(len(s_w), 2)
+
+        s_w = shortest_s_walk(a, 2, 1, 4, start=1, end=1, weight=True, edge=False)
         self.assertEqual(len(s_w), 0)
 
-        s_w = shortest_node_s_walk(a, 1, 1)
+        s_w = shortest_s_walk(a, 1, 1, edge=False)
         self.assertDictEqual(s_w, {1: [1], 2: [1, 2], 3: [1, 3], 4: [1, 4]})
 
-        s_w = shortest_node_s_walk(a, 2)
+        s_w = shortest_s_walk(a, 2, edge=False)
         self.assertDictEqual(
             s_w, {1: [1, 2, 3, 4], 2: [2, 1, 3, 4], 3: [3, 1, 2, 4], 4: [4, 1, 3, 2]}
         )
 
-        s_w = shortest_node_s_walk(a, 3)
+        s_w = shortest_s_walk(a, 3, edge=False)
         self.assertDictEqual(s_w, {1: [1, 3, 4], 3: [3, 1, 4], 4: [4, 1, 3]})
 
     def test_node_s_distance(self):
         a = self.get_hypergraph()
-        self.assertEqual(node_s_distance(a, 1, 1, 2), 1)
-        self.assertEqual(node_s_distance(a, 2, 1, 2), 1)
-        self.assertEqual(node_s_distance(a, 3, 1, 2), None)
+        self.assertEqual(s_distance(a, 1, 1, 2, edge=False), 1)
+        self.assertEqual(s_distance(a, 2, 1, 2, edge=False), 1)
+        self.assertEqual(s_distance(a, 3, 1, 2, edge=False), None)
 
-        self.assertDictEqual(node_s_distance(a, 2, 1), {1: 0, 3: 1, 4: 1, 2: 1})
+        self.assertDictEqual(s_distance(a, 2, 1, edge=False), {1: 0, 3: 1, 4: 1, 2: 1})
         self.assertDictEqual(
-            node_s_distance(a, 2, 1, weight=True), {1: 0, 2: 2, 3: 3, 4: 3}
+            s_distance(a, 2, 1, weight=True, edge=False), {1: 0, 2: 2, 3: 3, 4: 3}
         )
 
         self.assertListEqual(
-            list(node_s_distance(a, 2)),
+            list(s_distance(a, 2, edge=False)),
             [
                 (1, {1: 0, 4: 1, 3: 1, 2: 1}),
                 (2, {2: 0, 1: 1, 3: 1, 4: 2}),
@@ -193,31 +193,31 @@ class SWalksCase(unittest.TestCase):
 
     def test_node_average_s_distance(self):
         a = self.get_hypergraph()
-        self.assertEqual(average_node_s_distance(a, 2), 1.1666666666666667)
-        self.assertEqual(average_node_s_distance(a, 3), 1.0)
+        self.assertEqual(average_s_distance(a, 2, edge=False), 1.1666666666666667)
+        self.assertEqual(average_s_distance(a, 3, edge=False), 1.0)
         self.assertEqual(
-            average_node_s_distance(a, 2, start=0, end=0), 1.3333333333333333
+            average_s_distance(a, 2, start=0, end=0, edge=False), 1.3333333333333333
         )
 
     def test_node_has_s_walk(self):
         a = self.get_hypergraph()
-        self.assertEqual(has_node_s_walk(a, 2, 1, 2), True)
-        self.assertEqual(has_node_s_walk(a, 8, 1, 2), False)
-        self.assertEqual(has_node_s_walk(a, 2, 1, 2, start=0, end=0), True)
-        self.assertEqual(has_node_s_walk(a, 2, 1, 4, start=1, end=1), False)
+        self.assertEqual(has_s_walk(a, 2, 1, 2, edge=False), True)
+        self.assertEqual(has_s_walk(a, 8, 1, 2, edge=False), False)
+        self.assertEqual(has_s_walk(a, 2, 1, 2, start=0, end=0, edge=False), True)
+        self.assertEqual(has_s_walk(a, 2, 1, 4, start=1, end=1, edge=False), False)
 
     def test_node_diameter(self):
         a = self.get_hypergraph()
-        self.assertEqual(node_s_diameter(a, 2), 2)
-        self.assertEqual(node_s_diameter(a, 3), 1)
-        self.assertEqual(node_s_diameter(a, 2, start=0, end=0), 2)
-        self.assertEqual(node_s_diameter(a, 2, start=0, end=0, weight=True), 4)
+        self.assertEqual(s_diameter(a, 2, edge=False), 2)
+        self.assertEqual(s_diameter(a, 3, edge=False), 1)
+        self.assertEqual(s_diameter(a, 2, start=0, end=0, edge=False), 2)
+        self.assertEqual(s_diameter(a, 2, start=0, end=0, weight=True, edge=False), 4)
 
     def test_node_s_components(self):
         a = self.get_hypergraph()
-        self.assertEqual(list(node_s_components(a, 2)), [{1, 2, 3, 4}])
-        self.assertEqual(list(node_s_components(a, 3)), [{1, 3, 4}])
-        self.assertEqual(list(node_s_components(a, 2, start=0, end=0)), [{1, 3, 4}])
+        self.assertEqual(list(s_components(a, 2, edge=False)), [{1, 2, 3, 4}])
+        self.assertEqual(list(s_components(a, 3, edge=False)), [{1, 3, 4}])
+        self.assertEqual(list(s_components(a, 2, start=0, end=0, edge=False)), [{1, 3, 4}])
 
     def test_is_path(self):
         a = ASH(hedge_removal=True)
@@ -259,3 +259,32 @@ class SWalksCase(unittest.TestCase):
         a.add_hyperedge([3, 4, 5, 6, 7], 0)
         for w in closed_s_walk(a, 1, "e1"):
             self.assertEqual(is_s_path(a, w), True)
+
+    def test_all_simple_s_paths(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 6, 7], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        a.add_hyperedge([3, 4, 5, 6, 7], 0)
+
+        for p in all_simple_paths(a, 1, "e1", "e2"):
+            self.assertIsInstance(p, list)
+
+    def test_s_shortest_paths(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 6, 7], 0)
+        a.add_hyperedge([1, 2, 3, 4, 5], 0)
+        a.add_hyperedge([3, 4, 5, 6, 7], 0)
+
+        for p in shortest_s_path(a, 1, "e1", "e2"):
+            self.assertEqual(sorted(p), ["e1", "e2"])
+
+        for k, v in all_shortest_s_path(a, 1, "e1").items():
+            self.assertIsInstance(k, tuple)
+            self.assertIsInstance(v, list)
+
+        for k, v in all_shortest_s_path(a, 1).items():
+            self.assertIsInstance(k, tuple)
+            self.assertIsInstance(v, list)
+
+        for k, v in all_shortest_s_path_length(a, 1).items():
+            self.assertEqual(len(v), 3)
