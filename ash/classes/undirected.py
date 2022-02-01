@@ -667,7 +667,7 @@ class ASH(object):
         new_eid_to_old_eid = {v: k for k, v in eid_to_new_eid.items()}
 
         edges = list(S.H.hyperedge_id_iterator())
-        return[new_eid_to_old_eid[e] for e in edges]
+        return [new_eid_to_old_eid[e] for e in edges]
 
     def get_size(self, tid: int = None) -> int:
         """
@@ -701,20 +701,24 @@ class ASH(object):
         :return:
         """
         if end is None and start in self.snapshots:
-            edges = set([
-                e1
-                for obs in range(min(self.snapshots), max(self.snapshots)+1)
-                for e1 in self.snapshots.get(obs, [])
-            ])
+            edges = set(
+                [
+                    e1
+                    for obs in range(min(self.snapshots), max(self.snapshots) + 1)
+                    for e1 in self.snapshots.get(obs, [])
+                ]
+            )
 
         elif end is None and start not in self.snapshots:
             edges = []
         else:
-            edges = set([
-                e1
-                for obs in range(min(self.snapshots), end + 1)
-                for e1 in self.snapshots.get(obs, [])
-            ])
+            edges = set(
+                [
+                    e1
+                    for obs in range(min(self.snapshots), end + 1)
+                    for e1 in self.snapshots.get(obs, [])
+                ]
+            )
 
         S = ASH()
         eid_to_new_eid = {}
@@ -741,7 +745,7 @@ class ASH(object):
                         new_eid = S.get_hyperedge_id(he)
                         eid_to_new_eid[e1] = new_eid
 
-                    #else:
+                    # else:
                     #    S.add_hyperedge(he, start, end)
                     #    new_eid = S.get_hyperedge_id(he)
                     #    eid_to_new_eid[e1] = new_eid
@@ -786,12 +790,12 @@ class ASH(object):
 
     def uniformity(self) -> float:
         """
-            Temporal hypergraph uniformity
+        Temporal hypergraph uniformity
 
-            Returns
-            -------
-            uniformity : float
-                Uniformity of the temporal hypergraph in [0, 1]
+        Returns
+        -------
+        uniformity : float
+            Uniformity of the temporal hypergraph in [0, 1]
         """
         nds = self.get_node_set()
         numerator, denominator = 0, 0
@@ -976,7 +980,9 @@ class ASH(object):
 
         return len(res)
 
-    def get_s_incident(self, hyperedge_id: str, s: int, start: int = None, end: int = None) -> list:
+    def get_s_incident(
+        self, hyperedge_id: str, s: int, start: int = None, end: int = None
+    ) -> list:
         """
 
         :param hyperedge_id:
@@ -1007,7 +1013,7 @@ class ASH(object):
         old_eid_to_new = {}
         for he in self.hyperedge_id_iterator():
             if he in hyperedge_set:
-                att = self.get_hyperedge_attributes(he)['t']
+                att = self.get_hyperedge_attributes(he)["t"]
                 nodes = self.get_hyperedge_nodes(he)
                 for n in nodes:
                     nodes_to_add[n] = None
@@ -1019,7 +1025,7 @@ class ASH(object):
 
         for node in nodes_to_add:
             prof = self.get_node_profile(node)
-            spans = prof.get_attribute('t')
+            spans = prof.get_attribute("t")
             for t in spans:
                 pt = self.get_node_profile(node, tid=t[0])
                 b.add_node(node, t[0], t[1], attr_dict=pt)

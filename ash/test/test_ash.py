@@ -389,5 +389,5 @@ class ASHTestCase(unittest.TestCase):
         a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
         a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=2, party="L", age=20))
 
-        b, eid_map = a.induced_hypergraph(('e1', 'e2'))
+        b, eid_map = a.induced_hypergraph(("e1", "e2"))
         self.assertEqual(len(eid_map), 2)

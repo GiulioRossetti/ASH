@@ -40,12 +40,12 @@ def hyperedge_most_frequent_node_attribute_value(
 ) -> dict:
     """
 
-        :param h:
-        :param hyperedge_id:
-        :param attribute:
-        :param tid:
-        :return:
-        """
+    :param h:
+    :param hyperedge_id:
+    :param attribute:
+    :param tid:
+    :return:
+    """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
     app = defaultdict(list)
     for node in nodes:
@@ -77,13 +77,13 @@ def hyperedge_aggregate_node_profile(
 ) -> NProfile:
     """
 
-        :return:
-        :param h:
-        :param hyperedge_id:
-        :param tid:
-        :param agg_function:
-        :return:
-        """
+    :return:
+    :param h:
+    :param hyperedge_id:
+    :param tid:
+    :param agg_function:
+    :return:
+    """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
     avg_profile = NProfile(None)
     res = defaultdict(list)

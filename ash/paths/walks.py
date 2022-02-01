@@ -127,6 +127,44 @@ def all_shortest_s_path_length(
     return res
 
 
+def all_shortest_s_walk(
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+) -> dict:
+    """
+
+    :param h:
+    :param s:
+    :param hyperedge_a:
+    :param start:
+    :param end:
+    :return:
+    """
+    return shortest_s_walk(h, s, hyperedge_a, start, end)
+
+
+def all_shortest_s_walk_length(
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+) -> dict:
+    """
+
+    :param h:
+    :param s:
+    :param hyperedge_a:
+    :param start:
+    :param end:
+    :return:
+    """
+    res = {}
+    walks = all_shortest_s_walk(h, s, hyperedge_a, start, end)
+    for k, v in walks.items():
+        if hyperedge_a not in res:
+            res[hyperedge_a] = {k: len(v)}
+        else:
+            res[hyperedge_a][k] = len(v)
+        res[k] = {hyperedge_a: len(v)}
+    return res
+
+
 def shortest_s_walk(
     h: ASH,
     s: int,

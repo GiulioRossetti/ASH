@@ -217,7 +217,9 @@ class SWalksCase(unittest.TestCase):
         a = self.get_hypergraph()
         self.assertEqual(list(s_components(a, 2, edge=False)), [{1, 2, 3, 4}])
         self.assertEqual(list(s_components(a, 3, edge=False)), [{1, 3, 4}])
-        self.assertEqual(list(s_components(a, 2, start=0, end=0, edge=False)), [{1, 3, 4}])
+        self.assertEqual(
+            list(s_components(a, 2, start=0, end=0, edge=False)), [{1, 3, 4}]
+        )
 
     def test_is_path(self):
         a = ASH(hedge_removal=True)

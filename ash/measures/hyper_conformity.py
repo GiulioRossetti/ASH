@@ -4,6 +4,7 @@ from ash.measures import *
 from ash.paths.walks import *
 from itertools import combinations
 from collections import defaultdict
+import tqdm
 
 
 def __label_frequency(
@@ -20,17 +21,26 @@ def __label_frequency(
     """
     s = 1
     for label in labels:
+        if label not in g.nodes[u]:
+            continue
         a_u = g.nodes[u][label]
+
         # set of nodes at given distance
         sgn = {}
         for v in nodes:
             # indicator function that exploits label hierarchical structure
+
+            if not g.has_node(v) or label not in g.nodes[v]:
+                continue
+
             sgn[v] = (
                 1
                 if a_u == g.nodes[v][label]
                 else __distance(label, a_u, g.nodes[v][label], hierarchies)
             )
             v_neigh = list(g.neighbors(v))
+            if len(v_neigh) == 0:
+                continue
             # compute the frequency for the given node at distance n over neighbors label
             f_label = len(
                 [x for x in v_neigh if g.nodes[x][label] == g.nodes[v][label]]
@@ -71,7 +81,8 @@ def __normalize(u: object, scores: list, max_dist: int, alphas: list) -> list:
         norm = sum([(d ** -alpha) for d in range(1, max_dist + 1)])
 
         for profile in scores[str(alpha)]:
-            scores[str(alpha)][profile][u] /= norm
+            if u in scores[str(alpha)][profile]:
+                scores[str(alpha)][profile][u] /= norm
 
     return scores
 
@@ -130,7 +141,9 @@ def hyper_conformity(
             for he in b.hyperedge_id_iterator():
                 for label in labels:
                     v = list(
-                        hyperedge_most_frequent_node_attribute_value(b, he, label, tid).keys()
+                        hyperedge_most_frequent_node_attribute_value(
+                            b, he, label, tid
+                        ).keys()
                     )
                     if len(v) == 0:
                         continue
@@ -150,12 +163,15 @@ def hyper_conformity(
                     df[k][p] = c / tot
 
             res = {
-                str(a): {"_".join(profile): {n: 0 for n in g1.nodes()} for profile in profiles}
+                str(a): {
+                    "_".join(profile): {n: 0 for n in g1.nodes()}
+                    for profile in profiles
+                }
                 for a in alphas
             }
 
-            for u in g1.nodes():
-                sp = dict(all_shortest_s_path_length(b, s, u))
+            for u in tqdm.tqdm(g1.nodes()):
+                sp = dict(all_shortest_s_walk_length(b, s, u))
 
                 dist_to_nodes = defaultdict(list)
                 for _, nodelist in sp.items():
@@ -166,21 +182,25 @@ def hyper_conformity(
                 for dist, nodes in sp.items():
                     if dist != 0:
                         for profile in profiles:
-                            sim = __label_frequency(g, u, nodes, list(profile), hierarchies)
+                            sim = __label_frequency(
+                                g1, u, nodes, list(profile), hierarchies
+                            )
 
                             for alpha in alphas:
                                 partial = sim / (dist ** alpha)
                                 p_name = "_".join(profile)
-                                res[str(alpha)][p_name][u] += partial
+                                if u in res[str(alpha)][p_name]:
+                                    res[str(alpha)][p_name][u] += partial
 
                 res = __normalize(u, res, max(sp.keys()), alphas)
                 # remap
                 for ap, conf_dict in res.items():
                     for feat, node_dict in conf_dict.items():
-                        node_dict = {he_map[n]: v for n, v in node_dict.items()}
+                        node_dict = {
+                            he_map[n]: v for n, v in node_dict.items() if n in he_map
+                        }
                         res[ap][feat] = node_dict
 
-            print(res)
             full_res.append(res)
 
     return full_res
