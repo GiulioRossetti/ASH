@@ -115,7 +115,18 @@ class ASH(object):
                 intervals.append(span)
 
         merged = self.__recursive_merge(intervals.copy())
-        old_attrs["t"] = merged
+
+        # contiguity
+        cont = [merged[0]]
+        pos = 0
+        for i in range(1, len(merged)):
+            if cont[pos][1] == merged[i][0]:
+                cont[pos][1] = merged[i][1]
+            else:
+                pos += 1
+                cont.append(merged[i])
+
+        old_attrs["t"] = cont
 
         self.H.add_node(node, old_attrs)
         if start[0] not in self.snapshots:
@@ -483,7 +494,19 @@ class ASH(object):
                     intervals.append(span)
 
             merged = self.__recursive_merge(intervals.copy())
-            old_attr["t"] = merged
+
+            # contiguity
+            cont = [merged[0]]
+            pos = 0
+            for i in range(1, len(merged)):
+                if cont[pos][1] == merged[i][0]:
+                    cont[pos][1] = merged[i][1]
+                else:
+                    pos += 1
+                    cont.append(merged[i])
+
+            old_attr["t"] = cont
+
             old_attr["weight"] = len(merged)
             self.H.add_hyperedge(nodes, old_attr)
 

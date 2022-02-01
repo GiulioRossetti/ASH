@@ -205,7 +205,7 @@ def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
     :param compress:
     :return:
     """
-    js_dmp = json.dumps(h.to_dict())
+    js_dmp = json.dumps(h.to_dict(), indent=2)
 
     if compress:
         op = gzip.open
