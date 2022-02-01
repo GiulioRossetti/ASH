@@ -376,5 +376,18 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=2))), ["e2", "e3"])
         self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3))), ["e3"])
 
-        # self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=0, end=1))), ['e1', 'e2'])
         self.assertEqual(sorted(list(a.hyperedge_id_iterator(start=3, end=3))), ["e3"])
+
+    def test_hyper_subgraph(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([2, 3, 4], 0)
+        a.add_hyperedge([1, 3], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
+        a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=2, party="L", age=20))
+
+        b, eid_map = a.induced_hypergraph(('e1', 'e2'))
+        self.assertEqual(len(eid_map), 2)

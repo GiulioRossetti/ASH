@@ -87,11 +87,13 @@ def hyper_conformity(
 ) -> dict:
     """
     Compute the Attribute-Profile Conformity for the considered graph
-    :param g: a networkx Graph object composed by a single component
+    :param h:
     :param alphas: list of damping factors
     :param labels: list of node categorical labels
+    :param s:
     :param profile_size:
     :param hierarchies: label hierarchies
+    :param tid:
     :return: conformity value for each node in [-1, 1]
 
     -- Example --
@@ -99,70 +101,86 @@ def hyper_conformity(
     >> pc = profile_conformity(g, 1, ['club'])
     """
 
-    g = h.s_line_graph(s=s, start=tid, end=tid)
+    full_res = []
 
-    if not nx.is_connected(g):
-        raise nx.NetworkXError("The provided graph is not connected")
+    for comp in s_components(h, s):
+        b, he_map = h.induced_hypergraph(comp)
 
-    if profile_size > len(labels):
-        raise ValueError("profile_size must be <= len(labels)")
+        g = b.s_line_graph(s=s, start=tid, end=tid)
 
-    if len(alphas) < 1 or len(labels) < 1:
-        raise ValueError(
-            "At list one value must be specified for both alphas and labels"
-        )
+        for comp in nx.connected_components(g):
+            g1 = nx.subgraph(g, comp).copy()
 
-    profiles = []
-    for i in range(1, profile_size + 1):
-        profiles.extend(combinations(labels, i))
+            if profile_size > len(labels):
+                raise ValueError("profile_size must be <= len(labels)")
 
-    # Attribute value frequency
-    labels_value_frequency = defaultdict(lambda: defaultdict(int))
+            if len(alphas) < 1 or len(labels) < 1:
+                raise ValueError(
+                    "At list one value must be specified for both alphas and labels"
+                )
 
-    # hyperedge most frequent label
-    for he in h.hyperedge_id_iterator():
-        for label in labels:
-            v = list(
-                hyperedge_most_frequent_node_attribute_value(h, he, label, tid).keys()
-            )[0]
-            labels_value_frequency[label][v] += 1
-            # annotate the line graph
-            g.add_node(he, **{label: v})
+            profiles = []
+            for i in range(1, profile_size + 1):
+                profiles.extend(combinations(labels, i))
 
-    # Normalization
-    df = defaultdict(lambda: defaultdict(int))
-    for k, v in labels_value_frequency.items():
-        tot = 0
-        for p, c in v.items():
-            tot += c
+            # Attribute value frequency
+            labels_value_frequency = defaultdict(lambda: defaultdict(int))
 
-        for p, c in v.items():
-            df[k][p] = c / tot
+            # hyperedge most frequent label
+            for he in b.hyperedge_id_iterator():
+                for label in labels:
+                    v = list(
+                        hyperedge_most_frequent_node_attribute_value(b, he, label, tid).keys()
+                    )
+                    if len(v) == 0:
+                        continue
+                    v = v[0]
+                    labels_value_frequency[label][v] += 1
+                    # annotate the line graph
+                    g1.add_node(he, **{label: v})
 
-    res = {
-        str(a): {"_".join(profile): {n: 0 for n in g.nodes()} for profile in profiles}
-        for a in alphas
-    }
+            # Normalization
+            df = defaultdict(lambda: defaultdict(int))
+            for k, v in labels_value_frequency.items():
+                tot = 0
+                for p, c in v.items():
+                    tot += c
 
-    for u in g.nodes():
-        sp = dict(all_shortest_s_path_length(h, s, u))
+                for p, c in v.items():
+                    df[k][p] = c / tot
 
-        dist_to_nodes = defaultdict(list)
-        for _, nodelist in sp.items():
-            for node, dist in nodelist.items():
-                dist_to_nodes[dist].append(node)
-        sp = dist_to_nodes
+            res = {
+                str(a): {"_".join(profile): {n: 0 for n in g1.nodes()} for profile in profiles}
+                for a in alphas
+            }
 
-        for dist, nodes in sp.items():
-            if dist != 0:
-                for profile in profiles:
-                    sim = __label_frequency(g, u, nodes, list(profile), hierarchies)
+            for u in g1.nodes():
+                sp = dict(all_shortest_s_path_length(b, s, u))
 
-                    for alpha in alphas:
-                        partial = sim / (dist ** alpha)
-                        p_name = "_".join(profile)
-                        res[str(alpha)][p_name][u] += partial
+                dist_to_nodes = defaultdict(list)
+                for _, nodelist in sp.items():
+                    for node, dist in nodelist.items():
+                        dist_to_nodes[dist].append(node)
+                sp = dist_to_nodes
 
-        res = __normalize(u, res, max(sp.keys()), alphas)
+                for dist, nodes in sp.items():
+                    if dist != 0:
+                        for profile in profiles:
+                            sim = __label_frequency(g, u, nodes, list(profile), hierarchies)
 
-    return res
+                            for alpha in alphas:
+                                partial = sim / (dist ** alpha)
+                                p_name = "_".join(profile)
+                                res[str(alpha)][p_name][u] += partial
+
+                res = __normalize(u, res, max(sp.keys()), alphas)
+                # remap
+                for ap, conf_dict in res.items():
+                    for feat, node_dict in conf_dict.items():
+                        node_dict = {he_map[n]: v for n, v in node_dict.items()}
+                        res[ap][feat] = node_dict
+
+            print(res)
+            full_res.append(res)
+
+    return full_res

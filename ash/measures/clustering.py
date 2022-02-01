@@ -18,6 +18,9 @@ def s_local_clustering_coefficient(
     """
 
     lg = h.s_line_graph(s, start, end)
+    if not lg.has_node(hyperedge_id):
+        return 1
+
     ego = nx.ego_graph(lg, hyperedge_id)
     ego.remove_node(hyperedge_id)
 
@@ -32,7 +35,10 @@ def s_local_clustering_coefficient(
         if len(res) > 2 and is_s_path(h, res):
             triangle += ego.number_of_edges()
 
-    LCC = triangle / comb(2, ego.number_of_nodes())
+    denom = comb(2, ego.number_of_nodes())
+    if denom == 0:
+        return 0
+    LCC = triangle / denom
     return LCC
 
 

@@ -50,6 +50,10 @@ def hyperedge_most_frequent_node_attribute_value(
     app = defaultdict(list)
     for node in nodes:
         profile = h.get_node_profile(node, tid=tid)
+
+        if not profile.has_attribute(attribute):
+            continue
+
         value = profile.get_attribute(attribute)
 
         if isinstance(value, str):
@@ -60,11 +64,12 @@ def hyperedge_most_frequent_node_attribute_value(
             app[attribute].extend(vals)
 
     count = Counter(app[attribute])
-    count = count.most_common(1)[0]
 
-    res = {count[0]: count[1]}
-
-    return res
+    if len(count) > 0:
+        count = count.most_common(1)[0]
+        res = {count[0]: count[1]}
+        return res
+    return {}
 
 
 def hyperedge_aggregate_node_profile(

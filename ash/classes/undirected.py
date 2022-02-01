@@ -159,7 +159,7 @@ class ASH(object):
             res = {}
             attrs = self.H.get_node_attributes(node)
             for key, l in attrs.items():
-                if key != "t":
+                if key != "t" and tid in l:
                     res[key] = l[tid]
                     if isinstance(l[tid], str) and "t_" in l[tid]:
                         base_tid = int(l[tid][2:])
@@ -996,3 +996,32 @@ class ASH(object):
                     res.append((he, incident))
 
         return res
+
+    def induced_hypergraph(self, hyperedge_set: list) -> object:
+        """
+        :param hyperedge_set:
+        :return:
+        """
+        b = ASH()
+        nodes_to_add = {}
+        old_eid_to_new = {}
+        for he in self.hyperedge_id_iterator():
+            if he in hyperedge_set:
+                att = self.get_hyperedge_attributes(he)['t']
+                nodes = self.get_hyperedge_nodes(he)
+                for n in nodes:
+                    nodes_to_add[n] = None
+
+                for span in att:
+                    b.add_hyperedge(self.get_hyperedge_nodes(he), span[0], span[1])
+                he1 = b.get_hyperedge_id(nodes)
+                old_eid_to_new[he] = he1
+
+        for node in nodes_to_add:
+            prof = self.get_node_profile(node)
+            spans = prof.get_attribute('t')
+            for t in spans:
+                pt = self.get_node_profile(node, tid=t[0])
+                b.add_node(node, t[0], t[1], attr_dict=pt)
+
+        return b, old_eid_to_new

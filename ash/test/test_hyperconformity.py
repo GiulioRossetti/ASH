@@ -43,7 +43,8 @@ class HyperConformityTestCase(unittest.TestCase):
 
     def test_hyper_conformity(self):
         a = self.get_hypergraph()
-        res = hyper_conformity(
+
+        full_res = hyper_conformity(
             h=a,
             alphas=list(np.arange(1, 4, 0.2)),
             labels=["party", "gender"],
@@ -51,17 +52,18 @@ class HyperConformityTestCase(unittest.TestCase):
         )
 
         with open(f"conformity.json", "w") as o:
-            json.dump(res, o)
+            json.dump(full_res, o)
 
-        for k, v in res.items():
-            for z, t in v.items():
-                for _, val in t.items():
-                    self.assertTrue(-1 <= val <= 1)
+        for res in full_res:
+            for k, v in res.items():
+                for z, t in v.items():
+                    for _, val in t.items():
+                        self.assertTrue(-1 <= val <= 1)
 
         os.remove("conformity.json")
 
         hierarchy = {"rank": {"one": 1, "two": 2, "three": 3}}
-        res = hyper_conformity(
+        full_res = hyper_conformity(
             h=a,
             alphas=list(np.arange(1, 4, 0.2)),
             labels=["party", "gender", "rank"],
@@ -70,11 +72,12 @@ class HyperConformityTestCase(unittest.TestCase):
         )
 
         with open(f"conformity_hierarchy.json", "w") as o:
-            json.dump(res, o)
+            json.dump(full_res, o)
 
-        for k, v in res.items():
-            for z, t in v.items():
-                for _, val in t.items():
-                    self.assertTrue(-1 <= val <= 1)
+        for res in full_res:
+            for k, v in res.items():
+                for z, t in v.items():
+                    for _, val in t.items():
+                        self.assertTrue(-1 <= val <= 1)
 
         os.remove("conformity_hierarchy.json")
