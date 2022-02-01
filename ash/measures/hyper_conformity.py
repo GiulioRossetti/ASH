@@ -119,8 +119,8 @@ def hyper_conformity(
 
         g = b.s_line_graph(s=s, start=tid, end=tid)
 
-        for comp in nx.connected_components(g):
-            g1 = nx.subgraph(g, comp).copy()
+        for cmp in nx.connected_components(g):
+            g1 = nx.subgraph(g, cmp).copy()
 
             if profile_size > len(labels):
                 raise ValueError("profile_size must be <= len(labels)")
