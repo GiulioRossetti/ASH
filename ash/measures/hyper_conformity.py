@@ -193,13 +193,14 @@ def hyper_conformity(
                                     res[str(alpha)][p_name][u] += partial
 
                 res = __normalize(u, res, max(sp.keys()), alphas)
-                # remap
-                for ap, conf_dict in res.items():
-                    for feat, node_dict in conf_dict.items():
-                        node_dict = {
-                            he_map[n]: v for n, v in node_dict.items() if n in he_map
-                        }
-                        res[ap][feat] = node_dict
+
+            # remap
+            for ap, conf_dict in res.items():
+                for feat, node_dict in conf_dict.items():
+                    node_dict = {
+                        he_map[n]: v for n, v in node_dict.items() if n in he_map
+                    }
+                    res[ap][feat] = node_dict
 
             full_res.append(res)
 

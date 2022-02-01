@@ -2,3 +2,4 @@ halp
 numpy
 scipy
 networkx
+tqdm

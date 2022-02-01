@@ -19,6 +19,7 @@ requirements:
     - halp
     - scipy
     - networkx
+    - tqdm
 
 about:
   home: https://github.com/GiulioRossetti/ASH
