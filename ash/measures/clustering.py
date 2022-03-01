@@ -64,3 +64,55 @@ def average_s_local_clustering_coefficient(
         return sum(LCCs) / count
 
     return 0
+
+
+def s_intersections(h: ASH, s: int, tid: int = None) -> float:
+    """
+
+    :param h:
+    :param s:
+    :param tid:
+    :return:
+    """
+
+    s_intersections = 0
+    hedge_nodesets = []
+
+    for hyperedge_id in h.hyperedge_id_iterator(start=tid):
+        nodes = h.get_hyperedge_nodes(hyperedge_id)
+        hedge_nodesets.append(set(nodes))
+
+    for he1 in hedge_nodesets:
+        for he2 in hedge_nodesets:
+            if len(he1.intersection(he2)) >= s and he1 != he2:
+                s_intersections += 1
+
+    return s_intersections // 2
+
+
+# def inclusion(h: ASH, tid: int = None) -> float:
+#     """
+
+#     :param h:
+#     :param tid:
+#     :return:
+#     """
+
+#     # create graph
+#     edges = [
+#         (node_a, node_b)
+#         for hyperedge_id in h.hyperedge_id_iterator(start=tid)
+#         for node_a in h.get_hyperedge_nodes(hyperedge_id)
+#         for node_b in h.get_hyperedge_nodes(hyperedge_id)
+#         if node_a != node_b
+#     ]
+#     g = nx.Graph()
+#     g.add_edges_from(edges)
+
+#     # extract cliques and compute metric
+#     toplexes = list(nx.clique.find_cliques(g))
+#     hyperedges = h.get_hyperedge_id_set()
+#     res = 1 - (len(toplexes) / len(hyperedges))
+
+#     return res
+

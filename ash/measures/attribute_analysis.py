@@ -2,7 +2,7 @@ from ash import ASH, NProfile
 from collections import defaultdict, Counter
 import numpy as np
 from math import log, e
-from collections.abc import Callable
+from typing import Callable
 
 
 def __entropy(labels, base=None):
@@ -167,4 +167,59 @@ def hyperedge_profile_entropy(h: ASH, hyperedge_id: str, tid: int) -> dict:
             attributes[attribute], len(set(attributes[attribute]))
         )
 
+    return res
+
+
+def star_profile_entropy(
+    h: ASH, node_id: int, tid: int, method: str = "aggregate"
+) -> dict:
+    """
+    Computes entropy for nodes in the star of node_id. If 'aggregate', 
+    it is computed by first aggregating the hyperedges into a single profile. 
+    If 'collapse', all the star nodes are considered.
+
+    :param h:
+    :param node_id:
+    :param tid:
+    :param method:
+    :return:
+    """
+    star = h.get_star(node_id)
+
+    if method == "aggregate":
+        attributes = list(h.get_node_profile(node_id, tid).get_attributes().keys())
+
+        profiles = []
+        for hyperedge_id in star:
+            # build aggregated profile
+            p = NProfile(None)
+            for attr in attributes:
+                value_ = hyperedge_most_frequent_node_attribute_value(
+                    h, hyperedge_id, attribute=attr, tid=tid
+                )
+                if value_:
+                    value = list(value_.keys())[0]
+                    p.add_attribute(attr, value)
+            profiles.append(p)
+
+    elif method == "collapse":
+        nodes = []
+        for hyperedge_id in star:
+            nodes += h.get_hyperedge_nodes(hyperedge_id)
+        profiles = [h.get_node_profile(n, tid) for n in set(nodes)]
+
+    else:
+        raise ValueError("method must either be 'aggregate' or 'collapse'")
+
+    attributes = defaultdict(list)
+    for profile in profiles:
+        for name, value in profile.get_attributes().items():
+            if isinstance(value, str):
+                attributes[name].append(value)
+
+    res = {}
+    for attribute in attributes:
+        res[attribute] = __entropy(
+            attributes[attribute], len(set(attributes[attribute]))
+        )
     return res
