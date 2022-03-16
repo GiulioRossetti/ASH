@@ -90,29 +90,22 @@ def s_intersections(h: ASH, s: int, tid: int = None) -> float:
     return s_intersections // 2
 
 
-# def inclusion(h: ASH, tid: int = None) -> float:
-#     """
+def inclusiveness(h: ASH) -> float:
+    """
+    Inclusiveness of an hypergraph is the ratio between non-external hyperdeges and
+    the hypergraph size.
 
-#     :param h:
-#     :param tid:
-#     :return:
-#     """
+    :param h: an ASH object
+    :return: inclusiveness value
+    """
+    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.get_hyperedge_id_set]
 
-#     # create graph
-#     edges = [
-#         (node_a, node_b)
-#         for hyperedge_id in h.hyperedge_id_iterator(start=tid)
-#         for node_a in h.get_hyperedge_nodes(hyperedge_id)
-#         for node_b in h.get_hyperedge_nodes(hyperedge_id)
-#         if node_a != node_b
-#     ]
-#     g = nx.Graph()
-#     g.add_edges_from(edges)
+    non_facets = set()
+    for nset in he_nodesets:
+        for nset2 in he_nodesets:
+            if nset.issubset(nset2) and nset != nset2:
+                non_facets.add(he_nodesets.index(nset))
 
-#     # extract cliques and compute metric
-#     toplexes = list(nx.clique.find_cliques(g))
-#     hyperedges = h.get_hyperedge_id_set()
-#     res = 1 - (len(toplexes) / len(hyperedges))
-
-#     return res
-
+    
+    # 1 - (toplexes/hyperedges)
+    return len(non_facets) / len(he_nodesets)
