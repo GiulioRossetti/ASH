@@ -66,16 +66,16 @@ def average_s_local_clustering_coefficient(
     return 0
 
 
-def s_intersections(h: ASH, s: int, tid: int = None) -> float:
+def k_intersections(h: ASH, k: int, tid: int = None) -> float:
     """
 
     :param h:
-    :param s:
+    :param k:
     :param tid:
     :return:
     """
 
-    s_intersections = 0
+    k_intersections = 0
     hedge_nodesets = []
 
     for hyperedge_id in h.hyperedge_id_iterator(start=tid):
@@ -84,16 +84,16 @@ def s_intersections(h: ASH, s: int, tid: int = None) -> float:
 
     for he1 in hedge_nodesets:
         for he2 in hedge_nodesets:
-            if len(he1.intersection(he2)) >= s and he1 != he2:
-                s_intersections += 1
+            if len(he1.intersection(he2)) >= k and he1 != he2:
+                k_intersections += 1
 
-    return s_intersections // 2
+    return k_intersections // 2
 
 
 def inclusiveness(h: ASH) -> float:
     """
-    Inclusiveness of an hypergraph is the ratio between non-external hyperdeges and
-    the hypergraph size.
+    Inclusiveness of an hypergraph is the ratio between the number of non-external 
+    hyperdeges and the hypergraph size.
 
     :param h: an ASH object
     :return: inclusiveness value
