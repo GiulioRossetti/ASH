@@ -66,7 +66,7 @@ def average_s_local_clustering_coefficient(
     return 0
 
 
-def k_intersections(h: ASH, k: int, tid: int = None) -> float:
+def k_intersections(h: ASH, k: int, tid: int) -> int:
     """
 
     :param h:
