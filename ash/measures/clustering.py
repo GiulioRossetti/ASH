@@ -98,7 +98,7 @@ def inclusiveness(h: ASH) -> float:
     :param h: an ASH object
     :return: inclusiveness value
     """
-    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.get_hyperedge_id_set]
+    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.get_hyperedge_id_set()]
 
     non_facets = set()
     for nset in he_nodesets:
