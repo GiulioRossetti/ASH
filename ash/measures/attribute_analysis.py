@@ -184,7 +184,7 @@ def star_profile_entropy(
     :param method:
     :return:
     """
-    star = h.get_star(node_id)
+    star = h.get_star(node_id, tid=tid)
 
     if method == "aggregate":
         attributes = list(h.get_node_profile(node_id, tid).get_attributes().keys())
