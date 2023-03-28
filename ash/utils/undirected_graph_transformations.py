@@ -1,7 +1,8 @@
-from ash import ASH, NProfile
 import copy
+
 import networkx as nx
-import halp.utilities.undirected_graph_transformations as um
+
+from ash import ASH, NProfile
 
 
 def to_graph_decomposition(H: ASH, tid: int = None) -> dict:

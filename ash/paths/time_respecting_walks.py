@@ -1,23 +1,24 @@
+import copy
+import itertools
+import networkx as nx
+import numpy as np
+import random
+from collections import defaultdict, namedtuple
+
 from ash import ASH
 from ash.paths.walks import is_s_path
-import networkx as nx
-import itertools
-from collections import defaultdict, namedtuple
-import random
-import numpy as np
-import copy
 
 TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
 TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
 
 
 def temporal_s_dag(
-    h: ASH,
-    s: int,
-    hyperedge_from: str,
-    hyperedge_to: str = None,
-    start: int = None,
-    end: int = None,
+        h: ASH,
+        s: int,
+        hyperedge_from: str,
+        hyperedge_to: str = None,
+        start: int = None,
+        end: int = None,
 ) -> nx.DiGraph:
     """
 
@@ -49,7 +50,7 @@ def temporal_s_dag(
     # adjusting temporal window
     start = list([i >= start for i in ids]).index(True)
     end = end if end == ids[-1] else list([i >= end for i in ids]).index(True)
-    ids = ids[start : end + 1]
+    ids = ids[start: end + 1]
 
     # creating empty DAG
     DG = nx.DiGraph()
@@ -103,14 +104,30 @@ def temporal_s_dag(
 
 
 def time_respecting_s_walks(
-    h: ASH,
-    s: int,
-    hyperedge_from: str,
-    hyperedge_to: str = None,
-    start: int = None,
-    end: int = None,
-    sample: float = 1,
+        h: ASH,
+        s: int,
+        hyperedge_from: str,
+        hyperedge_to: str = None,
+        start: int = None,
+        end: int = None,
+        sample: float = 1,
 ) -> dict:
+    """
+    The time_respecting_s_walks function takes as input a ASH, a positive integer s, and two hyperedges.
+    It returns the temporal s-paths that are time-respecting with respect to the given hyperedges.
+    The returned value is a dictionary whose keys are pairs of nodes (from_node, to_node) and values are lists of temporal paths.
+
+    :param h: ASH instance
+    :param s: minimum intersection between two hyperedges to be included in the path
+    :param hyperedge_from:str: Specify the source hyperedge
+    :param hyperedge_to:str=None: Specify the hyperedge to which we want to find all time-respecting paths
+    :param start:int=None: Specify the start time of the temporal network
+    :param end:int=None: Specify the end time of the hyperedge
+    :param sample:float=1: 
+    :param :
+    :return: A dictionary of the form {(hyperedge_from, hyperedge_to): [list of paths]}
+    :doc-author: Trelent
+    """
     """
 
     :param h:
@@ -188,7 +205,7 @@ def time_respecting_s_walks(
 
 
 def all_time_respecting_s_walks(
-    h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
+        h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
 ) -> dict:
     """
 

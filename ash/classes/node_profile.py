@@ -2,11 +2,15 @@ import json
 
 
 class NProfile(object):
-    def __init__(self, node_id: int = None, **kwargs):
-        """
+    """
+    Node Profile representation. A node profile encloses attributes and statistics of a node.
 
-        :param kwargs:
-        """
+    :param node_id: a node's unique identifier
+    :param kwargs: attributes to be added at creation
+    """
+
+    def __init__(self, node_id: int = None, **kwargs):
+
         self.__attrs = {}
         self.add_attributes(**kwargs)
         self.__stats = {}
@@ -14,17 +18,19 @@ class NProfile(object):
 
     def add_attribute(self, key: str, value: object) -> None:
         """
+        Sets attribute to node profile.
 
-        :param key:
-        :param value:
+        :param key: attribute name
+        :param value: attribute value
         :return:
         """
         self.__attrs[key] = value
 
     def add_attributes(self, **kwargs) -> None:
         """
+        Sets attributes to node profile.
 
-        :param kwargs:
+        :param kwargs: dict keyed by attribute name to be added
         :return:
         """
         for key, value in kwargs.items():
@@ -32,9 +38,8 @@ class NProfile(object):
 
     def get_attribute(self, key: str) -> object:
         """
-
-        :param key:
-        :return:
+        Returns node attribute in the form of a tid : attribute_value dict. Raises ValueError if the attribute is not
+        found :param key: attribute name :return:
         """
         if key in self.__attrs:
             return self.__attrs[key]
@@ -42,25 +47,28 @@ class NProfile(object):
 
     def get_attributes(self) -> dict:
         """
+        Returns all node attributes as key:value pairs. Values are dictionaries keyed by temporal id.
 
-        :return:
+        :return: the node's dict of attributes
         """
         return self.__attrs
 
-    def has_attribute(self, key: str):
+    def has_attribute(self, key: str) -> bool:
         """
+        Checks if the Node Profile has attribute :key:
 
-        :param key:
-        :return:
+        :param key: attribute name
+        :return: True if the Node Profile has the attribute, False otherwise.
         """
         return key in self.__attrs
 
     def add_statistic(self, attr_name: str, stat_name: str, value: float) -> None:
         """
+        Adds a statistic related to a node attribute
 
-        :param attr_name:
-        :param stat_name:
-        :param value:
+        :param attr_name: attribute name
+        :param stat_name: statistic value
+        :param value: statistic value
         :return:
         """
 
@@ -74,10 +82,11 @@ class NProfile(object):
 
     def get_statistic(self, attr_name: str, stats_name: str = None) -> dict:
         """
+        Returns a statistic related to a node attribute, in the form of stat_name: stat_value pairs.
 
-        :param attr_name:
-        :param stats_name:
-        :return:
+        :param attr_name: attribute name
+        :param stats_name: statistic name
+        :return: dictionary with the statistic
         """
         if attr_name not in self.__attrs:
             raise ValueError(f"{attr_name} not present in the profile")
@@ -95,10 +104,11 @@ class NProfile(object):
 
     def has_statistic(self, attr_name: str, stats_name: str) -> bool:
         """
+        Checks if the Node Profile has statistic :stats_name: for attribute :attr_name:
 
-        :param attr_name:
-        :param stats_name:
-        :return:
+        :param attr_name: attribute name
+        :param stats_name: statistic name
+        :return: True if the Node Profile has the statistic for the attribute, False otherwise.
         """
         if attr_name not in self.__attrs:
             raise ValueError(f"{attr_name} not present in the profile")
@@ -111,9 +121,10 @@ class NProfile(object):
 
     def attribute_computed_statistics(self, attr_name: str) -> list:
         """
+        Returns the Node Profile statistics' names computed for :attr_name:
 
-        :param attr_name:
-        :return:
+        :param attr_name: attribute name
+        :return: list of the statistics' names computed for the Node Profile
         """
         if attr_name not in self.__attrs:
             raise ValueError(f"{attr_name} not present in the profile")
@@ -186,6 +197,7 @@ class NProfile(object):
 
     def to_dict(self) -> dict:
         """
+        Returns a dict representation of the Node Profile
 
         :return:
         """

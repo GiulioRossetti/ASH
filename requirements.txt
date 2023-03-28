@@ -2,4 +2,7 @@ halp
 numpy
 scipy
 networkx
+matplotlib
+seaborn
+pandas
 tqdm

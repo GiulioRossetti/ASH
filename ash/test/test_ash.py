@@ -1,7 +1,8 @@
-import unittest
 import json
-import networkx as nx
+import unittest
+
 from networkx.algorithms import bipartite
+
 from ash import ASH, NProfile
 
 
@@ -63,11 +64,63 @@ class ASHTestCase(unittest.TestCase):
         attr = a.get_node_profile(1, tid=0)
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
-        label = a.get_node_attribute(1, attribute_name="label")
+        label = a.get_node_attribute(1, attr_name="label")
         self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
 
-        label = a.get_node_attribute(1, attribute_name="label", tid=0)
+        label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
+
+    def test_node_attributes_to_attribute_values(self):
+        a = ASH(hedge_removal=True)
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([1, 2, 3, 4], 0)
+        a.add_hyperedge([1, 3, 4], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        a.add_node(
+            1,
+            start=0,
+            end=0,
+            attr_dict=NProfile(node_id=1, party="L", age=37, gender="M"),
+        )
+        a.add_node(
+            1,
+            start=1,
+            end=1,
+            attr_dict=NProfile(node_id=1, party="R", age=37, gender="M"),
+        )
+        a.add_node(
+            2,
+            start=0,
+            end=0,
+            attr_dict=NProfile(node_id=2, party="L", age=20, gender="F"),
+        )
+        a.add_node(
+            3,
+            start=0,
+            end=1,
+            attr_dict=NProfile(node_id=3, party="L", age=11, gender="F"),
+        )
+        a.add_node(
+            4,
+            start=0,
+            end=1,
+            attr_dict=NProfile(node_id=4, party="R", age=45, gender="M"),
+        )
+
+        res = a.node_attributes_to_attribute_values()
+        self.assertDictEqual(res, {'party': {'L', 'R'},
+                                   'age': {11, 20, 37, 45},
+                                   'gender': {'F', 'M'}})
+
+        res = a.node_attributes_to_attribute_values(categorical=True)
+        self.assertDictEqual(res, {'party': {'L', 'R'},
+                                   'gender': {'F', 'M'}})
+
+        for tid in a.temporal_snapshots_ids():
+            res = a.node_attributes_to_attribute_values(tid=tid)
+            self.assertIsInstance(res, dict)
 
     def test_node_profiles(self):
         a = ASH(hedge_removal=True)
@@ -80,10 +133,10 @@ class ASHTestCase(unittest.TestCase):
         attr = a.get_node_profile(1, tid=0)
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
-        label = a.get_node_attribute(1, attribute_name="label")
+        label = a.get_node_attribute(1, attr_name="label")
         self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
 
-        label = a.get_node_attribute(1, attribute_name="label", tid=0)
+        label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
 
         a.add_node(1, start=3, end=4, attr_dict=NProfile(1, label="B"))

@@ -1,8 +1,8 @@
-from ash import ASH
-from halp.undirected_hypergraph import UndirectedHypergraph
 import halp.utilities.undirected_matrices as um
-from scipy import sparse
 import numpy as np
+from scipy import sparse
+
+from ash import ASH
 
 
 def get_node_mapping(h: ASH) -> (dict, dict):
@@ -25,7 +25,7 @@ def get_hyperedge_id_mapping(h: ASH) -> (dict, dict):
 
 
 def get_incidence_matrix(
-    h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
+        h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
 ) -> dict:
     """
 
@@ -68,7 +68,7 @@ def get_incidence_matrix(
 
 
 def get_hyperedge_weight_matrix(
-    h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
+        h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
 ) -> dict:
     """
 

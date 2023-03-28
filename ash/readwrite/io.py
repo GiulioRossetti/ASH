@@ -1,7 +1,7 @@
-from ash import ASH, NProfile
-import json
 import gzip
+import json
 
+from ash import ASH, NProfile
 
 __all__ = [
     "write_profiles_to_csv",
@@ -16,7 +16,7 @@ __all__ = [
 
 
 def __write_profile_to_csv(
-    h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
+        h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
 ) -> None:
     """
 
@@ -45,10 +45,12 @@ def __write_profile_to_csv(
 
 def write_profiles_to_csv(h: ASH, path: str, delimiter: str = ",") -> None:
     """
+    Writes node profiles data in CSV format. Each row is a profile at a specific temporal id, with the corresponding
+    attributes in that tid
 
-    :param h:
-    :param path:
-    :param delimiter:
+    :param h: ASH instance
+    :param path: file path to save to
+    :param delimiter: column delimiter
     :return:
     """
 
@@ -70,9 +72,11 @@ def write_profiles_to_csv(h: ASH, path: str, delimiter: str = ",") -> None:
 
 def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
     """
+    Reads node profiles data from CSV format into a dictionary.
+    Each row must be a profile at a specific temporal id, with the corresponding attributes in that tid
 
-    :param path:
-    :param delimiter:
+    :param path: file path to read from
+    :param delimiter: column delimiter
     :return:
     """
     res = {}
@@ -91,7 +95,7 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
 
 
 def __write_profile_to_json(
-    profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
+        profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
 ) -> None:
     """
 
@@ -120,10 +124,11 @@ def __write_profile_to_json(
 
 def write_profiles_to_jsonl(a: ASH, path: str, compress: bool = False) -> None:
     """
+    Write each NProfile as a JSON string, one per line.
 
-    :param a:
-    :param path:
-    :param compress:
+    :param a: ASH instance
+    :param path: file path to save to
+    :param compress: whether to use file compression
     :return:
     """
     for node in a.node_iterator():
@@ -134,10 +139,11 @@ def write_profiles_to_jsonl(a: ASH, path: str, compress: bool = False) -> None:
 
 def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
     """
+    Reads NProfiles from a file where each line contain a JSON string representing the profile.
 
-    :param path:
-    :param compress:
-    :return:
+    :param path: file path to read from
+    :param compress: whether the file is compressed
+    :return: a dictionary containing node profiles
     """
     if compress:
         op = gzip.open
@@ -161,9 +167,10 @@ def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
 
 def write_sh_to_csv(h: ASH, path: str) -> None:
     """
-
-    :param h:
-    :param path:
+    Writes interactions to CSV format. Each row identifies a hyperedge;
+    the first column contains hyperedge nodes, the second contains start-end temporal ids,
+    :param h: ASH instance
+    :param path: file path to write to
     :return:
     """
     with open(path, "w") as o:
@@ -179,12 +186,13 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
 
 def read_sh_from_csv(path: str) -> ASH:
     """
+    Read interactions from CSV format. Each row must identify a hyperedge;
+    the first column must contain hyperedge nodes, the second must contain start-end temporal ids,
 
-    :param path:
-    :param delimiter:
-    :param compress:
-    :return:
+    :param path: file path to write to
+    :return: ASH instance
     """
+
     a = ASH(hedge_removal=True)
 
     with open(path) as f:
@@ -199,10 +207,11 @@ def read_sh_from_csv(path: str) -> ASH:
 
 def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
     """
+    Write ASH instance to JSON object. Keys are 'nodes' for node profiles and 'hedges' for interactions
 
-    :param h:
-    :param path:
-    :param compress:
+    :param h: ASH instance
+    :param path: file path to write to
+    :param compress: whether to use file compression
     :return:
     """
     js_dmp = json.dumps(h.to_dict(), indent=2)
@@ -218,9 +227,10 @@ def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
 
 def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     """
+    Read ASH instance from JSON file. Keys must be 'nodes' for node profiles 'hedges' for interactions
 
-    :param path:
-    :param compress:
+    :param path: file path to read from
+    :param compress: whether the file is compressed
     :return:
     """
     h = ASH(hedge_removal=True)
