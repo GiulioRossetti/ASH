@@ -20,7 +20,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     requirements = f.read().splitlines()
 
 
-setup(name='ash',
+setup(name='ash_model',
       version='0.1.0',
       license='BSD-Clause-2',
       description='Attributed Stream Hypergraph library',
