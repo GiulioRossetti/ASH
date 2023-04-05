@@ -1,5 +1,9 @@
 # Attributed Stream Hypergraph (ASH)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Documentation Status](https://readthedocs.org/projects/ash-model/badge/?version=latest)](https://ash-model.readthedocs.io//en/latest/?badge=latest)
+[![Updates](https://pyup.io/repos/github/GiulioRossetti/ASH/shield.svg)](https://pyup.io/repos/github/GiulioRossetti/ASH/)
+[![pyversions](https://img.shields.io/pypi/pyversions/ash-model.svg)](https://badge.fury.io/py/ash-model)
+[![PyPI version](https://badge.fury.io/py/ash-model.svg)](https://badge.fury.io/py/ash-model)
 [![SBD++](https://img.shields.io/badge/Available%20on-SoBigData%2B%2B-green)](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853)
 
 ``ASH`` is a Python software package that allows to represent and analyze dynamic hypergraphs enriched with node attributes.
@@ -16,7 +20,7 @@ If you use ``ASH`` as support to your research consider citing:
 
 ## Tutorial and Online Environments
 
-Check out the official [tutorial](#) to get started!
+Check out the official [tutorial](https://ash-model.readthedocs.io/en/latest/tutorial.html) to get started!
 
 If you would like to test ``ASH`` functionalities without installing anything on your machine consider using the preconfigured Jupyter Hub instances offered by [SoBigData++](https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853).
 
