@@ -8,7 +8,9 @@
 If you use ``ASH`` as support to your research consider citing:
  
 > A. Failla, S. Citraro, G. Rossetti
+> 
 > **Attributed Stream Hypergraphs: temporal modeling of node-attributed high-order interactions.**
+> 
 > [arXiv:2303.18226](https://arxiv.org/abs/2303.18226)
 > 2023
 
