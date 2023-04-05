@@ -5,9 +5,9 @@ name: Test and Coverage (Ubuntu)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
