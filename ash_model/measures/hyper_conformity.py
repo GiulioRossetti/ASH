@@ -1,5 +1,3 @@
-import networkx as nx
-from ash_model import ASH
 from ash_model.measures import *
 from ash_model.paths.walks import *
 from itertools import combinations

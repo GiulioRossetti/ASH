@@ -1,5 +1,4 @@
 import networkx as nx
-
 from ash_model import ASH
 
 

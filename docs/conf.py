@@ -27,6 +27,8 @@ MOCK_MODULES = [
     "halp.undirected_hypergraph",
     "halp.utilities.undirected_matrices",
     "matplotlib.pyplot",
+    "ash_model"
+    "math",
     "halp",
     "matplotlib",
     "networkx",
