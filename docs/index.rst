@@ -29,6 +29,7 @@ Ash Dev Team
    :hidden:
 
    overview.rst
+   reference/reference.rst
    tutorial.rst
    install.rst
 

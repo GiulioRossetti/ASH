@@ -24,6 +24,9 @@ class Mock(MagicMock):
 
 MOCK_MODULES = [
     "numpy",
+    "halp.undirected_hypergraph",
+    "halp.utilities.undirected_matrices",
+    "matplotlib.pyplot",
     "halp",
     "matplotlib",
     "networkx",
@@ -32,6 +35,7 @@ MOCK_MODULES = [
     "tqdm",
     "seaborn",
     "pandas",
+
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

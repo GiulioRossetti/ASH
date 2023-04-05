@@ -1,12 +1,8 @@
 import copy
-import itertools
 import networkx as nx
 import numpy as np
-import random
 from collections import defaultdict, namedtuple
-
 from ash_model import ASH
-from ash_model.paths.walks import is_s_path
 
 TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
 TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
