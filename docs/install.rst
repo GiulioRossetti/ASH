@@ -1,5 +1,5 @@
 Installation
-=====
+============
 
 if you want to use conda::
 

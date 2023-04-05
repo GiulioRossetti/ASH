@@ -12,6 +12,29 @@
 #
 import os
 import sys
+from mock import Mock as MagicMock
+import sphinx_rtd_theme
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+MOCK_MODULES = [
+    "numpy",
+    "halp",
+    "matplotlib",
+    "networkx",
+    "seaborn",
+    "scipy",
+    "tqdm",
+    "seaborn",
+    "pandas",
+]
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 
 sys.path.insert(0, os.path.abspath('../'))
 
@@ -19,7 +42,7 @@ sys.path.insert(0, os.path.abspath('../'))
 
 project = 'ASH'
 copyright = '2023, Giulio Rossetti'
-author = 'Giulio Rossetti'
+author = 'Giulio Rossetti, Andrea Failla, Salvatore Citraro'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
@@ -30,6 +53,8 @@ release = '0.1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.mathjax",
+    "sphinx.ext.githubpages",
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
 ]
@@ -55,3 +80,4 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+#html_context = {"css_files": ["_static/css/custom.css"]}

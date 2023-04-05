@@ -18,7 +18,7 @@ During the construction phase the ``hedge_removal`` parameter allows to specify 
 
 
 High-order Interactions: Hyperedges
---------------------
+-----------------------------------
 
 ``h`` can be grown by adding one interaction (i.e., an hyperedge) at a time.
 Each interaction is univocally defined by an arbitrarily-large set of nodes, and has a ``start`` and a ``end`` timestamp, indicating its appearance and disappearance times respectively.
@@ -67,7 +67,7 @@ That is to say that given a node is is possible to easily get the set of hypered
 
 
 Node Profiles: Enrich Your Hypergraph!
---------------------
+--------------------------------------
 
 As for hyperedges, it is also possible to add one node at a time, specifying ``start``, or ``start`` and ``end`` timestamps.
 The same can be done for multiple nodes at a time, which will all have the same ``start`` and ``end`` timestamps:
@@ -113,7 +113,7 @@ To see all information on a node profile through time, you can use the following
 
 
 Time Respecting s-Walks
---------------------
+-----------------------
 
 ASH integrates the s-analysis framework to generalize classic graph measures to hypergraphs, and extends it with temporal information.
 In short, walks are extended to hypergraphs based on a parameter ``s``, which controls the minimum number of common nodes between subsequent hyperedges.
@@ -163,11 +163,11 @@ In the above example, first we get all time respecting s-walks via ``time_respec
 Other choices include fastest, heaviest, and all possible combinations.
 
 High-order Mixing Patterns
---------------------
+--------------------------
 
 
 Navigating in Time
--------------------------
+------------------
 
 The timestamps associated to the hyperedges can be retrieved through:
 
@@ -208,7 +208,7 @@ the ``stream_interactions`` method returns a generator that streams the interact
  - ``op`` is a hyperedge creation or deletion event (respectively ``+``, ``-``)
 
 Visual Analytics
---------------------
+----------------
 ``ash`` also provides a module that facilitates visualizing both static and temporal statistics.
 
 .. code:: python
@@ -242,6 +242,7 @@ A couple of things to note here:
  - ``func`` is a ``Callable`` object that is applied to all snapshots.
  - ``func_params`` allows to pass arguments to ``func``. If the only parameters of a function are ``h`` and/or ``tid``, or ``start``, and ``end``, this parameter can be ignored/set to ``None``.
  - ``rolling`` is an optional parameter that is used to smooth the time series. In case you have high-resolution temporal data, it is best to set this parameter; it basically computes the mean over ``rolling`` timestamps.
+
 Instead, for attribute dynamics we have – you guessed it: ``plot_attribute_dynamics()``
 
 .. code:: python
@@ -280,7 +281,7 @@ In conclusion, if you want to compare different dynamic hypernetworks, you can d
 
 
 Reading and Writing
---------------------
+-------------------
 
 ``ash`` allows to read/write hypernetworks in two ways, either:
 

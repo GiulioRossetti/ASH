@@ -1,7 +1,4 @@
-.. ASH documentation master file, created by
-sphinx-quickstart on Fri Mar 24 12:34:18 2023.
-You can adapt this file completely to your liking, but it should at least
-contain the root `toctree` directive.
+.. ASH documentation master file, created by sphinx-quickstart on Fri Mar 24 12:34:18 2023. You can adapt this file completely to your liking, but it should at least contain the root `toctree` directive.
 
 Welcome to ASH's documentation!
 ===============================
@@ -12,36 +9,33 @@ If you would like to test ``ash`` functionalities without installing it on your 
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-2023                 3.9       `Giulio Rossetti`_         `Source`_   `Distribution`_
+      2023                 3.9       `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^
 Ash Dev Team
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^
 
-======================= ============================
+======================= ==============================
 **Name**                **Contribution**
-`Giulio Rossetti`_             Library Design, implementation
------------------------ ----------------------------
-`Andrea Failla`_               Implementation, Documentation
-======================= ============================
-
-
+`Giulio Rossetti`_      Library Design, implementation
+`Andrea Failla`_        Implementation, Documentation
+`Salvatore Citraro`_    Implementation
+======================= ==============================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :hidden:
 
    overview.rst
    tutorial.rst
    install.rst
 
 
-
-
 .. _`Giulio Rossetti`: http://www.about.giuliorossetti.net
 .. _`Andrea Failla`: https://github.com/andreafailla
-.. _`Source`: https://github.com/GiulioRossetti/CDlib
-.. _`Distribution`: https://pypi.python.org/pypi/CDlib
+.. _`Salvatore Citraro`: https://github.com/dsalvaz
+.. _`Source`: https://github.com/GiulioRossetti/ASH
+.. _`Distribution`: https://pypi.python.org/pypi/ASH
 .. _`SoBigData++`: https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853
