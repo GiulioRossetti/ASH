@@ -4,7 +4,7 @@ from ash import ASH
 
 
 def __s_linegraph(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
 ) -> nx.Graph:
     """
 
@@ -25,13 +25,13 @@ def __s_linegraph(
 
 
 def s_betweenness_centrality(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        edges: bool = True,
-        normalized: bool = True,
-        weight: bool = False,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    edges: bool = True,
+    normalized: bool = True,
+    weight: bool = False,
 ) -> dict:
     """
     The s_betweenness_centrality function computes the s-betweenness centrality for each node in a hypergraph. The
@@ -64,7 +64,7 @@ def s_betweenness_centrality(
 
 
 def s_closeness_centrality(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
 ) -> dict:
     """
     The s_closeness_centrality function computes the s-closeness centrality of each node in a hypergraph.
@@ -89,7 +89,7 @@ def s_closeness_centrality(
 
 
 def s_eccentricity(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
 ) -> dict:
     """
     The s_eccentricity function returns the s-eccentricity of each node in a given hypergraph.
@@ -114,7 +114,7 @@ def s_eccentricity(
 
 
 def s_harmonic_centrality(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
 ) -> dict:
     """
     The s_harmonic_centrality function computes the s-harmonic centrality of each node in a hypergraph.
@@ -139,15 +139,15 @@ def s_harmonic_centrality(
 
 
 def s_katz(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        edges: bool = True,
-        normalized: bool = True,
-        alpha: float = 0.1,
-        beta: float = 1.0,
-        weight: bool = False,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    edges: bool = True,
+    normalized: bool = True,
+    alpha: float = 0.1,
+    beta: float = 1.0,
+    weight: bool = False,
 ) -> dict:
     """
     The s_katz function computes the Katz s-centrality of all nodes in a hypergraph.
@@ -183,13 +183,13 @@ def s_katz(
 
 
 def s_load_centrality(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        edges: bool = True,
-        normalized: bool = True,
-        weight: bool = False,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    edges: bool = True,
+    normalized: bool = True,
+    weight: bool = False,
 ) -> dict:
     """
     The s_load_centrality function calculates the s-load centrality of all nodes in a hypergraph.
@@ -221,14 +221,14 @@ def s_load_centrality(
 
 
 def s_eigenvector_centrality(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        edges: bool = True,
-        weight: bool = False,
-        max_iter: int = 50,
-        tol: float = 0,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    edges: bool = True,
+    weight: bool = False,
+    max_iter: int = 50,
+    tol: float = 0,
 ) -> dict:
     """
     The s_eigenvector_centrality function computes the eigenvector centrality for each node in a hypergraph.
@@ -261,7 +261,7 @@ def s_eigenvector_centrality(
 
 
 def s_information_centrality(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True, weight=None
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True, weight=None
 ) -> dict:
     """
     The s_information_centrality function computes the information centrality of all nodes in a hypergraph The
@@ -293,7 +293,7 @@ def s_information_centrality(
 
 
 def s_second_order_centrality(
-        h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
 ) -> dict:
     """
     The s_second_order_centrality function computes the s-second order centrality of all nodes in a hypergraph The

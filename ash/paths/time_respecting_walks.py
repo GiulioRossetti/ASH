@@ -13,12 +13,12 @@ TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
 
 
 def temporal_s_dag(
-        h: ASH,
-        s: int,
-        hyperedge_from: str,
-        hyperedge_to: str = None,
-        start: int = None,
-        end: int = None,
+    h: ASH,
+    s: int,
+    hyperedge_from: str,
+    hyperedge_to: str = None,
+    start: int = None,
+    end: int = None,
 ) -> nx.DiGraph:
     """
 
@@ -50,7 +50,7 @@ def temporal_s_dag(
     # adjusting temporal window
     start = list([i >= start for i in ids]).index(True)
     end = end if end == ids[-1] else list([i >= end for i in ids]).index(True)
-    ids = ids[start: end + 1]
+    ids = ids[start : end + 1]
 
     # creating empty DAG
     DG = nx.DiGraph()
@@ -63,7 +63,6 @@ def temporal_s_dag(
         to_add = []
 
         for an in active:
-
             if not h.has_hyperedge_id(str(an).split("_")[0], tid=tid):
                 continue
 
@@ -104,13 +103,13 @@ def temporal_s_dag(
 
 
 def time_respecting_s_walks(
-        h: ASH,
-        s: int,
-        hyperedge_from: str,
-        hyperedge_to: str = None,
-        start: int = None,
-        end: int = None,
-        sample: float = 1,
+    h: ASH,
+    s: int,
+    hyperedge_from: str,
+    hyperedge_to: str = None,
+    start: int = None,
+    end: int = None,
+    sample: float = 1,
 ) -> dict:
     """
     The time_respecting_s_walks function takes as input a ASH, a positive integer s, and two hyperedges.
@@ -123,7 +122,7 @@ def time_respecting_s_walks(
     :param hyperedge_to:str=None: Specify the hyperedge to which we want to find all time-respecting paths
     :param start:int=None: Specify the start time of the temporal network
     :param end:int=None: Specify the end time of the hyperedge
-    :param sample:float=1: 
+    :param sample:float=1:
     :param :
     :return: A dictionary of the form {(hyperedge_from, hyperedge_to): [list of paths]}
     :doc-author: Trelent
@@ -205,7 +204,7 @@ def time_respecting_s_walks(
 
 
 def all_time_respecting_s_walks(
-        h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
+    h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
 ) -> dict:
     """
 
@@ -261,7 +260,6 @@ def annotate_walks(paths: list) -> dict:
     p_weight = None
 
     for path in paths:
-
         length = walk_length(path)
         duration = walk_duration(path)
         weight = walk_weight(path)

@@ -78,7 +78,7 @@ def __normalize(u: object, scores: list, max_dist: int, alphas: list) -> list:
     :return: scores updated
     """
     for alpha in alphas:
-        norm = sum([(d ** -alpha) for d in range(1, max_dist + 1)])
+        norm = sum([(d**-alpha) for d in range(1, max_dist + 1)])
 
         for profile in scores[str(alpha)]:
             if u in scores[str(alpha)][profile]:
@@ -187,7 +187,7 @@ def hyper_conformity(
                             )
 
                             for alpha in alphas:
-                                partial = sim / (dist ** alpha)
+                                partial = sim / (dist**alpha)
                                 p_name = "_".join(profile)
                                 if u in res[str(alpha)][p_name]:
                                     res[str(alpha)][p_name][u] += partial

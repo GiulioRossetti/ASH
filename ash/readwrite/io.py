@@ -16,7 +16,7 @@ __all__ = [
 
 
 def __write_profile_to_csv(
-        h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
+    h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
 ) -> None:
     """
 
@@ -95,7 +95,7 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
 
 
 def __write_profile_to_json(
-        profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
+    profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
 ) -> None:
     """
 

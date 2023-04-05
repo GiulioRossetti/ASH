@@ -16,10 +16,10 @@ def plot_s_degrees(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> 
     :return: The axes object
     """
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
     nodes = h.get_node_set()
     ss = np.arange(1, smax + 1, 1)
@@ -38,7 +38,8 @@ def plot_s_degrees(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> 
             ".",
             label="s_" + str(s),
             alpha=0.8,
-            **{k: v for k, v in kwargs.items() if k != 'ax'})
+            **{k: v for k, v in kwargs.items() if k != "ax"}
+        )
         if loglog:
             ax.loglog()
 
@@ -46,7 +47,9 @@ def plot_s_degrees(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> 
     return ax
 
 
-def plot_hyperedge_size_distribution(h: ASH, max_size: int = None, min_size: int = None, **kwargs: object) -> object:
+def plot_hyperedge_size_distribution(
+    h: ASH, max_size: int = None, min_size: int = None, **kwargs: object
+) -> object:
     """
     The plot_hyperedge_size_distribution function plots the distribution of hyperedge sizes in a hypergraph.
     :min_size: and :max_size: can be used to filter out hyperedges.
@@ -59,10 +62,10 @@ def plot_hyperedge_size_distribution(h: ASH, max_size: int = None, min_size: int
     :return: The axes object
     """
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
     size_dist = dict(h.hyperedge_size_distribution())
     if max_size:
@@ -71,7 +74,7 @@ def plot_hyperedge_size_distribution(h: ASH, max_size: int = None, min_size: int
         size_dist = {k: v for k, v in size_dist.items() if k >= min_size}
     x, y = zip(*size_dist.items())
 
-    ax.bar(np.array(x), y, alpha=0.4, **{k: v for k, v in kwargs.items() if k != 'ax'})
+    ax.bar(np.array(x), y, alpha=0.4, **{k: v for k, v in kwargs.items() if k != "ax"})
     return ax
 
 
@@ -87,10 +90,10 @@ def plot_degree_distribution(h: ASH, loglog: bool = True, **kwargs: object) -> o
     :return: The axes object
     """
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
     nodes = h.get_node_set()
     degs = {n: 0 for n in nodes}
     for n in nodes:
@@ -100,7 +103,7 @@ def plot_degree_distribution(h: ASH, loglog: bool = True, **kwargs: object) -> o
     y = list(deg.values())
     y = np.bincount(y)
     x = range(0, len(y))
-    ax.plot(x, y, ".", alpha=0.4, **{k: v for k, v in kwargs.items() if k != 'ax'})
+    ax.plot(x, y, ".", alpha=0.4, **{k: v for k, v in kwargs.items() if k != "ax"})
     if loglog:
         ax.loglog()
     return ax
@@ -118,10 +121,10 @@ def plot_s_ranks(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> ob
     :param kwargs: Pass matplotlib keyword arguments to the function
     :return: The axes object
     """
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
     nodes = h.get_node_set()
     ss = np.arange(1, smax + 1, 1)
@@ -135,8 +138,14 @@ def plot_s_ranks(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> ob
 
         y = list(deg.values())
 
-        ax.plot(range(len(y)), y, ".", label="s_" + str(s), alpha=0.4,
-                **{k: v for k, v in kwargs.items() if k != 'ax'})
+        ax.plot(
+            range(len(y)),
+            y,
+            ".",
+            label="s_" + str(s),
+            alpha=0.4,
+            **{k: v for k, v in kwargs.items() if k != "ax"}
+        )
 
         if loglog:
             ax.loglog()

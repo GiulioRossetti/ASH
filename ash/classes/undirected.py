@@ -16,7 +16,6 @@ class ASH(object):
     """
 
     def __init__(self, hedge_removal: bool = False) -> None:
-
         self.H = UndirectedHypergraph()
         self.time_to_edge = defaultdict(lambda: defaultdict(str))
         self.snapshots = {}
@@ -79,7 +78,7 @@ class ASH(object):
         return sum(nodes_snapshots) / len(self.snapshots.keys())
 
     def add_node(
-            self, node: int, start: int, end: int = None, attr_dict: object = None
+        self, node: int, start: int, end: int = None, attr_dict: object = None
     ) -> None:
         """
         The add_node function adds a node to the ASh.
@@ -159,7 +158,7 @@ class ASH(object):
             self.snapshots[end] = []
 
     def add_nodes(
-            self, nodes: list, start: int, end: int = None, node_attr_dict: dict = None
+        self, nodes: list, start: int, end: int = None, node_attr_dict: dict = None
     ) -> None:
         """
         The add_nodes function adds a list of nodes to the ASH with an optional node-to-attributes
@@ -207,9 +206,7 @@ class ASH(object):
                         res[key] = l[base_tid]
         return NProfile(node, **res)
 
-    def get_node_attribute(
-            self, node: int, attr_name: str, tid: int = None
-    ) -> object:
+    def get_node_attribute(self, node: int, attr_name: str, tid: int = None) -> object:
         """
         The get_node_attribute function returns the value of a node attribute for a given node.
         If no temporal snapshot id (tid) is specified, it will return a tid-to-attribute-value
@@ -245,7 +242,9 @@ class ASH(object):
                 return attrs[int(value[2:])]
             return attrs[tid]
 
-    def node_attributes_to_attribute_values(self, categorical=False, tid: int = None) -> dict:
+    def node_attributes_to_attribute_values(
+        self, categorical=False, tid: int = None
+    ) -> dict:
         """
         The node_attributes_to_attribute_values function returns a dictionary of the attributes and their values. The
         function takes in two parameters: categorical, which is a boolean that determines whether to include
@@ -261,7 +260,7 @@ class ASH(object):
         attributes = defaultdict(set)
         for n in self.get_node_set(tid=tid):
             for name, vals in self.get_node_profile(n, tid=tid).items():
-                if name != 't':
+                if name != "t":
                     if tid is None:
                         for value in vals.values():
                             attributes[name].add(value)
@@ -269,7 +268,8 @@ class ASH(object):
                         attributes[name].add(vals)
         if categorical:
             numerical = [
-                attribute for attribute in attributes
+                attribute
+                for attribute in attributes
                 if not isinstance(list(attributes[attribute])[0], str)
             ]
             for attribute in numerical:
@@ -341,11 +341,11 @@ class ASH(object):
                     eid
                     for eid in self.H.get_star(node)
                     if self.has_hyperedge_id(eid, tid)
-                       and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
+                    and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
                 }
 
     def get_number_of_neighbors(
-            self, node: int, hyperedge_size: int = None, tid: int = None
+        self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> int:
         """
         The get_number_of_neighbors function returns the number of nodes a node is connected to via hyperedges.
@@ -362,7 +362,7 @@ class ASH(object):
         return len(neighbors)
 
     def get_neighbors(
-            self, node: int, hyperedge_size: int = None, tid: int = None
+        self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> set:
         """
         The get_neighbors function returns the set of all nodes that are connected to a given node via hyperedges.
@@ -598,7 +598,6 @@ class ASH(object):
 
         # add the interaction
         if not self.H.has_hyperedge(nodes):  # new hyperedge
-
             presence = {"t": [start]}  # : attr_dict}}
             for k, v in attrs.items():
                 presence[k] = v
@@ -673,7 +672,7 @@ class ASH(object):
             self.add_hyperedge(nodes, start, end)
 
     def get_hyperedge_attribute(
-            self, hyperedge_id: str, attribute_name: str, tid: int = None
+        self, hyperedge_id: str, attribute_name: str, tid: int = None
     ) -> object:
         """
         The get_hyperedge_attribute function returns the value of a specific attribute of a hyperedge.
@@ -768,8 +767,8 @@ class ASH(object):
                 hest = self.time_to_edge[i]
                 for key, v in hest.items():
                     if v == "+" and (
-                            hyperedge_size is None
-                            or len(self.get_hyperedge_nodes(key)) == hyperedge_size
+                        hyperedge_size is None
+                        or len(self.get_hyperedge_nodes(key)) == hyperedge_size
                     ):
                         hedges[key] = None
                     else:
@@ -928,7 +927,6 @@ class ASH(object):
             t1 = e_attrs["t"]
 
             for span in t1:
-
                 if end is not None:
                     if span[0] >= start and span[1] <= end:
                         S.add_hyperedge(he, span[0], span[1])
@@ -1162,7 +1160,6 @@ class ASH(object):
         count = 0
 
         for he in self.hyperedge_id_iterator(start=start, end=end):
-
             nodes = self.get_hyperedge_nodes(he)
             inc = set(nodes) & set(node_set)
             if len(inc) == len(node_set):
@@ -1207,7 +1204,7 @@ class ASH(object):
         return len(res)
 
     def get_s_incident(
-            self, hyperedge_id: str, s: int, start: int = None, end: int = None
+        self, hyperedge_id: str, s: int, start: int = None, end: int = None
     ) -> list:
         """
         Returns a list of 2-tuples of the form (**heid**, **comm**), where heid is the id of a hyperedge that

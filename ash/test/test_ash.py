@@ -110,13 +110,12 @@ class ASHTestCase(unittest.TestCase):
         )
 
         res = a.node_attributes_to_attribute_values()
-        self.assertDictEqual(res, {'party': {'L', 'R'},
-                                   'age': {11, 20, 37, 45},
-                                   'gender': {'F', 'M'}})
+        self.assertDictEqual(
+            res, {"party": {"L", "R"}, "age": {11, 20, 37, 45}, "gender": {"F", "M"}}
+        )
 
         res = a.node_attributes_to_attribute_values(categorical=True)
-        self.assertDictEqual(res, {'party': {'L', 'R'},
-                                   'gender': {'F', 'M'}})
+        self.assertDictEqual(res, {"party": {"L", "R"}, "gender": {"F", "M"}})
 
         for tid in a.temporal_snapshots_ids():
             res = a.node_attributes_to_attribute_values(tid=tid)

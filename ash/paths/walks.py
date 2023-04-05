@@ -6,13 +6,13 @@ from ash import ASH
 
 
 def all_simple_paths(
-        h: ASH,
-        s: int,
-        hyperedge_a: str = None,
-        hyperedge_b: str = None,
-        start: int = None,
-        end: int = None,
-        cutoff: int = None,
+    h: ASH,
+    s: int,
+    hyperedge_a: str = None,
+    hyperedge_b: str = None,
+    start: int = None,
+    end: int = None,
+    cutoff: int = None,
 ) -> object:
     """
 
@@ -40,12 +40,12 @@ def all_simple_paths(
 
 
 def shortest_s_path(
-        h: ASH,
-        s: int,
-        hyperedge_a: str = None,
-        hyperedge_b: str = None,
-        start: int = None,
-        end: int = None,
+    h: ASH,
+    s: int,
+    hyperedge_a: str = None,
+    hyperedge_b: str = None,
+    start: int = None,
+    end: int = None,
 ) -> object:
     """
 
@@ -65,7 +65,7 @@ def shortest_s_path(
 
 
 def all_shortest_s_path(
-        h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
 ) -> dict:
     """
 
@@ -94,7 +94,7 @@ def all_shortest_s_path(
 
 
 def all_shortest_s_path_length(
-        h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
 ) -> dict:
     """
 
@@ -129,7 +129,7 @@ def all_shortest_s_path_length(
 
 
 def all_shortest_s_walk(
-        h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
 ) -> dict:
     """
 
@@ -144,7 +144,7 @@ def all_shortest_s_walk(
 
 
 def all_shortest_s_walk_length(
-        h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
 ) -> dict:
     """
 
@@ -167,14 +167,14 @@ def all_shortest_s_walk_length(
 
 
 def shortest_s_walk(
-        h: ASH,
-        s: int,
-        fr: str = None,
-        to: str = None,
-        start: int = None,
-        end: int = None,
-        weight: bool = False,
-        edge: bool = True,
+    h: ASH,
+    s: int,
+    fr: str = None,
+    to: str = None,
+    start: int = None,
+    end: int = None,
+    weight: bool = False,
+    edge: bool = True,
 ) -> object:
     """
     All returned paths include both the source and target in the path.
@@ -234,7 +234,7 @@ def shortest_s_walk(
 
 
 def closed_s_walk(
-        h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_a: str = None, start: int = None, end: int = None
 ) -> object:
     """
 
@@ -253,14 +253,14 @@ def closed_s_walk(
 
 
 def s_distance(
-        h: ASH,
-        s: int,
-        fr: str = None,
-        to: str = None,
-        start: int = None,
-        end: int = None,
-        weight: bool = False,
-        edge: bool = True,
+    h: ASH,
+    s: int,
+    fr: str = None,
+    to: str = None,
+    start: int = None,
+    end: int = None,
+    weight: bool = False,
+    edge: bool = True,
 ) -> object:
     """
 
@@ -313,12 +313,12 @@ def s_distance(
 
 
 def average_s_distance(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        weight: bool = False,
-        edge: bool = False,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    weight: bool = False,
+    edge: bool = False,
 ) -> float:
     """
 
@@ -342,13 +342,13 @@ def average_s_distance(
 
 
 def has_s_walk(
-        h: ASH,
-        s: int,
-        fr: str = None,
-        to: str = None,
-        start: int = None,
-        end: int = None,
-        edge: bool = True,
+    h: ASH,
+    s: int,
+    fr: str = None,
+    to: str = None,
+    start: int = None,
+    end: int = None,
+    edge: bool = True,
 ) -> bool:
     """
 
@@ -382,12 +382,12 @@ def has_s_walk(
 
 
 def s_diameter(
-        h: ASH,
-        s: int,
-        start: int = None,
-        end: int = None,
-        weight: bool = False,
-        edge: bool = False,
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    weight: bool = False,
+    edge: bool = False,
 ) -> int:
     """
 
@@ -413,7 +413,7 @@ def s_diameter(
 
 
 def s_components(
-        h: ASH, s: int, start: int = None, end: int = None, edge: bool = True
+    h: ASH, s: int, start: int = None, end: int = None, edge: bool = True
 ) -> list:
     """
 

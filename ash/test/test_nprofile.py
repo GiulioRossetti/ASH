@@ -4,7 +4,6 @@ from ash import NProfile
 
 class NProfileTestCase(unittest.TestCase):
     def test_profile(self):
-
         p = NProfile(node_id=1)
         p.add_attribute("name", "Giulio")
         p.add_attribute("age", 37)
@@ -23,7 +22,6 @@ class NProfileTestCase(unittest.TestCase):
         self.assertEqual(p.has_attribute("location"), True)
 
     def test_compare(self):
-
         p = NProfile(node_id=1)
         p.add_attributes(age=20, opinion=1)
 

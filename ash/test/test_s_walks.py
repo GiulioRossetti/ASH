@@ -18,7 +18,6 @@ class SWalksCase(unittest.TestCase):
     # Hyperedge walks
 
     def test_shortest_s_walk(self):
-
         a = self.get_hypergraph()
         s_w = shortest_s_walk(a, 2, "e1", "e2")
         self.assertEqual(len(s_w), 3)
@@ -146,7 +145,6 @@ class SWalksCase(unittest.TestCase):
     # Node walks
 
     def test_node_shortest_s_walk(self):
-
         a = self.get_hypergraph()
         s_w = shortest_s_walk(a, 2, 1, 4, edge=False)
         self.assertEqual(len(s_w), 2)

@@ -48,44 +48,46 @@ class TemporalVizTestCase(unittest.TestCase):
     def test_plot_structure_dynamics(self):
         a = self.get_hypergraph()
 
-        ax = plot_structure_dynamics(a,
-                                     average_s_local_clustering_coefficient,
-                                     func_params={'s': 2})
+        ax = plot_structure_dynamics(
+            a, average_s_local_clustering_coefficient, func_params={"s": 2}
+        )
         self.assertIsInstance(ax, plt.Axes)
-        ax = plot_structure_dynamics(a,
-                                     inclusiveness,
-                                     func_params={})
+        ax = plot_structure_dynamics(a, inclusiveness, func_params={})
         self.assertIsInstance(ax, plt.Axes)
 
     def test_plot_attribute_dynamics(self):
         a = self.get_hypergraph()
-        ax = plot_attribute_dynamics(a,
-                                     attr_name='party',
-                                     func=average_hyperedge_profile_entropy)
+        ax = plot_attribute_dynamics(
+            a, attr_name="party", func=average_hyperedge_profile_entropy
+        )
         self.assertIsInstance(ax, plt.Axes)
-        ax = plot_attribute_dynamics(a,
-                                     attr_name='party',
-                                     func=average_hyperedge_profile_purity,
-                                     func_params={'by_label': True}
-                                     )
+        ax = plot_attribute_dynamics(
+            a,
+            attr_name="party",
+            func=average_hyperedge_profile_purity,
+            func_params={"by_label": True},
+        )
         self.assertIsInstance(ax, plt.Axes)
-        ax = plot_attribute_dynamics(a,
-                                     attr_name='party',
-                                     func=average_hyperedge_profile_purity,
-                                     func_params={'by_label': False}
-                                     )
+        ax = plot_attribute_dynamics(
+            a,
+            attr_name="party",
+            func=average_hyperedge_profile_purity,
+            func_params={"by_label": False},
+        )
         self.assertIsInstance(ax, plt.Axes)
-        ax = plot_attribute_dynamics(a,
-                                     attr_name='party',
-                                     func=average_star_profile_homogeneity,
-                                     func_params={'by_label': True}
-                                     )
+        ax = plot_attribute_dynamics(
+            a,
+            attr_name="party",
+            func=average_star_profile_homogeneity,
+            func_params={"by_label": True},
+        )
         self.assertIsInstance(ax, plt.Axes)
-        ax = plot_attribute_dynamics(a,
-                                     attr_name='party',
-                                     func=average_star_profile_homogeneity,
-                                     func_params={'by_label': False}
-                                     )
+        ax = plot_attribute_dynamics(
+            a,
+            attr_name="party",
+            func=average_star_profile_homogeneity,
+            func_params={"by_label": False},
+        )
         self.assertIsInstance(ax, plt.Axes)
 
     # def test_plot_temporal_attribute_distribution(self):

@@ -10,7 +10,6 @@ class NProfile(object):
     """
 
     def __init__(self, node_id: int = None, **kwargs):
-
         self.__attrs = {}
         self.add_attributes(**kwargs)
         self.__stats = {}
@@ -161,7 +160,6 @@ class NProfile(object):
         :return:
         """
         for key, value in self.__attrs.items():
-
             if not isinstance(value, str):
                 if not other.has_attribute(key):
                     return False
@@ -178,7 +176,6 @@ class NProfile(object):
         :return:
         """
         for key, value in self.__attrs.items():
-
             if not isinstance(value, str):
                 if not other.has_attribute(key):
                     return False

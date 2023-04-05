@@ -4,7 +4,7 @@ from ash.paths import *
 
 
 def s_local_clustering_coefficient(
-        h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
+    h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
 ) -> float:
     """
     The s_local_clustering_coefficient function computes the local clustering coefficient of a hyperedge in a
@@ -45,7 +45,7 @@ def s_local_clustering_coefficient(
 
 
 def average_s_local_clustering_coefficient(
-        h: ASH, s: int, start: int = None, end: int = None
+    h: ASH, s: int, start: int = None, end: int = None
 ) -> float:
     """
     The average_s_local_clustering_coefficient function computes the average of the s-local clustering coefficient

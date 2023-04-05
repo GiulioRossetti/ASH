@@ -3,9 +3,14 @@ import random
 from ash.classes import ASH
 
 
-def random_ASH(n_nodes: int, n_hyperedges: int, max_edge_size: int = 10, n_tids: int = 3,
-               attr_to_vals_dict: dict = None,
-               seed: int = 42) -> ASH:
+def random_ASH(
+    n_nodes: int,
+    n_hyperedges: int,
+    max_edge_size: int = 10,
+    n_tids: int = 3,
+    attr_to_vals_dict: dict = None,
+    seed: int = 42,
+) -> ASH:
     """
 
     :param n_nodes: Number of total nodes in the ASH
@@ -26,11 +31,12 @@ def random_ASH(n_nodes: int, n_hyperedges: int, max_edge_size: int = 10, n_tids:
     hes_presence = dict()
     nodes_presence = dict()
     for tid in range(n_tids):
-
         # Generate random hyperedges
         hyperedges = []
         nodes = set()
-        hyperedge_sizes = [random.randint(2, max_edge_size) for _ in range(n_hyperedges)]
+        hyperedge_sizes = [
+            random.randint(2, max_edge_size) for _ in range(n_hyperedges)
+        ]
         for size in hyperedge_sizes:
             he_nodes = random.sample(range(n_nodes), size)
             for node in he_nodes:
@@ -41,10 +47,13 @@ def random_ASH(n_nodes: int, n_hyperedges: int, max_edge_size: int = 10, n_tids:
 
     for tid, hes in hes_presence.items():
         h.add_hyperedges(hes, start=tid)
-        nad = {n: {
-            attr_name: random.choice(attr_to_vals_dict[attr_name])
-            for attr_name in attr_to_vals_dict
-        } for n in nodes_presence[tid]}
+        nad = {
+            n: {
+                attr_name: random.choice(attr_to_vals_dict[attr_name])
+                for attr_name in attr_to_vals_dict
+            }
+            for n in nodes_presence[tid]
+        }
 
         h.add_nodes(nodes_presence[tid], start=tid, node_attr_dict=nad)
 

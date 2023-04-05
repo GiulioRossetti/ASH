@@ -15,7 +15,9 @@ def __rolling_mean(it, window):
     return pd.Series(it).rolling(window=window).mean()
 
 
-def plot_structure_dynamics(h: ASH, func: Callable, func_params: dict = None, rolling: int = None, **kwargs) -> object:
+def plot_structure_dynamics(
+    h: ASH, func: Callable, func_params: dict = None, rolling: int = None, **kwargs
+) -> object:
     """
 
     :param h: ASH instance
@@ -28,30 +30,41 @@ def plot_structure_dynamics(h: ASH, func: Callable, func_params: dict = None, ro
     if func_params is None:
         func_params = {}
 
-    if 'h' in func.__code__.co_varnames:  # e.g., inclusiveness
-        func_params.update({'h': h})
+    if "h" in func.__code__.co_varnames:  # e.g., inclusiveness
+        func_params.update({"h": h})
 
-    if 'tid' in func.__code__.co_varnames:
-        y = [func(**func_params, tid=tid) for tid in h.temporal_snapshots_ids()]  # e.g., inclusiveness
+    if "tid" in func.__code__.co_varnames:
+        y = [
+            func(**func_params, tid=tid) for tid in h.temporal_snapshots_ids()
+        ]  # e.g., inclusiveness
 
     else:  # has 'start' and 'end', e.g. average_s_local_clustering_coefficient
-        y = [func(**func_params, start=tid, end=tid) for tid in h.temporal_snapshots_ids()]
+        y = [
+            func(**func_params, start=tid, end=tid)
+            for tid in h.temporal_snapshots_ids()
+        ]
 
     if rolling:
         y = __rolling_mean(y, window=rolling)
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
-    ax.plot(y, **{k: v for k, v in kwargs.items() if k != 'ax'})
+    ax.plot(y, **{k: v for k, v in kwargs.items() if k != "ax"})
 
     return ax
 
 
-def plot_attribute_dynamics(h: ASH, attr_name: str, func: Callable, func_params: dict = None, rolling: int = None,
-                            **kwargs) -> object:
+def plot_attribute_dynamics(
+    h: ASH,
+    attr_name: str,
+    func: Callable,
+    func_params: dict = None,
+    rolling: int = None,
+    **kwargs
+) -> object:
     """
 
     :param h: ASH instance
@@ -65,8 +78,8 @@ def plot_attribute_dynamics(h: ASH, attr_name: str, func: Callable, func_params:
     if func_params is None:
         func_params = {}
 
-    if 'h' in func.__code__.co_varnames:  # e.g., inclusiveness
-        func_params.update({'h': h})
+    if "h" in func.__code__.co_varnames:  # e.g., inclusiveness
+        func_params.update({"h": h})
 
     res = defaultdict(list)
 
@@ -78,15 +91,15 @@ def plot_attribute_dynamics(h: ASH, attr_name: str, func: Callable, func_params:
         else:  # if result is aggregated
             res[attr_name].append(res_t)
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
     for name, y in res.items():
         if rolling:
             y = __rolling_mean(y, window=rolling)
-        ax.plot(y, label=name, **{k: v for k, v in kwargs.items() if k != 'ax'})
+        ax.plot(y, label=name, **{k: v for k, v in kwargs.items() if k != "ax"})
     ax.legend()
     return ax
 
@@ -129,16 +142,18 @@ def plot_consistency(h, **kwargs):
     :return: The axes object
     """
 
-    if 'ax' not in kwargs:
+    if "ax" not in kwargs:
         ax = plt.gca()
     else:
-        ax = kwargs['ax']
+        ax = kwargs["ax"]
 
     cons = consistency(h)
     for attr_name in list(cons.values())[0]:
         y = [v[attr_name] for v in cons.values()]
 
-        sns.kdeplot(y, label=attr_name, ax=ax, **{k: v for k, v in kwargs.items() if k != 'ax'})
+        sns.kdeplot(
+            y, label=attr_name, ax=ax, **{k: v for k, v in kwargs.items() if k != "ax"}
+        )
     ax.legend()
     ax.set_xlim((-0.2, 1.2))
 

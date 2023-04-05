@@ -25,7 +25,7 @@ def get_hyperedge_id_mapping(h: ASH) -> (dict, dict):
 
 
 def get_incidence_matrix(
-        h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
+    h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
 ) -> dict:
     """
 
@@ -68,7 +68,7 @@ def get_incidence_matrix(
 
 
 def get_hyperedge_weight_matrix(
-        h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
+    h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
 ) -> dict:
     """
 
