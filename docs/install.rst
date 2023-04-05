@@ -3,11 +3,11 @@ Installation
 
 if you want to use conda::
 
-    conda install ash
+    conda install ash_model
 
 Or, if you have pip installed::
 
-    pip3 install ash
+    pip install ash_model
 
 Alternatively, you can install the latest version directly from GitHub::
 

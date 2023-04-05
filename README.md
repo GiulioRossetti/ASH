@@ -33,14 +33,14 @@ pip install .
 
 Alternatively use pip
 ```bash
-pip install ash 
+pip install ash_model 
 ```
 
 or conda
 ```bash
 conda config --add channels giuliorossetti
 conda config --add channels conda-forge
-conda install ash
+conda install ash_model
 ```
 
 ## Collaborate with us!

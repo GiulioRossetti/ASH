@@ -2,9 +2,9 @@
 
 Welcome to ASH's documentation!
 ===============================
-``Ash`` is a Python software package that allows to represent and analyze dynamic hypergraphs enriched with node attributes.
+``ash_model`` is a Python software package that allows to represent and analyze dynamic hypergraphs enriched with node attributes.
 
-If you would like to test ``ash`` functionalities without installing it on your machine consider using the preconfigured Jupyter Hub instances offered by the H2020 `SoBigData++`_ research project.
+If you would like to test ``ash_model`` functionalities without installing it on your machine consider using the preconfigured Jupyter Hub instances offered by the H2020 `SoBigData++`_ research project.
 
 
 ================ =================== ==================  ==========  ===============

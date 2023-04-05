@@ -11,7 +11,7 @@ Create an empty ASH with no nodes and no edges.
 
 .. code:: python
 
-	from ash import ASH
+	from ash_model import ASH
 	h = ASH(hedge_removal=True)
 
 During the construction phase the ``hedge_removal`` parameter allows to specify if the structure will allow hyperedge removal or not.
@@ -88,7 +88,7 @@ This structure can be used to contain the attributes of a node:
 
 .. code:: python
 
-   from ash import NProfile
+   from ash_model import NProfile
    profile = NProfile(node_id=1, name='Alice', party='L') # add attributes at creation
    profile.add_attribute('age', 24) # add attribute with dedicated method
 
@@ -115,14 +115,14 @@ To see all information on a node profile through time, you can use the following
 Time Respecting s-Walks
 -----------------------
 
-ASH integrates the s-analysis framework to generalize classic graph measures to hypergraphs, and extends it with temporal information.
+``ash_model`` integrates the s-analysis framework to generalize classic graph measures to hypergraphs, and extends it with temporal information.
 In short, walks are extended to hypergraphs based on a parameter ``s``, which controls the minimum number of common nodes between subsequent hyperedges.
 For instance:
 
 .. code:: python
 
-   from ash import ASH
-   from ash import paths
+   from ash_model import ASH
+   from ash_model import paths
 
    h = ASH()
    h.add_hyperedge([1,2,3], start=0) # e1
@@ -213,7 +213,7 @@ Visual Analytics
 
 .. code:: python
 
-   from ash import viz
+   from ash_model import viz
    from matplotlib import pyplot as plt
    ax = viz.plot_hyperedge_size_distribution(h)
    ax.set_title('Hyperedge size distribution')
@@ -230,7 +230,7 @@ one for the attribute-related dynamics. Let's start with the former:
 
 .. code:: python
 
-   from ash import measures
+   from ash_model import measures
    func = measures.average_s_local_clustering_coefficient # function to be applied to all snapshots
    func_params = {'s': 2} # parameters of the function above, if any
    rolling = 3 # optional rolling window size for smoothing the time series
@@ -294,7 +294,7 @@ The former format allows to read/write interactions and node profiles separately
 
 .. code:: python
 
-	from ash import readwrite as io
+	from ash_model import readwrite as io
     io.write_sh_to_csv(h, filename)
     h = io.read_sh_from_csv(filename)
 
