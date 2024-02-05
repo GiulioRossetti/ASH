@@ -38,7 +38,7 @@ def __entropy(labels, base=None):
 
 
 def hyperedge_most_frequent_node_attribute_value(
-    h: ASH, hyperedge_id: str, attribute: str, tid: int
+        h: ASH, hyperedge_id: str, attribute: str, tid: int
 ) -> dict:
     """
     The hyperedge_most_frequent_node_attribute_value function returns the most frequent value of a given attribute
@@ -80,7 +80,7 @@ def hyperedge_most_frequent_node_attribute_value(
 
 
 def hyperedge_aggregate_node_profile(
-    h: ASH, hyperedge_id: str, tid: int, agg_function: Callable[[list], float] = np.mean
+        h: ASH, hyperedge_id: str, tid: int, agg_function: Callable[[list], float] = np.mean
 ) -> NProfile:
     """
     The hyperedge_aggregate_node_profile function takes a hyperedge ID and an aggregation function, and returns the
@@ -159,7 +159,7 @@ def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
 
 
 def average_hyperedge_profile_purity(
-    h: ASH, tid: int, by_label: bool = True, min_hyperedge_size: int = 2
+        h: ASH, tid: int, by_label: bool = True, min_hyperedge_size: int = 2
 ) -> object:
     """
     The average_hyperedge_profile_purity function calculates the average purity value for each node attribute. If
@@ -177,7 +177,7 @@ def average_hyperedge_profile_purity(
     returns a dictionary mapping each attribute to the average purity over all hyperedges
     """
 
-    attributes = h.node_attributes_to_attribute_values(categorical=True)
+    attributes = h.list_node_attributes(categorical=True)
     if by_label:
         purities = {
             attribute: {
@@ -255,7 +255,7 @@ def average_hyperedge_profile_entropy(h: ASH, tid: int) -> dict:
 
 
 def star_profile_entropy(
-    h: ASH, node_id: int, tid: int, method: str = "aggregate"
+        h: ASH, node_id: int, tid: int, method: str = "aggregate"
 ) -> dict:
     """
     The star_profile_entropy function computes the entropy of each attribute in the star of a given node.
@@ -332,7 +332,7 @@ def average_star_profile_entropy(h, tid, method: str = "aggregate") -> dict:
 
 
 def star_profile_homogeneity(
-    h: ASH, node_id: int, tid: int, method: str = "aggregate"
+        h: ASH, node_id: int, tid: int, method: str = "aggregate"
 ) -> dict:
     """
     The star_profile_homogeneity function computes the homogeneity of a node with respect to its star. For each node
@@ -390,11 +390,11 @@ def star_profile_homogeneity(
 
 
 def average_star_profile_homogeneity(
-    h: ASH,
-    tid: int,
-    method: str = "aggregate",
-    by_label: bool = True,
-    min_star_size: int = 2,
+        h: ASH,
+        tid: int,
+        method: str = "aggregate",
+        by_label: bool = True,
+        min_star_size: int = 2,
 ) -> object:
     """
     The average_star_profile_homogeneity function calculates the average homogeneity value for each node attribute.
@@ -413,7 +413,7 @@ def average_star_profile_homogeneity(
     :return: A dictionary containing for each attribute, for each attribute value, the average homogeneity.
     If :by_label: is False, returns a dictionary mapping each attribute to the average homogeneity over all stars.
     """
-    attributes = h.node_attributes_to_attribute_values(categorical=True)
+    attributes = h.list_node_attributes(categorical=True)
     if by_label:
         homogeneities = {
             attribute: {
@@ -457,7 +457,7 @@ def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object
     """
     attributes = {
         attr: val
-        for attr, val in h.node_attributes_to_attribute_values(tid=tid).items()
+        for attr, val in h.list_node_attributes(tid=tid).items()
         if isinstance(list(val)[0], str)
     }
     group_degrees = {
@@ -492,7 +492,7 @@ def consistency(h: ASH) -> dict:
     """
 
     res = defaultdict(dict)
-    attributes = h.node_attributes_to_attribute_values()
+    attributes = h.list_node_attributes()
 
     for n in h.get_node_set():
         profile = h.get_node_profile(n)
