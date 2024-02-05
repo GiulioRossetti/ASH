@@ -70,7 +70,7 @@ class ASHTestCase(unittest.TestCase):
         label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
 
-    def test_node_attributes_to_attribute_values(self):
+    def test_list_node_attributes(self):
         a = ASH(hedge_removal=True)
         a.add_hyperedge([1, 2, 3], 0)
         a.add_hyperedge([1, 4], 0)
@@ -109,16 +109,16 @@ class ASHTestCase(unittest.TestCase):
             attr_dict=NProfile(node_id=4, party="R", age=45, gender="M"),
         )
 
-        res = a.node_attributes_to_attribute_values()
+        res = a.list_node_attributes()
         self.assertDictEqual(
             res, {"party": {"L", "R"}, "age": {11, 20, 37, 45}, "gender": {"F", "M"}}
         )
 
-        res = a.node_attributes_to_attribute_values(categorical=True)
+        res = a.list_node_attributes(categorical=True)
         self.assertDictEqual(res, {"party": {"L", "R"}, "gender": {"F", "M"}})
 
         for tid in a.temporal_snapshots_ids():
-            res = a.node_attributes_to_attribute_values(tid=tid)
+            res = a.list_node_attributes(tid=tid)
             self.assertIsInstance(res, dict)
 
     def test_node_profiles(self):
@@ -188,10 +188,10 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.get_size(), 2)
         self.assertEqual(a.get_size(0), 1)
 
-        self.assertEqual(a.get_number_of_neighbors(1), 3)
-        self.assertEqual(a.get_number_of_neighbors(1, hyperedge_size=3), 3)
+        self.assertEqual(a.get_number_of_neighbors(1), 2)
+        self.assertEqual(a.get_number_of_neighbors(1, hyperedge_size=3), 2)
         self.assertEqual(a.get_number_of_neighbors(1, hyperedge_size=4), 0)
-        self.assertEqual(a.get_number_of_neighbors(1, tid=0), 3)
+        self.assertEqual(a.get_number_of_neighbors(1, tid=0), 2)
         self.assertEqual(a.get_number_of_neighbors(1, tid=100), 0)
 
         self.assertEqual(a.get_degree(1), 1)

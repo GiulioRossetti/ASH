@@ -78,7 +78,7 @@ class ASH(object):
         return sum(nodes_snapshots) / len(self.snapshots.keys())
 
     def add_node(
-        self, node: int, start: int, end: int = None, attr_dict: object = None
+            self, node: int, start: int, end: int = None, attr_dict: object = None
     ) -> None:
         """
         The add_node function adds a node to the ASh.
@@ -158,7 +158,7 @@ class ASH(object):
             self.snapshots[end] = []
 
     def add_nodes(
-        self, nodes: list, start: int, end: int = None, node_attr_dict: dict = None
+            self, nodes: list, start: int, end: int = None, node_attr_dict: dict = None
     ) -> None:
         """
         The add_nodes function adds a list of nodes to the ASH with an optional node-to-attributes
@@ -242,11 +242,11 @@ class ASH(object):
                 return attrs[int(value[2:])]
             return attrs[tid]
 
-    def node_attributes_to_attribute_values(
-        self, categorical=False, tid: int = None
+    def list_node_attributes(
+            self, categorical=False, tid: int = None
     ) -> dict:
         """
-        The node_attributes_to_attribute_values function returns a dictionary of the attributes and their values. The
+        The list_node_attributes function returns a dictionary of the attributes and their values. The
         function takes in two parameters: categorical, which is a boolean that determines whether to include
         numerical attributes, and tid, which is an integer that represents the temporal id. The default value for
         categorical is False and the default value for tid is None.
@@ -341,11 +341,11 @@ class ASH(object):
                     eid
                     for eid in self.H.get_star(node)
                     if self.has_hyperedge_id(eid, tid)
-                    and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
+                       and len(self.get_hyperedge_nodes(eid)) == hyperedge_size
                 }
 
     def get_number_of_neighbors(
-        self, node: int, hyperedge_size: int = None, tid: int = None
+            self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> int:
         """
         The get_number_of_neighbors function returns the number of nodes a node is connected to via hyperedges.
@@ -362,7 +362,7 @@ class ASH(object):
         return len(neighbors)
 
     def get_neighbors(
-        self, node: int, hyperedge_size: int = None, tid: int = None
+            self, node: int, hyperedge_size: int = None, tid: int = None
     ) -> set:
         """
         The get_neighbors function returns the set of all nodes that are connected to a given node via hyperedges.
@@ -388,7 +388,10 @@ class ASH(object):
                 nodes = self.get_hyperedge_nodes(s)
                 res.extend(nodes)
 
-        return set(res)
+        res = set(res)
+        res.discard(node)
+
+        return res
 
     def get_degree(self, node: int, hyperedge_size: int = None, tid: int = None) -> int:
         """
@@ -672,7 +675,7 @@ class ASH(object):
             self.add_hyperedge(nodes, start, end)
 
     def get_hyperedge_attribute(
-        self, hyperedge_id: str, attribute_name: str, tid: int = None
+            self, hyperedge_id: str, attribute_name: str, tid: int = None
     ) -> object:
         """
         The get_hyperedge_attribute function returns the value of a specific attribute of a hyperedge.
@@ -767,8 +770,8 @@ class ASH(object):
                 hest = self.time_to_edge[i]
                 for key, v in hest.items():
                     if v == "+" and (
-                        hyperedge_size is None
-                        or len(self.get_hyperedge_nodes(key)) == hyperedge_size
+                            hyperedge_size is None
+                            or len(self.get_hyperedge_nodes(key)) == hyperedge_size
                     ):
                         hedges[key] = None
                     else:
@@ -1204,7 +1207,7 @@ class ASH(object):
         return len(res)
 
     def get_s_incident(
-        self, hyperedge_id: str, s: int, start: int = None, end: int = None
+            self, hyperedge_id: str, s: int, start: int = None, end: int = None
     ) -> list:
         """
         Returns a list of 2-tuples of the form (**heid**, **comm**), where heid is the id of a hyperedge that
