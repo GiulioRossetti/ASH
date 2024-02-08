@@ -211,6 +211,8 @@ class ASHTestCase(unittest.TestCase):
         hs = a.get_hyperedge_id_set(hyperedge_size=4)
         self.assertEqual(hs, set())
         hs = a.get_hyperedge_id_set(hyperedge_size=3, tid=4)
+        self.assertEqual(hs, {'e2'})
+        hs = a.get_hyperedge_id_set(hyperedge_size=3, tid=3)
         self.assertEqual(hs, {"e2"})
         hs = a.get_hyperedge_id_set(hyperedge_size=2, tid=4)
         self.assertEqual(hs, set())

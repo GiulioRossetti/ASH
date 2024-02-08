@@ -766,17 +766,10 @@ class ASH(object):
                 }
         else:
             hedges = {}
-            for i in range(min(self.time_to_edge.keys()), tid + 1):
-                hest = self.time_to_edge[i]
-                for key, v in hest.items():
-                    if v == "+" and (
-                            hyperedge_size is None
-                            or len(self.get_hyperedge_nodes(key)) == hyperedge_size
-                    ):
-                        hedges[key] = None
-                    else:
-                        if key in hedges:
-                            del hedges[key]
+            for he in self.snapshots[tid]:
+                if hyperedge_size is None or len(self.get_hyperedge_nodes(he)) == hyperedge_size:
+                    hedges[he] = None
+
             return set(hedges.keys())
 
     def get_hyperedge_nodes(self, hyperedge_id: str) -> list:
