@@ -1,0 +1,9 @@
+halp
+numpy
+scipy
+networkx
+matplotlib
+seaborn
+pandas
+tqdm
+sphinx_rtd_theme
