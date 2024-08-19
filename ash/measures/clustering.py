@@ -1,11 +1,12 @@
-from ash import ASH
-from ash.paths import *
-import networkx as nx
 from math import comb
+
+import networkx as nx
+
+from ash.paths import *
 
 
 def s_local_clustering_coefficient(
-    h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
+        h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
 ) -> float:
     """
 
@@ -43,7 +44,7 @@ def s_local_clustering_coefficient(
 
 
 def average_s_local_clustering_coefficient(
-    h: ASH, s: int, start: int = None, end: int = None
+        h: ASH, s: int, start: int = None, end: int = None
 ) -> float:
     """
 
@@ -66,28 +67,17 @@ def average_s_local_clustering_coefficient(
     return 0
 
 
-def k_intersections(h: ASH, k: int, tid: int) -> int:
+def s_intersections(h: ASH, s: int, tid: int) -> int:
     """
 
     :param h:
-    :param k:
+    :param s:
     :param tid:
     :return:
     """
 
-    k_intersections = 0
-    hedge_nodesets = []
-
-    for hyperedge_id in h.hyperedge_id_iterator(start=tid):
-        nodes = h.get_hyperedge_nodes(hyperedge_id)
-        hedge_nodesets.append(set(nodes))
-
-    for he1 in hedge_nodesets:
-        for he2 in hedge_nodesets:
-            if len(he1.intersection(he2)) >= k and he1 != he2:
-                k_intersections += 1
-
-    return k_intersections // 2
+    g = h.s_line_graph(s, tid)
+    return g.number_of_edges()
 
 
 def inclusiveness(h: ASH) -> float:
@@ -106,6 +96,5 @@ def inclusiveness(h: ASH) -> float:
             if nset.issubset(nset2) and nset != nset2:
                 non_facets.add(he_nodesets.index(nset))
 
-    
     # 1 - (toplexes/hyperedges)
     return len(non_facets) / len(he_nodesets)
