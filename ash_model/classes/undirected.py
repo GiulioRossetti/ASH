@@ -387,8 +387,9 @@ class ASH(object):
             for s in star:
                 nodes = self.get_hyperedge_nodes(s)
                 res.extend(nodes)
-
-        return set(res)
+        res = set(res)
+        res.discard(node)
+        return res
 
     def get_degree(self, node: int, hyperedge_size: int = None, tid: int = None) -> int:
         """
