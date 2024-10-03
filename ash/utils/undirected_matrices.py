@@ -1,8 +1,8 @@
-from ash import ASH
-from halp.undirected_hypergraph import UndirectedHypergraph
 import halp.utilities.undirected_matrices as um
-from scipy import sparse
 import numpy as np
+from scipy import sparse
+
+from ash import ASH
 
 
 def get_node_mapping(h: ASH) -> (dict, dict):
@@ -24,9 +24,7 @@ def get_hyperedge_id_mapping(h: ASH) -> (dict, dict):
     return um.get_hyperedge_id_mapping(h.H)
 
 
-def get_incidence_matrix(
-    h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None
-) -> dict:
+def get_incidence_matrix(h: ASH, nodes_to_indices: dict, hyperedge_ids_to_indices: dict, tid: int = None) -> dict:
     """
 
     :param h:
@@ -39,17 +37,17 @@ def get_incidence_matrix(
     if tid is not None:
         tids = [tid]
     else:
-        tids = h.snapshots
+        tids = h.temporal_snapshots_ids()
 
     res = {}
     for tid in tids:
         h1, old_to_new = h.hypergraph_temporal_slice(tid)
-        s = h1.H
+
 
         rows, cols = [], []
         for hyperedge_id, hyperedge_index in hyperedge_ids_to_indices.items():
             try:
-                for node in s.get_hyperedge_nodes(hyperedge_id):
+                for node in h1.get_hyperedge_nodes(hyperedge_id):
                     # get the mapping between the node and its ID
                     rows.append(nodes_to_indices.get(node))
                     cols.append(hyperedge_index)
@@ -60,16 +58,12 @@ def get_incidence_matrix(
         node_count = len(nodes_to_indices)
         hyperedge_count = len(hyperedge_ids_to_indices)
 
-        res[tid] = sparse.csc_matrix(
-            (values, (rows, cols)), shape=(node_count, hyperedge_count)
-        )
+        res[tid] = sparse.csc_matrix((values, (rows, cols)), shape=(node_count, hyperedge_count))
 
     return res
 
 
-def get_hyperedge_weight_matrix(
-    h: ASH, hyperedge_ids_to_indices: dict, tid: int = None
-) -> dict:
+def get_hyperedge_weight_matrix(h: ASH, hyperedge_ids_to_indices: dict, tid: int = None) -> dict:
     """
 
     :param h:
@@ -81,19 +75,13 @@ def get_hyperedge_weight_matrix(
     if tid is not None:
         tids = [tid]
     else:
-        tids = h.snapshots
+        tids = h.temporal_snapshots_ids()
 
     res = {}
     for tid in tids:
         hyperedge_weights = {}
-        for hyperedge_id in h.hyperedge_id_iterator():
-            hyperedge_weights.update(
-                {
-                    hyperedge_ids_to_indices[hyperedge_id]: h.get_hyperedge_weight(
-                        hyperedge_id
-                    )
-                }
-            )
+        for hyperedge_id in h.hyperedges():
+            hyperedge_weights.update({hyperedge_ids_to_indices[hyperedge_id]: h.get_hyperedge_weight(hyperedge_id)})
 
         hyperedge_weight_vector = []
         for i in range(len(hyperedge_weights.keys())):
@@ -115,15 +103,13 @@ def get_vertex_degree_matrix(h: ASH, tid: int = None) -> dict:
     if tid is not None:
         tids = [tid]
     else:
-        tids = h.snapshots
+        tids = h.temporal_snapshots_ids()
 
     res = {}
     for tid in tids:
         _, node_to_index = get_node_mapping(h)
         _, edge_to_index = get_hyperedge_id_mapping(h)
-        W = get_hyperedge_weight_matrix(
-            h, hyperedge_ids_to_indices=edge_to_index, tid=tid
-        )[tid]
+        W = get_hyperedge_weight_matrix(h, hyperedge_ids_to_indices=edge_to_index, tid=tid)[tid]
         M = get_incidence_matrix(
             h,
             nodes_to_indices=node_to_index,

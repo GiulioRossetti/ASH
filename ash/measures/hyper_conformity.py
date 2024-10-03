@@ -1,10 +1,10 @@
-import networkx as nx
-from ash import ASH
+from collections import defaultdict
+from itertools import combinations
+
+import tqdm
+
 from ash.measures import *
 from ash.paths.walks import *
-from itertools import combinations
-from collections import defaultdict
-import tqdm
 
 
 def __label_frequency(
@@ -138,7 +138,7 @@ def hyper_conformity(
             labels_value_frequency = defaultdict(lambda: defaultdict(int))
 
             # hyperedge most frequent label
-            for he in b.hyperedge_id_iterator():
+            for he in b.hyperedges():
                 for label in labels:
                     v = list(
                         hyperedge_most_frequent_node_attribute_value(

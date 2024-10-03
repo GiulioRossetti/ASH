@@ -1,13 +1,9 @@
 from math import comb
 
-import networkx as nx
-
 from ash.paths import *
 
 
-def s_local_clustering_coefficient(
-        h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
-) -> float:
+def s_local_clustering_coefficient(h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None) -> float:
     """
 
     :param h:
@@ -34,7 +30,7 @@ def s_local_clustering_coefficient(
         res = [hyperedge_id]
         res.extend(c)
         if len(res) > 2 and is_s_path(h, res):
-            triangle += ego.number_of_edges()
+            triangle += ego.number_of_hyperedges()
 
     denom = comb(2, ego.number_of_nodes())
     if denom == 0:
@@ -43,9 +39,7 @@ def s_local_clustering_coefficient(
     return LCC
 
 
-def average_s_local_clustering_coefficient(
-        h: ASH, s: int, start: int = None, end: int = None
-) -> float:
+def average_s_local_clustering_coefficient(h: ASH, s: int, start: int = None, end: int = None) -> float:
     """
 
     :param h:
@@ -77,18 +71,18 @@ def s_intersections(h: ASH, s: int, tid: int) -> int:
     """
 
     g = h.s_line_graph(s, tid)
-    return g.number_of_edges()
+    return g.number_of_hyperedges()
 
 
 def inclusiveness(h: ASH) -> float:
     """
-    Inclusiveness of an hypergraph is the ratio between the number of non-external 
+    Inclusiveness of an hypergraph is the ratio between the number of non-external
     hyperdeges and the hypergraph size.
 
     :param h: an ASH object
     :return: inclusiveness value
     """
-    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.get_hyperedge_id_set()]
+    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.hyperedge_ids()]
 
     non_facets = set()
     for nset in he_nodesets:

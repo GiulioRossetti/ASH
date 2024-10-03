@@ -1,7 +1,7 @@
-from ash import ASH, NProfile
-import json
 import gzip
+import json
 
+from ash import ASH, NProfile
 
 __all__ = [
     "write_profiles_to_csv",
@@ -15,9 +15,7 @@ __all__ = [
 ]
 
 
-def __write_profile_to_csv(
-    h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False
-) -> None:
+def __write_profile_to_csv(h: ASH, node: int, path: str, delimiter: str = ",", append: bool = False) -> None:
     """
 
     :param h:
@@ -34,7 +32,7 @@ def __write_profile_to_csv(
         op = open(path, "w")
 
     with op as f:
-        for tid in h.get_node_presence(node):
+        for tid in h.node_presence(node):
             res = f"{node}{delimiter}{tid}"
             profiles = h.get_node_profile(node, tid)
             descr = profiles.get_attributes()
@@ -90,9 +88,7 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
     return res
 
 
-def __write_profile_to_json(
-    profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False
-) -> None:
+def __write_profile_to_json(profile: NProfile, tid: int, path: str, compress: bool = False, append: bool = False) -> None:
     """
 
     :param profile:
@@ -127,7 +123,7 @@ def write_profiles_to_jsonl(a: ASH, path: str, compress: bool = False) -> None:
     :return:
     """
     for node in a.node_iterator():
-        for tid in a.get_node_presence(node):
+        for tid in a.node_presence(node):
             profile = a.get_node_profile(node, tid)
             __write_profile_to_json(profile, tid, path, compress, append=True)
 
@@ -150,9 +146,7 @@ def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
             rep = json.loads(l)
 
             if rep["node_id"] not in res:
-                res[rep["node_id"]] = {
-                    rep["t"]: NProfile(rep["node_id"], **rep["attrs"])
-                }
+                res[rep["node_id"]] = {rep["t"]: NProfile(rep["node_id"], **rep["attrs"])}
             else:
                 res[rep["node_id"]][rep["t"]] = NProfile(rep["node_id"], **rep["attrs"])
 

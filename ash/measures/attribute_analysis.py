@@ -1,8 +1,10 @@
-from ash import ASH, NProfile
 from collections import defaultdict, Counter
-import numpy as np
 from math import log, e
 from typing import Callable
+
+import numpy as np
+
+from ash import ASH, NProfile
 
 
 def __entropy(labels, base=None):
@@ -35,9 +37,7 @@ def __entropy(labels, base=None):
     return ent
 
 
-def hyperedge_most_frequent_node_attribute_value(
-    h: ASH, hyperedge_id: str, attribute: str, tid: int
-) -> dict:
+def hyperedge_most_frequent_node_attribute_value(h: ASH, hyperedge_id: str, attribute: str, tid: int) -> dict:
     """
 
     :param h:
@@ -72,9 +72,7 @@ def hyperedge_most_frequent_node_attribute_value(
     return {}
 
 
-def hyperedge_aggregate_node_profile(
-    h: ASH, hyperedge_id: str, tid: int, agg_function: Callable[[list], float] = np.mean
-) -> NProfile:
+def hyperedge_aggregate_node_profile(h: ASH, hyperedge_id: str, tid: int, agg_function: Callable[[list], float] = np.mean) -> NProfile:
     """
 
     :return:
@@ -130,9 +128,7 @@ def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
 
     res = {}
     for attribute in attributes:
-        res[attribute] = hyperedge_most_frequent_node_attribute_value(
-            h, hyperedge_id, attribute, tid
-        )
+        res[attribute] = hyperedge_most_frequent_node_attribute_value(h, hyperedge_id, attribute, tid)
 
     for attr, data in res.items():
         for k, _ in data.items():
@@ -163,19 +159,15 @@ def hyperedge_profile_entropy(h: ASH, hyperedge_id: str, tid: int) -> dict:
 
     res = {}
     for attribute in attributes:
-        res[attribute] = __entropy(
-            attributes[attribute], len(set(attributes[attribute]))
-        )
+        res[attribute] = __entropy(attributes[attribute], len(set(attributes[attribute])))
 
     return res
 
 
-def star_profile_entropy(
-    h: ASH, node_id: int, tid: int, method: str = "aggregate"
-) -> dict:
+def star_profile_entropy(h: ASH, node_id: int, tid: int, method: str = "aggregate") -> dict:
     """
-    Computes entropy for nodes in the star of node_id. If 'aggregate', 
-    it is computed by first aggregating the hyperedges into a single profile. 
+    Computes entropy for nodes in the star of node_id. If 'aggregate',
+    it is computed by first aggregating the hyperedges into a single profile.
     If 'collapse', all the star nodes are considered.
 
     :param h:
@@ -184,7 +176,7 @@ def star_profile_entropy(
     :param method:
     :return:
     """
-    star = h.get_star(node_id, tid=tid)
+    star = h.star(node_id, tid=tid)
 
     if method == "aggregate":
         attributes = list(h.get_node_profile(node_id, tid).get_attributes().keys())
@@ -194,9 +186,7 @@ def star_profile_entropy(
             # build aggregated profile
             p = NProfile(None)
             for attr in attributes:
-                value_ = hyperedge_most_frequent_node_attribute_value(
-                    h, hyperedge_id, attribute=attr, tid=tid
-                )
+                value_ = hyperedge_most_frequent_node_attribute_value(h, hyperedge_id, attribute=attr, tid=tid)
                 if value_:
                     value = list(value_.keys())[0]
                     p.add_attribute(attr, value)
@@ -219,7 +209,5 @@ def star_profile_entropy(
 
     res = {}
     for attribute in attributes:
-        res[attribute] = __entropy(
-            attributes[attribute], len(set(attributes[attribute]))
-        )
+        res[attribute] = __entropy(attributes[attribute], len(set(attributes[attribute])))
     return res
