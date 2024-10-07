@@ -76,7 +76,7 @@ class ASH(object):
         Yields the interactions in the ASH as a stream of tuples (t, hedge_id, op).
         op is a string indicating the operation performed on the hyperedge.
         The '+' indicates the addition at time t, and '-' indicates the removal.
-        If hedge_removal is False, then '-' is not used.
+
 
         :return: A stream of interactions
 
@@ -88,31 +88,31 @@ class ASH(object):
         >>>     print(t, hedge_id, op)
         """
 
-        if self.hedge_removal:
-            # absence of previously present hyperedges is a removal
-            # presence of previously absent hyperedges is an addition
+        # absence of previously present hyperedges is a removal
+        # presence of previously absent hyperedges is an addition
 
-            # yield the first snapshot
-            tids = self.temporal_snapshots_ids()
-            for hedge_id in self._snapshots[tids[0]]:
-                yield tids[0], hedge_id, "+"
+        # yield the first snapshot
+        tids = self.temporal_snapshots_ids()
+        for hedge_id in self._snapshots[tids[0]]:
+            yield tids[0], hedge_id, "+"
 
-            # yield additions and removals
-            for t in tids[1:]:
-                # additions
-                for hedge_id in self._snapshots[t]:
-                    if hedge_id not in self._snapshots[t - 1]:
-                        yield t, hedge_id, "+"
-                for hedge_id in self._snapshots[t - 1]:
-                    if hedge_id not in self._snapshots[t]:
-                        yield t, hedge_id, "-"
-        else:
-            yielded = set()
-            for t in self.temporal_snapshots_ids():
-                for hedge_id in self._snapshots[t]:
-                    if hedge_id not in yielded:
-                        yielded.add(hedge_id)
-                        yield t, hedge_id, "+"
+        # yield additions and removals
+        for t in tids[1:]:
+            # additions
+            for hedge_id in self._snapshots[t]:
+                if hedge_id not in self._snapshots[t - 1]:
+                    yield t, hedge_id, "+"
+            for hedge_id in self._snapshots[t - 1]:
+                if hedge_id not in self._snapshots[t]:
+                    yield t, hedge_id, "-"
+
+        # else:
+        #    yielded = set()
+        #    for t in self.temporal_snapshots_ids():
+        #        for hedge_id in self._snapshots[t]:
+        #            if hedge_id not in yielded:
+        #                yielded.add(hedge_id)
+        #                yield t, hedge_id, "+"
 
     def temporal_snapshots_ids(self) -> list:
         """
@@ -698,7 +698,10 @@ class ASH(object):
         :param hyperedge_id: The hyperedge id
         :return: The weight of the hyperedge
         """
-        return len(self.hyperedge_presence(hyperedge_id))
+        # TODO: account for time
+        weight = self.get_hyperedge_attribute(hyperedge_id, "weight")
+        if weight is None:
+            return 1
 
     ##### Statistics #####
     def number_of_nodes(self, tid: int = None) -> int:
@@ -1093,9 +1096,9 @@ class ASH(object):
         """
 
         ucov = 0
-        for tid in self._snapshots:
+        for tid in self.temporal_snapshots_ids():
             ucov += 1 if self.has_node(node, tid) else 0
-        return ucov / len(self._snapshots)
+        return ucov / len(self.temporal_snapshots_ids())
 
     def hyperedge_contribution(self, hyperedge_id: str) -> float:
         """
@@ -1109,7 +1112,7 @@ class ASH(object):
         contr = 0
         for tid in self.temporal_snapshots_ids():
             contr += 1 if self.has_hyperedge(hyperedge_id, tid) else 0
-        return contr / len(self._snapshots)
+        return contr / len(self.temporal_snapshots_ids())
 
     def coverage(self) -> float:
         """
@@ -1120,10 +1123,10 @@ class ASH(object):
         :return: The fraction of the nodes in the graph that are covered by at least one snapshot
         """
 
-        t = len(self._snapshots)
+        t = len(self.temporal_snapshots_ids())
         v = self.number_of_nodes()
         w = 0
-        for tid in self._snapshots:
+        for tid in self.temporal_snapshots_ids():
             w += self.number_of_nodes(tid)
 
         return w / (t * v)
@@ -1137,7 +1140,7 @@ class ASH(object):
         nds = self.nodes()
         numerator, denominator = 0, 0
         for u, v in combinations(nds, 2):
-            for t in self._snapshots:
+            for t in self.temporal_snapshots_ids():
                 if self.has_node(u, t) and self.has_node(v, t):
                     numerator += 1
                 if self.has_node(u, t) or self.has_node(v, t):
@@ -1156,7 +1159,7 @@ class ASH(object):
 
         :param start: Specify the start time of the temporal slice
         :param end: Specify the end of the temporal slice
-        :param keep_attributes: Specify whether to keep the attributes of the original nodes
+        :param keep_attrs: Specify whether to keep the attributes of the original nodes
         :return: an ASH instance and a dictionary mapping old hyperedge ids to new hyperedge ids
         """
 
@@ -1165,7 +1168,7 @@ class ASH(object):
         if end is None:
             end = start
         for t in range(start, end + 1):
-            for hedge_id in self._snapshots[t]:
+            for hedge_id in self.hyperedges(t):
                 nodes = self.get_hyperedge_nodes(hedge_id)
                 res.add_hyperedge(nodes, t, t)
                 eid_to_new_eid[hedge_id] = res._nids2eid[tuple(sorted(nodes))]
