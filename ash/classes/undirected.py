@@ -21,8 +21,8 @@ class ASH(object):
         self._eid2nids = {}  # {edge_id: nodes}
         self._nids2eid = {}  # {nodes: edge_id}
         self._edge_attributes = defaultdict(
-            dict
-        )  # {edge_id: {time: {attr_name: attr_value, ...}}}
+            lambda: defaultdict(dict)
+        )  # {edge_id: {attr_name: {time: attr_value, ...}}}
 
         # node data
         self._node_attrs = defaultdict(
@@ -39,6 +39,7 @@ class ASH(object):
         :return: A list of tuples representing time intervals
         """
         # e.g. [1, 2, 3, 5, 6, 7, 9] -> [(1, 3), (5, 7), (9, 9)]
+        presence = sorted(presence)
         intervals = []
         start = presence[0]
         end = presence[0]
@@ -86,7 +87,6 @@ class ASH(object):
         >>> for t, hedge_id, op in h.stream_interactions():
         >>>     print(t, hedge_id, op)
         """
-        # TODO account for removal of hedge_removal
 
         if self.hedge_removal:
             # absence of previously present hyperedges is a removal
@@ -176,12 +176,17 @@ class ASH(object):
                             self.add_node(n, t, attr_dict={})
                 self._stars[n].add(hyperedge_id)
 
+        # whether it was already present or not,
+        # add the hyperedge to all specified time ids
         for t in range(span[0], span[1] + 1):
             if t not in self._snapshots:
                 self._snapshots[t] = set()
             self._snapshots[t].add(hyperedge_id)
 
-        self._edge_attributes[hyperedge_id] = kwargs
+        for k, v in kwargs.items():
+            if k not in self._edge_attributes[hyperedge_id]:
+                self._edge_attributes[hyperedge_id][k] = {}
+            self._edge_attributes[hyperedge_id][k][start] = v
 
     def add_hyperedges(self, hyperedges: list, start: int, end: int = None) -> None:
         """
@@ -242,7 +247,6 @@ class ASH(object):
         """
         Adds a list of nodes to the ASH. If the nodes are already present, it will update the nodes' profiles.
         See the add_node function for more details.
-
 
         :param nodes: A list of node ids
         :param start: The start of the time span
@@ -337,7 +341,6 @@ class ASH(object):
         >>> h.add_node(2, start=2, end=4)
         >>> h.remove_node(1, start=1) # remove node 1 at time 1, but not at time 2 and 3
         >>> h.remove_node(2) # remove node 2 at all time points
-
         """
 
         time_window = self.__time_window(start, end)
@@ -370,7 +373,6 @@ class ASH(object):
         >>> h.remove_nodes([4, 5, 6, 7]) # remove nodes 4, 5, 6, and 7 at all time points
 
         """
-
         for node in nodes:
             self.remove_node(node, start, end)
 
@@ -580,7 +582,7 @@ class ASH(object):
         :param tid: The temporal snapshot id
         :return: The attribute value
         """
-        return self.get_node_profile(node, tid).get_attribute(attr_name)
+        return self.get_node_profile(node, tid=tid).get_attribute(attr_name)
 
     def get_node_attributes(self, node: int, tid: int = None) -> dict:
         """
