@@ -1,9 +1,6 @@
-from collections import defaultdict
-from itertools import combinations
-
 import tqdm
 
-from ash.measures import *
+from ash.measures.attribute_analysis import hyperedge_aggregate_node_profile
 from ash.paths.walks import *
 
 
@@ -78,7 +75,7 @@ def __normalize(u: object, scores: list, max_dist: int, alphas: list) -> list:
     :return: scores updated
     """
     for alpha in alphas:
-        norm = sum([(d ** -alpha) for d in range(1, max_dist + 1)])
+        norm = sum([(d**-alpha) for d in range(1, max_dist + 1)])
 
         for profile in scores[str(alpha)]:
             if u in scores[str(alpha)][profile]:
@@ -127,7 +124,7 @@ def hyper_conformity(
 
             if len(alphas) < 1 or len(labels) < 1:
                 raise ValueError(
-                    "At list one value must be specified for both alphas and labels"
+                    "At least one value must be specified for both alphas and labels"
                 )
 
             profiles = []
@@ -140,14 +137,10 @@ def hyper_conformity(
             # hyperedge most frequent label
             for he in b.hyperedges():
                 for label in labels:
-                    v = list(
-                        hyperedge_most_frequent_node_attribute_value(
-                            b, he, label, tid
-                        ).keys()
-                    )
-                    if len(v) == 0:
-                        continue
-                    v = v[0]
+                    v = hyperedge_aggregate_node_profile(
+                        b, he, tid, label
+                    ).get_attribute(label)
+
                     labels_value_frequency[label][v] += 1
                     # annotate the line graph
                     g1.add_node(he, **{label: v})
@@ -187,7 +180,7 @@ def hyper_conformity(
                             )
 
                             for alpha in alphas:
-                                partial = sim / (dist ** alpha)
+                                partial = sim / (dist**alpha)
                                 p_name = "_".join(profile)
                                 if u in res[str(alpha)][p_name]:
                                     res[str(alpha)][p_name][u] += partial

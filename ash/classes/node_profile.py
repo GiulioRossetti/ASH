@@ -1,4 +1,5 @@
 import json
+from typing import Union
 
 
 class NProfile(object):
@@ -30,7 +31,7 @@ class NProfile(object):
         for key, value in kwargs.items():
             self.add_attribute(key, value)
 
-    def get_attribute(self, key: str) -> object:
+    def get_attribute(self, key: str) -> Union[str, int, float]:
         """
 
         :param key:
@@ -47,7 +48,7 @@ class NProfile(object):
         """
         return self.__attrs
 
-    def has_attribute(self, key: str):
+    def has_attribute(self, key: str) -> bool:
         """
 
         :param key:

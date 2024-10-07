@@ -3,7 +3,9 @@ from math import comb
 from ash.paths import *
 
 
-def s_local_clustering_coefficient(h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None) -> float:
+def s_local_clustering_coefficient(
+    h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
+) -> float:
     """
 
     :param h:
@@ -39,7 +41,9 @@ def s_local_clustering_coefficient(h: ASH, s: int, hyperedge_id: str, start: int
     return LCC
 
 
-def average_s_local_clustering_coefficient(h: ASH, s: int, start: int = None, end: int = None) -> float:
+def average_s_local_clustering_coefficient(
+    h: ASH, s: int, start: int = None, end: int = None
+) -> float:
     """
 
     :param h:
@@ -51,7 +55,10 @@ def average_s_local_clustering_coefficient(h: ASH, s: int, start: int = None, en
 
     LCCs = []
     count = 0
-    for n in h.hyperedge_id_iterator(start, end):
+    hes = set()
+    for t in range(start, end + 1):
+        hes.update(set(h.hyperedges(t)))
+    for n in hes:
         count += 1
         LCCs.append(s_local_clustering_coefficient(h, s, n, start, end))
 
@@ -71,18 +78,22 @@ def s_intersections(h: ASH, s: int, tid: int) -> int:
     """
 
     g = h.s_line_graph(s, tid)
-    return g.number_of_hyperedges()
+    return g.number_of_edges()
 
 
-def inclusiveness(h: ASH) -> float:
+def inclusiveness(h: ASH, tid: int = None) -> float:
     """
-    Inclusiveness of an hypergraph is the ratio between the number of non-external
-    hyperdeges and the hypergraph size.
+    The inclusiveness function is a measure of the number of non-external hyperedges in an ASH.
+    It is defined as the ratio between the number of non-external hyperedges and
+    the hypergraph size. The higher this value, the more inclusive (or less exclusive)
+    the ASH is.
 
     :param h: an ASH object
+    :param tid: temporal snapshot id
     :return: inclusiveness value
     """
-    he_nodesets = [set(h.get_hyperedge_nodes(he)) for he in h.hyperedge_ids()]
+
+    he_nodesets = [set(he) for he in h.hyperedges(tid=tid, as_ids=False)]
 
     non_facets = set()
     for nset in he_nodesets:
