@@ -507,7 +507,7 @@ class ASH(object):
         """
 
         if tid is None:
-            attr_dict = defaultdict(dict)
+            attr_dict = defaultdict(dict)  # {attr_name: {time: attr_value, ...}}
             for t in self._node_attrs[node]:
                 attr_names = self._node_attrs[node][t].keys()
                 for attr in attr_names:
@@ -1208,11 +1208,22 @@ class ASH(object):
 
         return len(res)
 
-    def to_json(self):
+    def to_dict(self):
         """
-        The to_json function returns a JSON representation of the ASH object.
-        The function returns a dictionary with the following keys:
+        Returns a dictionary representation of the ASH object.
+        The dictionary contains two keys: nodes and hedges.
+        The nodes key maps to a dictionary where the keys are node ids
+        and the values are dictionaries of the node's attributes.
+        The hedges key maps to a dictionary where the keys are hyperedge ids
+        and the values are dictionaries of the hyperedge's attributes and nodes.
+        Temporal information is included in hyperedge attributes under the key "presence".
+
+        :return: A dictionary representation of the ASH object
         """
+
+        return self.__dict__()
+
+    def __dict__(self):
         descr = {"nodes": {}, "hedges": {}}
 
         for hedge in self.hyperedges():
@@ -1229,6 +1240,10 @@ class ASH(object):
         for node in self.nodes():
             npr = self.get_node_profile(node)
             descr["nodes"][node] = npr.get_attributes()
+            descr["nodes"][node]["presence"] = self.node_presence(
+                node, as_intervals=True
+            )
+
         return descr
 
     def __str__(self):
@@ -1237,8 +1252,3 @@ class ASH(object):
         descr += "Hyperedges: {}\n".format(self.number_of_hyperedges())
         descr += "Snapshots: {}\n".format(len(self.temporal_snapshots_ids()))
         return descr
-
-    def __iter__(self):
-
-        for t in self.temporal_snapshots_ids():
-            yield self.hyperedges(t)

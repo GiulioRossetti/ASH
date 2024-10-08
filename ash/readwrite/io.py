@@ -58,7 +58,7 @@ def write_profiles_to_csv(h: ASH, path: str, delimiter: str = ",") -> None:
             prof = h.get_node_profile(node)
             heads = list(prof.get_attributes().keys())
             heads = f"{delimiter}".join(sorted(heads))
-            head = f"node_id,tid,{heads}\n"
+            head = f"node_id{delimiter}tid{delimiter}{heads}\n"
 
             with open(path, "w") as f:
                 f.write(head)
@@ -102,7 +102,7 @@ def __write_profile_to_json(
     """
 
     js_dmp = profile.to_dict()
-    js_dmp["t"] = tid
+    js_dmp["tid"] = tid
 
     if compress:
         op = gzip.open
@@ -133,10 +133,12 @@ def write_profiles_to_jsonl(a: ASH, path: str, compress: bool = False) -> None:
 
 def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
     """
+    Read a dictionary of node profiles from a JSONL file.
+    The dictionary maps node IDs to dictionaries of timestamps to node profiles.
 
-    :param path:
-    :param compress:
-    :return:
+    :param path: Path to the JSONL file.
+    :param compress: If True, the file is assumed to be compressed using gzip.
+    :return: Dictionary of node profiles.
     """
     if compress:
         op = gzip.open
@@ -146,31 +148,33 @@ def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
     res = {}
     with op(path) as f:
         for l in f:
-            rep = json.loads(l)
-
-            if rep["node_id"] not in res:
-                res[rep["node_id"]] = {
-                    rep["t"]: NProfile(rep["node_id"], **rep["attrs"])
-                }
-            else:
-                res[rep["node_id"]][rep["t"]] = NProfile(rep["node_id"], **rep["attrs"])
+            data = json.loads(l)
+            node_id = data["node_id"]
+            tid = data["tid"]
+            del data["node_id"]
+            del data["tid"]
+            res.setdefault(node_id, {})[tid] = NProfile(node_id=node_id, **data)
 
     return res
 
 
 def write_sh_to_csv(h: ASH, path: str) -> None:
     """
+    Write a list of timestamped hyperedges to a CSV file.
+    Does not support attributes.
+    The CSV file will have the following format:
+    n1,n2,...\tstart,end
 
-    :param h:
-    :param path:
-    :return:
+    :param h: ASH object to write.
+    :param path: Path to the CSV file.
+    :return: None
     """
     with open(path, "w") as o:
         o.write("nodes\tstart,end\n")
         for he in h.hyperedges():
-            attrs = h.get_hyperedge_attributes(he)
-            for span in attrs["t"]:
-                nodes = [str(n) for n in attrs["nodes"]]
+            presence = h.hyperedge_presence(he, as_intervals=True)
+            nodes = h.get_hyperedge_nodes(he)
+            for span in presence:
                 desc = ",".join(nodes)
                 desc = f"{desc}\t{span[0]},{span[1]}\n"
                 o.write(desc)
@@ -178,10 +182,10 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
 
 def read_sh_from_csv(path: str) -> ASH:
     """
+    Read a list of timestamped hyperedges from a CSV file.
+    Does not support attributes.
 
-    :param path:
-    :param delimiter:
-    :param compress:
+    :param path: Path to the CSV file.
     :return:
     """
     a = ASH()
@@ -191,18 +195,19 @@ def read_sh_from_csv(path: str) -> ASH:
         for row in f:
             nodes, span = row.rstrip().split("\t")
             nodes = [int(n) for n in nodes.split(",")]
-            span = [int(t) for t in span.split(",")]
+            span = [int(s) for s in span.split(",")]
             a.add_hyperedge(nodes, start=span[0], end=span[1])
     return a
 
 
 def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
     """
+    Write an ASH object to a JSON file.
 
-    :param h:
-    :param path:
-    :param compress:
-    :return:
+    :param h: ASH object to write.
+    :param path: Path to the JSON file.
+    :param compress: If True, the file will be compressed using gzip.
+    :return: None
     """
     js_dmp = json.dumps(h.to_dict(), indent=2)
 
@@ -217,10 +222,11 @@ def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
 
 def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     """
+    Read an ASH object from a JSON file.
 
-    :param path:
-    :param compress:
-    :return:
+    :param path: Path to the JSON file.
+    :param compress: If True, the file is assumed to be compressed using gzip.
+    :return: ASH object
     """
     h = ASH()
 
@@ -232,32 +238,28 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     with op(path, "rt") as f:
         data = json.loads(f.read())
 
-    for _, v in data["hedges"].items():
-        nodes = v["nodes"]
-        spans = v["t"]
-        for span in spans:
-            h.add_hyperedge(nodes, start=span[0], end=span[1])
+    for he_id, edge_data in data["hyperedges"].items():
+        for span in edge_data["presence"]:
+            for t in range(span[0], span[1] + 1):
+                h.add_hyperedge(
+                    edge_data["nodes"],
+                    start=t,
+                    **{k: v for k, v in edge_data[t].items() if k != "presence"},
+                )
 
-    for nid, attrs in data["nodes"].items():
-        nid = int(nid)
-        spans = attrs["t"]
-        for span in spans:
-            h.add_node(nid, span[0], span[1])
+    for node_id, node_data in data["nodes"].items():
+        t_to_attrs = {}
+        for attr_name, time_to_attr in node_data.items():
+            if attr_name != "presence":
+                for t, attr in time_to_attr.items():
+                    t_to_attrs.setdefault(t, {})[attr_name] = time_to_attr[t]
 
-        keys = list(attrs.keys())
-        keys.remove("t")
-
-        t_to_values = {}
-
-        for key in keys:
-            values = attrs[key]
-            for t, v in values.items():
-                if t in t_to_values:
-                    t_to_values[t][key] = v
-                else:
-                    t_to_values[t] = {key: v}
-
-        for tid, prof in t_to_values.items():
-            h.add_node(nid, int(tid), attr_dict=NProfile(node_id=nid, **prof))
+        for span in node_data["presence"]:
+            for t in range(span[0], span[1] + 1):
+                h.add_node(
+                    node_id,
+                    start=t,
+                    **t_to_attrs.get(t, {}),
+                )
 
     return h
