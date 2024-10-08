@@ -41,7 +41,10 @@ def temporal_s_dag(
         start = ids[0]
 
     if start < min(ids) or start > end or end > max(ids) or start > max(ids):
-        raise ValueError(f"The specified interval {[start, end]} is not a proper subset of the network timestamps " f"{[min(ids), max(ids)]}.")
+        raise ValueError(
+            f"The specified interval {[start, end]} is not a proper subset of the network timestamps "
+            f"{[min(ids), max(ids)]}."
+        )
 
     # adjusting temporal window
     start = list([i >= start for i in ids]).index(True)
@@ -60,10 +63,15 @@ def temporal_s_dag(
 
         for an in active:
 
-            if not h.has_hyperedge(str(an).split("_")[0], tid=tid):
+            if not h.has_hyperedge(str(an).split("_")[0], tid):
                 continue
 
-            neighbors = {f"{n[0]}_{tid}": n[1] for n in h.get_s_incident(str(an).split("_")[0], s=s, start=tid, end=tid)}
+            neighbors = {
+                f"{n[0]}_{tid}": n[1]
+                for n in h.get_s_incident(
+                    str(an).split("_")[0], s=s, start=tid, end=tid
+                )
+            }
 
             if hyperedge_to is not None:
                 if f"{hyperedge_to}_{tid}" in neighbors:
@@ -115,7 +123,9 @@ def time_respecting_s_walks(
     :return:
     """
 
-    DAG, sources, targets = temporal_s_dag(h, s, hyperedge_from, hyperedge_to, start=start, end=end)
+    DAG, sources, targets = temporal_s_dag(
+        h, s, hyperedge_from, hyperedge_to, start=start, end=end
+    )
 
     pairs = [(x, y) for x in sources for y in targets]
 
@@ -177,7 +187,9 @@ def time_respecting_s_walks(
     return res
 
 
-def all_time_respecting_s_walks(h: ASH, s: int, start: int = None, end: int = None, sample: float = 1) -> dict:
+def all_time_respecting_s_walks(
+    h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
+) -> dict:
     """
 
     :param h:
@@ -188,7 +200,7 @@ def all_time_respecting_s_walks(h: ASH, s: int, start: int = None, end: int = No
     :return:
     """
     res = {}
-    for he in h.hyperedge_id_iterator():
+    for he in h.hyperedges(start=start, end=end):
         paths = time_respecting_s_walks(
             h,
             s=s,
@@ -262,29 +274,49 @@ def annotate_walks(paths: list) -> dict:
         elif reach == min_to_reach:
             annotated["foremost"].append(copy.copy(path))
 
-    fastest_shortest = {tuple(path): walk_duration(path) for path in annotated["shortest"]}
+    fastest_shortest = {
+        tuple(path): walk_duration(path) for path in annotated["shortest"]
+    }
     minval = min(fastest_shortest.values())
-    fastest_shortest = list([x for x in fastest_shortest if fastest_shortest[x] == minval])
+    fastest_shortest = list(
+        [x for x in fastest_shortest if fastest_shortest[x] == minval]
+    )
 
-    fastest_heaviest = {tuple(path): walk_duration(path) for path in annotated["heaviest"]}
+    fastest_heaviest = {
+        tuple(path): walk_duration(path) for path in annotated["heaviest"]
+    }
     minval = min(fastest_heaviest.values())
-    fastest_heaviest = list([x for x in fastest_heaviest if fastest_heaviest[x] == minval])
+    fastest_heaviest = list(
+        [x for x in fastest_heaviest if fastest_heaviest[x] == minval]
+    )
 
     shortest_fastest = {tuple(path): walk_length(path) for path in annotated["fastest"]}
     minval = min(shortest_fastest.values())
-    shortest_fastest = list([x for x in shortest_fastest if shortest_fastest[x] == minval])
+    shortest_fastest = list(
+        [x for x in shortest_fastest if shortest_fastest[x] == minval]
+    )
 
-    shortest_heaviest = {tuple(path): walk_weight(path) for path in annotated["heaviest"]}
+    shortest_heaviest = {
+        tuple(path): walk_weight(path) for path in annotated["heaviest"]
+    }
     minval = min(shortest_heaviest.values())
-    shortest_heaviest = list([x for x in shortest_heaviest if shortest_heaviest[x] == minval])
+    shortest_heaviest = list(
+        [x for x in shortest_heaviest if shortest_heaviest[x] == minval]
+    )
 
-    heaviest_shortest = {tuple(path): walk_weight(path) for path in annotated["shortest"]}
+    heaviest_shortest = {
+        tuple(path): walk_weight(path) for path in annotated["shortest"]
+    }
     maxval = max(heaviest_shortest.values())
-    heaviest_shortest = list([x for x in heaviest_shortest if heaviest_shortest[x] == maxval])
+    heaviest_shortest = list(
+        [x for x in heaviest_shortest if heaviest_shortest[x] == maxval]
+    )
 
     heaviest_fastest = {tuple(path): walk_weight(path) for path in annotated["fastest"]}
     maxval = max(heaviest_fastest.values())
-    heaviest_fastest = list([x for x in heaviest_fastest if heaviest_fastest[x] == maxval])
+    heaviest_fastest = list(
+        [x for x in heaviest_fastest if heaviest_fastest[x] == maxval]
+    )
 
     annotated["fastest_shortest"] = [list(p) for p in fastest_shortest]
     annotated["fastest_heaviest"] = [list(p) for p in fastest_heaviest]

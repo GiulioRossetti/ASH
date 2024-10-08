@@ -1,7 +1,9 @@
-from ash import ASH
-import networkx as nx
 from collections import defaultdict, Counter
 from itertools import combinations
+
+import networkx as nx
+
+from ash import ASH
 
 
 def all_simple_paths(
@@ -12,7 +14,7 @@ def all_simple_paths(
     start: int = None,
     end: int = None,
     cutoff: int = None,
-) -> object:
+) -> list:
     """
 
     :param h:
@@ -77,14 +79,14 @@ def all_shortest_s_path(
     """
 
     res = defaultdict(list)
-    for he in h.hyperedge_id_iterator(start, end):
+    for he in h.hyperedges(start, end):
         if hyperedge_a is not None:
             if he != hyperedge_a:
                 paths = list(all_simple_paths(h, s, hyperedge_a, he, start, end))
                 min_len = min([len(p) for p in paths])
                 res[(hyperedge_a, he)] = [p for p in paths if len(p) == min_len]
         else:
-            for he1 in h.hyperedge_id_iterator(start, end):
+            for he1 in h.hyperedges(start, end):
                 if he != he1:
                     paths = list(all_simple_paths(h, s, he, he1, start, end))
                     min_len = min([len(p) for p in paths])
@@ -106,7 +108,7 @@ def all_shortest_s_path_length(
     """
 
     res = defaultdict(lambda: defaultdict(int))
-    for he in h.hyperedge_id_iterator(start, end):
+    for he in h.hyperedges(start, end):
         if hyperedge_a is not None:
             if he != hyperedge_a:
                 paths = list(all_simple_paths(h, s, hyperedge_a, he, start, end))
@@ -116,7 +118,7 @@ def all_shortest_s_path_length(
                 res[hyperedge_a][he] = 0
                 res[he][hyperedge_a] = 0
         else:
-            for he1 in h.hyperedge_id_iterator(start, end):
+            for he1 in h.hyperedges(start, end):
                 if he != he1:
                     paths = list(all_simple_paths(h, s, he, he1, start, end))
                     res[he][he1] = min([len(p) for p in paths]) - 1

@@ -55,10 +55,7 @@ def average_s_local_clustering_coefficient(
 
     LCCs = []
     count = 0
-    hes = set()
-    for t in range(start, end + 1):
-        hes.update(set(h.hyperedges(t)))
-    for n in hes:
+    for n in h.hyperedges(s, start, end):
         count += 1
         LCCs.append(s_local_clustering_coefficient(h, s, n, start, end))
 
@@ -68,7 +65,7 @@ def average_s_local_clustering_coefficient(
     return 0
 
 
-def s_intersections(h: ASH, s: int, tid: int) -> int:
+def s_intersections(h: ASH, s: int, start: int = None, end: int = None) -> float:
     """
 
     :param h:
@@ -77,11 +74,11 @@ def s_intersections(h: ASH, s: int, tid: int) -> int:
     :return:
     """
 
-    g = h.s_line_graph(s, tid)
+    g = h.s_line_graph(s, start, end)
     return g.number_of_edges()
 
 
-def inclusiveness(h: ASH, tid: int = None) -> float:
+def inclusiveness(h: ASH, start: int = None, end: int = None) -> float:
     """
     The inclusiveness function is a measure of the number of non-external hyperedges in an ASH.
     It is defined as the ratio between the number of non-external hyperedges and
@@ -93,7 +90,7 @@ def inclusiveness(h: ASH, tid: int = None) -> float:
     :return: inclusiveness value
     """
 
-    he_nodesets = [set(he) for he in h.hyperedges(tid=tid, as_ids=False)]
+    he_nodesets = [set(he) for he in h.hyperedges(start, end, as_ids=False)]
 
     non_facets = set()
     for nset in he_nodesets:

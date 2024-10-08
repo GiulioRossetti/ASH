@@ -43,7 +43,7 @@ def get_incidence_matrix(
 
     res = {}
     for tid in tids:
-        h1, old_to_new = h.hypergraph_temporal_slice(tid)
+        h1, old_to_new = h.temporal_slice(tid)
 
         rows, cols = [], []
         for hyperedge_id, hyperedge_index in hyperedge_ids_to_indices.items():

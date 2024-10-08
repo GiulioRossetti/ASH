@@ -8,14 +8,13 @@ from .node_profile import NProfile
 
 
 class ASH(object):
-    def __init__(self, hedge_removal: bool = False):
+    def __init__(self):
         """
 
         :param hedge_removal: whether to allow hyperedge removal or not
         """
 
         # edge data
-        self.hedge_removal = hedge_removal
         self._current_hyperedge_id = 0
         self._snapshots = {}  # {time: [edge_id, ...]}
         self._eid2nids = {}  # {edge_id: nodes}
@@ -71,7 +70,7 @@ class ASH(object):
 
         return time_window
 
-    def stream_interactions(self) -> list:
+    def stream_interactions(self) -> Tuple[int, str, str]:
         """
         Yields the interactions in the ASH as a stream of tuples (t, hedge_id, op).
         op is a string indicating the operation performed on the hyperedge.
@@ -102,17 +101,10 @@ class ASH(object):
             for hedge_id in self._snapshots[t]:
                 if hedge_id not in self._snapshots[t - 1]:
                     yield t, hedge_id, "+"
+            # removals
             for hedge_id in self._snapshots[t - 1]:
                 if hedge_id not in self._snapshots[t]:
                     yield t, hedge_id, "-"
-
-        # else:
-        #    yielded = set()
-        #    for t in self.temporal_snapshots_ids():
-        #        for hedge_id in self._snapshots[t]:
-        #            if hedge_id not in yielded:
-        #                yielded.add(hedge_id)
-        #                yield t, hedge_id, "+"
 
     def temporal_snapshots_ids(self) -> list:
         """
@@ -152,7 +144,7 @@ class ASH(object):
         else:
             span = (start, end)
 
-        nodes = tuple(sorted(nodes))
+        nodes = frozenset(nodes)
 
         if nodes in self._nids2eid:
             # hyperedge already present (also nodes)
@@ -294,11 +286,13 @@ class ASH(object):
         for t in self.temporal_snapshots_ids():
             if t in time_window:
                 self._snapshots[t].remove(hyperedge_id)
+                self._edge_attributes[hyperedge_id].pop(t, None)
             elif self.has_hyperedge(hyperedge_id, t):
                 still_exists = True
 
         if not still_exists:
             del self._eid2nids[hyperedge_id]
+            del self._edge_attributes[hyperedge_id]
             nodes = self.get_hyperedge_nodes(hyperedge_id)
             del self._nids2eid[nodes]
             for n in nodes:
@@ -404,7 +398,7 @@ class ASH(object):
                     self.remove_node(node, t, t)
 
     ##### Node and Hyperedge Queries #####
-    def nodes(self, tid=None) -> list:
+    def nodes(self, start: int = None, end: int = None) -> list:
         """
         Returns the list of nodes in the ASH.
         If a snapshot id (tid) is specified, it will return only those nodes that appear in that snapshot.
@@ -420,45 +414,42 @@ class ASH(object):
         >>> h.nodes()
         >>> # [1, 2, 3, 4, 5]
         """
-        if tid is None:
-            return list(self._stars.keys())
+        if start is None:
+            return list(self._node_attrs.keys())
+        res = set()
+        for he in self.hyperedges(start, end):
+            res.update(self.get_hyperedge_nodes(he))
+
+        return list(res)
+
+    def hyperedges(
+        self,
+        start: int = None,
+        end: int = None,
+        hyperedge_size: int = None,
+        as_ids: bool = True,
+    ) -> list:
+        """ """
+        if start is None:
+            hyperedges = list(self._eid2nids.keys())
         else:
-            return [n for n in self._stars if self.has_node(n, tid)]
+            time_window = self.__time_window(start, end)
+            hyperedges = set()
+            for t in time_window:
+                hyperedges.update(self._snapshots[t])
+        if hyperedge_size is not None:
+            hyperedges = [
+                h
+                for h in hyperedges
+                if len(self.get_hyperedge_nodes(h)) == hyperedge_size
+            ]
 
-    def hyperedges(self, tid: int = None, as_ids: bool = True) -> list:
-        """
-        Returns the list of hyperedges in the ASH.
-        If a snapshot id (tid) is specified, it will return only those hyperedges that appear in that snapshot.
-        If as_ids is True, it will return the hyperedge ids, otherwise it will return the hyperedges as tuples of nodes.
-
-        :param as_ids: If True, return the hyperedge ids, otherwise return the hyperedges as sets of nodes
-        :param tid: Optional temporal snapshot id
-        :return: The list of hyperedges in the ASH
-
-        :Example:
-        >>> h = ASH()
-        >>> h.add_hyperedge([1, 2, 3], start=1, end=3)
-        >>> h.add_hyperedge([4, 5, 6], start=1, end=4)
-        >>> h.hyperedges()
-        >>> # ["e1", "e2"]
-        >>> h.hyperedges(as_ids=False)
-        >>> # [(1, 2, 3), (4, 5, 6)]
-        >>> h.hyperedges(tid=4)
-        >>> # ["e2"]
-        """
-        if tid is None:
-            if as_ids:
-                return list(self._eid2nids.keys())
-            else:
-                return list(self._eid2nids.values())
-        else:
-            if as_ids:
-                return [he for he in self._snapshots[tid]]
-            else:
-                return [self._eid2nids[he] for he in self._snapshots[tid]]
+        if as_ids:
+            return list(hyperedges)
+        return [self._eid2nids[h] for h in hyperedges]
 
     def has_hyperedge(
-        self, edge: Union[str, list, set, tuple], tid: int = None
+        self, edge: Union[str, list, set, tuple], start: int = None, end: int = None
     ) -> bool:
         """
         Checks if a hyperedge is present in the ASH. The edge parameter can be either a list of nodes or a hyperedge id.
@@ -469,16 +460,14 @@ class ASH(object):
         :param tid: The temporal snapshot id
         :return: True if the hyperedge is present, False otherwise
         """
-        if isinstance(edge, str):
-            if tid is None:
-                return edge in self._eid2nids
-            return edge in self._snapshots[tid]
-        else:
-            if tid is None:
-                return tuple(sorted(edge)) in self._nids2eid
-            return self._nids2eid[tuple(sorted(edge))] in self._snapshots[tid]
+        if not isinstance(edge, str):
+            edge = self.get_hyperedge_id(edge)
 
-    def has_node(self, node: int, tid: int = None) -> bool:
+        if start is None:
+            return edge in self._eid2nids
+        return edge in set(self.hyperedges(start, end))
+
+    def has_node(self, node: int, start: int = None, end: int = None) -> bool:
         """
         Checks if a node is present in the ASH. If the tid parameter is specified, it will check if the node is active in that snapshot.
 
@@ -486,10 +475,7 @@ class ASH(object):
         :param tid: The temporal snapshot id
         :return: True if the node is present, False otherwise
         """
-        if tid is None:
-            return node in self._node_attrs
-
-        return tid in self._node_attrs[node]
+        return node in set(self.nodes(start=start, end=end))
 
     def get_hyperedge_nodes(self, hyperedge_id: str) -> tuple:
         """
@@ -529,41 +515,6 @@ class ASH(object):
             return NProfile(node, **attr_dict)
 
         return NProfile(node, **self._node_attrs[node][tid])
-
-    def aggregate_node_profile(
-        self, node: int, categorical_aggr: str = "mode", numerical_aggr: str = "mean"
-    ) -> NProfile:
-        """
-        Returns an aggregated profile of a node over all time points.
-        The categorical_aggr parameter specifies the aggregation method for categorical attributes.
-        The numerical_aggr parameter specifies the aggregation method for numerical attributes.
-
-        :param node: The node id
-        :param categorical_aggr: The aggregation method for categorical attributes. Options: "mode", "first", "last"
-        :param numerical_aggr: The aggregation method for numerical attributes. Options: "mean", "median", "first", "last"
-        :return: The aggregated profile of the node
-        """
-        name_to_func = {
-            "mode": lambda x: max(set(x), key=x.count),
-            "first": lambda x: x[0],
-            "last": lambda x: x[-1],
-            "mean": lambda x: sum(x) / len(x),
-            "median": lambda x: sorted(x)[len(x) // 2],
-        }
-
-        aggr_profile = NProfile(node)
-        attr_dicts = [self._node_attrs[node][t] for t in sorted(self._node_attrs[node])]
-        attribute_values = defaultdict(list)
-        for attr_dict in attr_dicts:
-            for name, value in attr_dict.items():
-                attribute_values[name].append(value)
-
-        for name, values in attribute_values.items():
-            if isinstance(values[0], str):
-                aggr_profile.add_attribute(name, name_to_func[categorical_aggr](values))
-            else:
-                aggr_profile.add_attribute(name, name_to_func[numerical_aggr](values))
-        return aggr_profile
 
     def get_node_attribute(
         self,
@@ -704,48 +655,46 @@ class ASH(object):
             return 1
 
     ##### Statistics #####
-    def number_of_nodes(self, tid: int = None) -> int:
+    def number_of_nodes(self, start: int = None, end: int = None) -> int:
         """
         The number_of_nodes function returns the number of nodes in the ASH.
-        If no temporal snapshot id (tid) is specified, it will return the total number of nodes.
+        If start and end are specified, it will return the number of nodes that are active in that time window (both inclusive).
         Otherwise, it will return the total number of nodes that are active in tid.
 
-        :param tid: Optional temporal snapshot id
+        :param start: Optional temporal snapshot id
+        :param end: Optional temporal snapshot id
         :return: The number of nodes in the ASH
         """
 
-        if tid is None:
-            return len(self.nodes())
-        else:
-            return len(self.nodes(tid))
+        return len(self.nodes(start, end))
 
-    def number_of_hyperedges(self, tid: int = None) -> int:
+    def number_of_hyperedges(self, start: int = None, end: int = None) -> int:
         """
-        The number_of_hyperedges function returns the number of hyperedges in the ASH.
-        If no temporal snapshot id (tid) is specified, it will return the total number of hyperedges.
+        Returns the number of hyperedges in the ASH.
+        If start and end are specified, it will return the number of hyperedges that are active in that time window (both inclusive).
 
-        :param tid: Optional temporal snapshot id
+        :param start: Optional temporal snapshot id
+        :param end: Optional temporal snapshot id
         :return: The number of hyperedges in the ASH
         """
 
-        return self.size(tid)
+        return self.size(start, end)
 
-    def size(self, tid: int = None) -> int:
+    def size(self, start: int = None, end: int = None) -> int:
         """
-        The size function returns the number of hyperedges in the ASH.
-        If a temporal id (tid) is specified, it will return the number of hyperedges in that snapshot.
+        Returns the number of hyperedges in the ASH.
+        If start and end are specified, it will return the number of hyperedges that are active in that time window (both inclusive).
 
-        :param tid: Optional temporal snapshot id
+        :param start: Optional temporal snapshot id
+        :param end: Optional temporal snapshot id
         :return: The number of hyperedges in the ASH
         """
 
-        if tid is None:
-            return len(self._eid2nids)
-        return len(self._snapshots[tid])
+        return len(self.hyperedges(start, end))
 
     def hyperedge_size_distribution(self, start: int = None, end: int = None) -> dict:
         """
-        The hyperedge_size_distribution function returns a dictionary of the number of hyperedges with a given size.
+        Returns a dictionary of the number of hyperedges with a given size.
         The function takes two optional arguments, start and end. If only start is provided, then it will return the
         distribution of hyperedge sizes starting from (and including) that time step. If both start and end are
         provided, then it will return the distribution between those two indices (inclusive). The default behavior is
@@ -757,36 +706,26 @@ class ASH(object):
         """
 
         distr = defaultdict(int)
-        if start is None:
-            for he in self._eid2nids:
-                distr[len(self._eid2nids[he])] += 1
-        else:
-            eids = set()
-            for t in range(start, end + 1):
-                eids.update(self._snapshots[t])
-            for he in eids:
-                distr[len(self._eid2nids[he])] += 1
+        hes = self.hyperedges(start, end)
+
+        for he in hes:
+            distr[len(self.get_hyperedge_nodes(he))] += 1
+
         return dict(distr)
 
     def degree_distribution(self, start: int = None, end: int = None) -> dict:
         """
         Returns a dictionary of the number of nodes with a given degree.
         If start and end are specified, returns the distribution for that time window.
+
+        :param start: Optional temporal snapshot id
+        :param end: Optional temporal snapshot id
+        :return: A degree_to_count dictionary that contains the number of nodes with a given degree
         """
         distr = defaultdict(int)
 
-        if start is None:
-
-            for node in self.nodes():
-                deg = self.degree(node)
-                distr[deg] += 1
-        else:
-            nodes = set()
-            for t in range(start, end + 1):
-                nodes.update(set(self.nodes(t)))
-            for node in nodes:
-                deg = self.degree(node)
-                distr[deg] += 1
+        for node in self.nodes(start, end):
+            distr[self.degree(node, start, end)] += 1
 
         return dict(distr)
 
@@ -794,79 +733,60 @@ class ASH(object):
     def star(
         self,
         node: int,
-        as_ids: bool = True,
+        start: int = None,
+        end: int = None,
         hyperedge_size: int = None,
-        tid: int = None,
-    ) -> set:
+        as_ids: bool = True,
+    ) -> list:
         """
         Retrieve the star of a node in the ASH. The star of a node is the set of hyperedges that contain the node.
         If the hyperedge_size parameter is specified, only hyperedges of that size are returned.
         If the tid parameter is specified, only hyperedges that are active in that snapshot are returned.
 
         :param node: The node id
-        :param as_ids: If True, return the hyperedge ids, otherwise return the hyperedges as sets of nodes
+        :param start: The start of the time window
+        :param end: The end of the time window
         :param hyperedge_size: The size of the hyperedges
-        :param tid: The temporal snapshot id
+        :param as_ids: If True, return the hyperedge ids, otherwise return the hyperedges as sets of nodes
         :return: The set of hyperedge ids that contain the node
         """
-        if tid is None and hyperedge_size is None:  # all hyperedges
-            eids = self._stars[node]
-        elif (
-            tid is None and hyperedge_size is not None
-        ):  # hyperedges of a specific size
-            eids = set(
-                [
-                    he
-                    for he in self._stars[node]
-                    if len(self._eid2nids[he]) == hyperedge_size
-                ]
-            )
-        elif (
-            tid is not None and hyperedge_size is None
-        ):  # hyperedges in a specific time
-            eids = set([he for he in self._stars[node] if he in self._snapshots[tid]])
-        else:  # hyperedges of a specific size in a specific time
-            eids = set(
-                [
-                    he
-                    for he in self._stars[node]
-                    if he in self._snapshots[tid]
-                    and len(self._eid2nids[he]) == hyperedge_size
-                ]
-            )
+        if start is None:
+            star = self._stars[node]
+
+        else:
+            time_window = self.__time_window(start, end)
+            star = set()
+            for t in time_window:
+                star.update(self._stars[node].intersection(self._snapshots[t]))
+
+        if hyperedge_size is not None:
+            star = [
+                s for s in star if len(self.get_hyperedge_nodes(s)) == hyperedge_size
+            ]
 
         if as_ids:
-            return eids
-        else:
-            return set([self._eid2nids[he] for he in eids])
+            return list(star)
+        return [self.get_hyperedge_nodes(s) for s in star]
 
-    def degree(self, node: int, hyperedge_size: int = None, tid: int = None) -> int:
+    def degree(
+        self, node: int, start: int = None, end: int = None, hyperedge_size: int = None
+    ) -> int:
         """
         The degree function returns the number of hyperedges that a given node is part of.
         If the optional argument hyperedge_size is specified, then it returns only the number
         of hyperedges that have exactly this many nodes.
 
         :param node: Specify the node id
+        :param start: Specify the start of a time window
+        :param end: Specify the end of a time window
         :param hyperedge_size: Specify the size of hyperedges to be counted
-        :param tid: Get the degree at a specific point in time
         :return: The degree of a node
         """
-        star = self.star(node, tid=tid)
+        return len(self.star(node, start, end, hyperedge_size, as_ids=False))
 
-        if hyperedge_size is not None:
-            res = 0
-            for s in star:
-                nodes = self.get_hyperedge_nodes(s)
-                if len(nodes) == hyperedge_size:
-                    res += 1
-            return res
-        else:
-            return len(star)
-
-    def s_degree(self, node: int, s: int, tid: int = None) -> int:
+    def s_degree(self, node: int, s: int, start: int = None, end: int = None) -> int:
         """
         The s_degree function returns the s-degree of a specific node.
-
 
         :param node: Specify the node for which to compute the degree
         :param s: Specify the minimum number of nodes in each hyperedge to be counted
@@ -874,14 +794,16 @@ class ASH(object):
         :return: The number of hyperedges in the start that have at least s nodes
         """
 
-        degs = self.degree_by_hyperedge_size(node, tid)
+        degs = self.degree_by_hyperedge_size(node, start=start, end=end)
         res = 0
         for k, v in degs.items():
             if k >= s:
                 res += v
         return res
 
-    def degree_by_hyperedge_size(self, node: int, tid: int = None) -> dict:
+    def degree_by_hyperedge_size(
+        self, node: int, start: int = None, end: int = None
+    ) -> dict:
         """
         Given a node, the degree_by_hyperedge_size function returns a dictionary where keys are the sizes
         of the hyperedges in the node's star, and values are the raw frequency of that size in the star.
@@ -890,50 +812,58 @@ class ASH(object):
         The optional parameter tid restricts the hyperedges to those active in that point in time.
 
         :param node: Specify the node for which we want to calculate the degree distribution
-        :param tid: Specify a temporal snapshot
+        :param start: Specify the start of a time window
+        :param end: Specify the end of a time window
+
         :return: A dictionary where the keys are the node's star's hyperedge sizes and the values are their frequencies
         """
 
         distr = defaultdict(int)
-        star = self.star(node, as_ids=False, tid=tid)
+        star = self.star(node, start=start, end=end, as_ids=False)
         for he in star:
             distr[len(he)] += 1
-        return distr
+        return dict(distr)
 
-    def neighbors(self, node: int, hyperedge_size: int = None, tid: int = None) -> set:
+    def neighbors(
+        self,
+        node: int,
+        start: int = None,
+        end: int = None,
+        hyperedge_size: int = None,
+    ) -> set:
         """
         Retrieve the neighbors of a node in the ASH. Neighbors are nodes that share at least one hyperedge with the input node.
         If the hyperedge_size parameter is specified, only neighbors that share a hyperedge of that size are returned.
         If the tid parameter is specified, only neighbors that are active in that snapshot are returned.
 
         :param node: The node id
-        :param hyperedge_size: The size of the hyperedge
-        :param tid: The temporal snapshot id
+        :param start: The start of the time window
+        :param end: The end of the time window
+        :param hyperedge_size: The size of the hyperedges
         :return: The set of neighbors of the node
         """
-        return set(
-            [
-                n
-                for he in self.star(node, hyperedge_size=hyperedge_size, tid=tid)
-                for n in self._eid2nids[he]
-                if n != node
-            ]
-        )
+        neighbors = set()
+        star = self.star(node, start, end, hyperedge_size, as_ids=False)
+        for he in star:
+            neighbors.update(he)
+        neighbors.remove(node)
+        return neighbors
 
     def number_of_neighbors(
-        self, node: int, hyperedge_size: int = None, tid: int = None
+        self, node: int, start: int = None, end: int = None, hyperedge_size: int = None
     ) -> int:
         """
         The number_of_neighbors function returns the number of neighbors of a node in the ASH.
-        If no temporal snapshot id (tid) is specified, it will return the total number of neighbors.
+
         Otherwise, it will return the total number of neighbors that are active in tid.
 
         :param node: The node id
+        :param start: Optional temporal snapshot id
+        :param end: Optional temporal snapshot id
         :param hyperedge_size: Optional hyperedge size
-        :param tid: Optional temporal snapshot id
         :return: The number of neighbors of the node in the ASH
         """
-        return len(self.neighbors(node, hyperedge_size, tid))
+        return len(self.neighbors(node, start, end, hyperedge_size))
 
     ### Transformations and Projections ###
 
@@ -951,10 +881,7 @@ class ASH(object):
         :param end: Specify the end of a time window
         :return: A networkx graph object
         """
-        time_window = self.__time_window(start, end)
-        hes = set()
-        for t in time_window:
-            hes.update(self._snapshots[t])
+        hes = self.hyperedges(start, end)
 
         g = nx.Graph()
         for he in hes:
@@ -979,12 +906,8 @@ class ASH(object):
         :param end: SpSpecify the end of a time window
         :return: the dual ASH and a node-to-edge mapping dictionary
         """
-        time_window = self.__time_window(start, end)
-        hes = set()
-        for t in time_window:
-            hes.update(self._snapshots[t])
-
-        b = ASH(hedge_removal=self.hedge_removal)
+        hes = self.hyperedges(start, end)
+        b = ASH()
         node_to_edges = defaultdict(list)
         for he in hes:
             nodes = self.get_hyperedge_nodes(he)
@@ -1011,10 +934,7 @@ class ASH(object):
         :return: The s-line graph of the ASH
         """
         node_to_edges = defaultdict(list)
-        time_window = self.__time_window(start, end)
-        hes = set()
-        for t in time_window:
-            hes.update(self._snapshots[t])
+        hes = self.hyperedges(start, end)
 
         for he in hes:
             nodes = self.get_hyperedge_nodes(he)
@@ -1045,8 +965,10 @@ class ASH(object):
         :return: The average number of nodes in the ASH over all _snapshots
         """
 
-        nodes_snapshots = [self.number_of_nodes(tid) for tid in self._snapshots.keys()]
-        return sum(nodes_snapshots) / len(self._snapshots.keys())
+        nodes_snapshots = [
+            self.number_of_nodes(tid) for tid in self.temporal_snapshots_ids()
+        ]
+        return sum(nodes_snapshots) / len(nodes_snapshots)
 
     def avg_number_of_hyperedges(self) -> float:
         """
@@ -1056,9 +978,8 @@ class ASH(object):
         :return: The average number of hyperedges per snapshot
         """
 
-        return sum([len(hes) for hes in self._snapshots.values()]) / len(
-            self._snapshots
-        )
+        hes_snapshots = [self.size(tid) for tid in self.temporal_snapshots_ids()]
+        return sum(hes_snapshots) / len(hes_snapshots)
 
     def node_presence(self, node: int, as_intervals: bool = False) -> list:
         """
@@ -1080,11 +1001,14 @@ class ASH(object):
         :param as_intervals: If True, the function will return the time span as a list of tuples
         :return: A list of tuples representing the time span in which the hyperedge is present
         """
+        pres = []
+        for t in self.temporal_snapshots_ids():
+            if self.has_hyperedge(hyperedge_id, t):
+                pres.append(t)
+
         if as_intervals:
-            return self.__presence_to_intervals(
-                [t for t in self._snapshots if hyperedge_id in self._snapshots[t]]
-            )
-        return [t for t in self._snapshots if hyperedge_id in self._snapshots[t]]
+            return self.__presence_to_intervals(pres)
+        return pres
 
     def node_contribution(self, node) -> float:
         """
@@ -1149,11 +1073,11 @@ class ASH(object):
 
     ### Slice and Filter ###
 
-    def hypergraph_temporal_slice(
+    def temporal_slice(
         self, start: int, end: int = None, keep_attrs: bool = True
     ) -> Tuple[object, dict]:
         """
-        The hypergraph_temporal_slice constructs a new ASH instance that contains hyperedges active in the given
+        The temporal_slice constructs a new ASH instance that contains hyperedges active in the given
         time window. It returns both the new instance and a dictionary mapping old hyperedge ids to new hyperedge ids.
         If no end time is specified, then all temporal ids greater or equal to start are considered.
 
@@ -1163,7 +1087,7 @@ class ASH(object):
         :return: an ASH instance and a dictionary mapping old hyperedge ids to new hyperedge ids
         """
 
-        res = ASH(hedge_removal=self.hedge_removal)
+        res = ASH()
         eid_to_new_eid = {}  # mapping of old hyperedge ids to new hyperedge ids
         if end is None:
             end = start
@@ -1171,7 +1095,7 @@ class ASH(object):
             for hedge_id in self.hyperedges(t):
                 nodes = self.get_hyperedge_nodes(hedge_id)
                 res.add_hyperedge(nodes, t, t)
-                eid_to_new_eid[hedge_id] = res._nids2eid[tuple(sorted(nodes))]
+                eid_to_new_eid[hedge_id] = res._nids2eid[frozenset(nodes)]
 
         # copy node profiles
         if keep_attrs:
@@ -1184,7 +1108,7 @@ class ASH(object):
         return res, eid_to_new_eid
 
     def induced_hypergraph(
-        self, hyperedge_set: list, keep_attrs: bool = False
+        self, hyperedge_set: list, keep_attrs: bool = True
     ) -> Tuple[object, dict]:
         """
         Creates a new ASH instance that contains only the hyperedges specified in the hyperedge_set list.
@@ -1195,7 +1119,7 @@ class ASH(object):
         :return: A new ASH object and a dictionary that maps the old hyperedge ids to the new ones
         """
 
-        b = ASH(hedge_removal=self.hedge_removal)
+        b = ASH()
         old_eid_to_new = {}
 
         for he in hyperedge_set:
@@ -1209,7 +1133,7 @@ class ASH(object):
             # copy node attributes
             if keep_attrs:
                 for t in b.temporal_snapshots_ids():
-                    for node in b.nodes(tid=t):
+                    for node in b.nodes(t):
                         profile = self.get_node_profile(node, t)
                         b.add_node(node, start=t, end=t, attr_dict=profile)
 
@@ -1232,9 +1156,7 @@ class ASH(object):
 
         res = []
         nodes = set(self.get_hyperedge_nodes(hyperedge_id))
-        hes = set()
-        for t in range(start, end + 1):
-            hes.update(self._snapshots[t])
+        hes = self.hyperedges(start, end)
 
         for he in hes:
             if he != hyperedge_id:
@@ -1285,3 +1207,38 @@ class ASH(object):
                 res = set(filtered_nodes) & res
 
         return len(res)
+
+    def to_json(self):
+        """
+        The to_json function returns a JSON representation of the ASH object.
+        The function returns a dictionary with the following keys:
+        """
+        descr = {"nodes": {}, "hedges": {}}
+
+        for hedge in self.hyperedges():
+            edge_data = {
+                "nodes": self.get_hyperedge_nodes(hedge),
+                "attributes": self.get_hyperedge_attributes(hedge),
+            }
+            edge_data["attributes"]["presence"] = self.hyperedge_presence(
+                hedge, as_intervals=True
+            )
+
+            descr["hedges"][hedge] = edge_data
+
+        for node in self.nodes():
+            npr = self.get_node_profile(node)
+            descr["nodes"][node] = npr.get_attributes()
+        return descr
+
+    def __str__(self):
+        descr = "ASH\n"
+        descr += "Nodes: {}\n".format(self.number_of_nodes())
+        descr += "Hyperedges: {}\n".format(self.number_of_hyperedges())
+        descr += "Snapshots: {}\n".format(len(self.temporal_snapshots_ids()))
+        return descr
+
+    def __iter__(self):
+
+        for t in self.temporal_snapshots_ids():
+            yield self.hyperedges(t)
