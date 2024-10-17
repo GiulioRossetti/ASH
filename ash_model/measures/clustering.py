@@ -1,6 +1,6 @@
 from math import comb
 
-from ash.paths import *
+from ash_model.paths import *
 
 
 def s_local_clustering_coefficient(

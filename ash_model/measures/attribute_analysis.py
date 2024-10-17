@@ -3,7 +3,7 @@ from math import log, e
 
 import numpy as np
 
-from ash import ASH, NProfile
+from ash_model import ASH, NProfile
 
 
 def __entropy(labels, base=None):

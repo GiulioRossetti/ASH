@@ -1,6 +1,6 @@
 import unittest
-from ash import ASH, NProfile
-from ash.measures import *
+from ash_model import ASH, NProfile
+from ash_model.measures import *
 import json
 import os
 

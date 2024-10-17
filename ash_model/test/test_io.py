@@ -1,7 +1,8 @@
-import unittest
-from ash import ASH, NProfile
-from ash.readwrite import *
 import os
+import unittest
+
+from ash_model import ASH, NProfile
+from ash_model.readwrite import *
 
 
 class IOTestCase(unittest.TestCase):
@@ -56,20 +57,12 @@ class IOTestCase(unittest.TestCase):
         write_sh_to_csv(a, "test_sh.csv")
         b = read_sh_from_csv("test_sh.csv")
 
-        self.assertEqual(a.get_hyperedge_id_set(), b.get_hyperedge_id_set())
-        self.assertEqual(
-            sorted(list(a.node_iterator())), sorted(list(b.node_iterator()))
-        )
-        self.assertEqual(
-            sorted(a.temporal_snapshots_ids()), sorted(b.temporal_snapshots_ids())
-        )
+        self.assertEqual(a.hyperedge_ids(), b.hyperedge_ids())
+        self.assertEqual(sorted(list(a.node_iterator())), sorted(list(b.node_iterator())))
+        self.assertEqual(sorted(a.temporal_snapshots_ids()), sorted(b.temporal_snapshots_ids()))
         for tid in a.temporal_snapshots_ids():
-            self.assertEqual(
-                len(a.get_hyperedge_id_set(tid)), len(b.get_hyperedge_id_set(tid))
-            )
-            self.assertEqual(
-                len(list(a.node_iterator(tid))), len(list(b.node_iterator(tid)))
-            )
+            self.assertEqual(len(a.hyperedge_ids(tid)), len(b.hyperedge_ids(tid)))
+            self.assertEqual(len(list(a.node_iterator(tid))), len(list(b.node_iterator(tid))))
 
         os.remove("test_sh.csv")
 
@@ -78,23 +71,15 @@ class IOTestCase(unittest.TestCase):
         write_ash_to_json(a, "test_ash.json")
         b = read_ash_from_json("test_ash.json")
 
-        self.assertEqual(a.get_hyperedge_id_set(), b.get_hyperedge_id_set())
-        self.assertEqual(
-            sorted(list(a.node_iterator())), sorted(list(b.node_iterator()))
-        )
-        self.assertEqual(
-            sorted(a.temporal_snapshots_ids()), sorted(b.temporal_snapshots_ids())
-        )
+        self.assertEqual(a.hyperedge_ids(), b.hyperedge_ids())
+        self.assertEqual(sorted(list(a.node_iterator())), sorted(list(b.node_iterator())))
+        self.assertEqual(sorted(a.temporal_snapshots_ids()), sorted(b.temporal_snapshots_ids()))
         for tid in a.temporal_snapshots_ids():
-            self.assertEqual(
-                len(a.get_hyperedge_id_set(tid)), len(b.get_hyperedge_id_set(tid))
-            )
-            self.assertEqual(
-                len(list(a.node_iterator(tid))), len(list(b.node_iterator(tid)))
-            )
+            self.assertEqual(len(a.hyperedge_ids(tid)), len(b.hyperedge_ids(tid)))
+            self.assertEqual(len(list(a.node_iterator(tid))), len(list(b.node_iterator(tid))))
 
         for node in a.node_iterator():
-            tids = a.get_node_presence(node)
+            tids = a.node_presence(node)
             for tid in tids:
                 p1 = a.get_node_profile(node, tid)
                 p2 = b.get_node_profile(node, tid)

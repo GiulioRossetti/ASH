@@ -1,6 +1,6 @@
 import unittest
-from ash import ASH
-from ash.paths import *
+from ash_model import ASH
+from ash_model.paths import *
 import networkx as nx
 
 

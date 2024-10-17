@@ -1,7 +1,7 @@
 import gzip
 import json
 
-from ash import ASH, NProfile
+from ash_model import ASH, NProfile
 
 __all__ = [
     "write_profiles_to_csv",

@@ -3,7 +3,7 @@ from itertools import combinations
 
 import networkx as nx
 
-from ash import ASH
+from ash_model import ASH
 
 
 def all_simple_paths(

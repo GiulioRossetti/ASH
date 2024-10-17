@@ -1,5 +1,5 @@
 import unittest
-from ash import NProfile
+from ash_model import NProfile
 
 
 class NProfileTestCase(unittest.TestCase):

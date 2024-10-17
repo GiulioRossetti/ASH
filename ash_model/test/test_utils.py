@@ -2,8 +2,8 @@ import unittest
 
 import networkx as nx
 
-from ash import ASH
-import ash.utils as ut
+from ash_model import ASH
+import ash_model.utils as ut
 
 
 class UtilsTestCase(unittest.TestCase):

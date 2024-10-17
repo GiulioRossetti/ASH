@@ -1,6 +1,6 @@
 import unittest
-from ash import ASH
-from ash.measures import *
+from ash_model import ASH
+from ash_model.measures import *
 
 
 class ClusteringTestCase(unittest.TestCase):

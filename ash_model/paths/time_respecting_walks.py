@@ -5,7 +5,7 @@ from typing import Tuple
 import networkx as nx
 import numpy as np
 
-from ash import ASH
+from ash_model import ASH
 
 TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
 TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)

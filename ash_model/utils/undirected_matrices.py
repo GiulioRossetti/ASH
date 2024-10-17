@@ -2,7 +2,7 @@ import halp.utilities.undirected_matrices as um
 import numpy as np
 from scipy import sparse
 
-from ash import ASH
+from ash_model import ASH
 
 
 def get_node_mapping(h: ASH) -> (dict, dict):

@@ -1,7 +1,7 @@
 import unittest
 import networkx as nx
-from ash import ASH
-from ash.paths import *
+from ash_model import ASH
+from ash_model.paths import *
 
 
 class SWalksCase(unittest.TestCase):

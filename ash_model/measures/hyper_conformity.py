@@ -1,7 +1,7 @@
 import tqdm
 
-from ash.measures.attribute_analysis import hyperedge_aggregate_node_profile
-from ash.paths.walks import *
+from ash_model.measures.attribute_analysis import hyperedge_aggregate_node_profile
+from ash_model.paths.walks import *
 
 
 def __label_frequency(

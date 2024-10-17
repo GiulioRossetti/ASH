@@ -1,6 +1,6 @@
 import unittest
-from ash import ASH, NProfile
-from ash.measures import *
+
+from ash_model.measures import *
 
 
 class AttributeAnalysisCase(unittest.TestCase):
@@ -61,15 +61,13 @@ class AttributeAnalysisCase(unittest.TestCase):
             hyperedge_aggregate_node_profile(a, "e1", 1).get_statistic("age", "std"),
             {"std": 13.442005058770064},
         )
-        self.assertEqual(
-            hyperedge_most_frequent_node_attribute_value(a, "e1", "party", 1), {"L": 3}
-        )
+        self.assertEqual(hyperedge_most_frequent_node_attribute_value(a, "e1", "party", 1), {"L": 3})
 
     def test_hyperedge_profile_purity(self):
         a = self.get_hypergraph()
 
         for tid in a.temporal_snapshots_ids():
-            hes = a.get_hyperedge_id_set(tid=tid)
+            hes = a.hyperedge_ids(tid=tid)
             for he in hes:
                 res = hyperedge_profile_purity(a, he, tid)
                 self.assertListEqual(sorted(list(res.keys())), ["gender", "party"])
@@ -78,7 +76,7 @@ class AttributeAnalysisCase(unittest.TestCase):
         a = self.get_hypergraph()
 
         for tid in a.temporal_snapshots_ids():
-            hes = a.get_hyperedge_id_set(tid=tid)
+            hes = a.hyperedge_ids(tid=tid)
             for he in hes:
                 res = hyperedge_profile_entropy(a, he, tid)
                 self.assertListEqual(sorted(list(res.keys())), ["gender", "party"])

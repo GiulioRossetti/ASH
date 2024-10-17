@@ -4,7 +4,7 @@ from typing import Dict
 
 import networkx as nx
 
-from ash import ASH, NProfile
+from ash_model import ASH, NProfile
 
 
 def to_graph_decomposition(h: ASH, tid: int = None) -> Dict[int, ASH]:
