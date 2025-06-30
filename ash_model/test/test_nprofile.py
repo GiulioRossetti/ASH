@@ -1,4 +1,5 @@
 import unittest
+
 from ash_model import NProfile
 
 

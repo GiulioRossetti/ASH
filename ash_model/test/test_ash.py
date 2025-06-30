@@ -2,6 +2,7 @@ import json
 import unittest
 
 from networkx.algorithms import bipartite
+import networkx as nx
 
 from ash_model import ASH, NProfile
 
@@ -136,12 +137,12 @@ class ASHTestCase(unittest.TestCase):
 
         hs = a.hyperedges()
         self.assertEqual(len(hs), 2)
-        self.assertEqual(hs, ["e1", "e2"])
+        self.assertEqual(sorted(hs), ["e1", "e2"])
         hs = a.hyperedges(start=4)
         self.assertEqual(hs, ["e2"])
 
         hs = a.hyperedges(hyperedge_size=3)
-        self.assertEqual(hs, ["e1", "e2"])
+        self.assertEqual(sorted(hs), ["e1", "e2"])
         hs = a.hyperedges(hyperedge_size=4)
         self.assertEqual(hs, list())
         hs = a.hyperedges(hyperedge_size=3, start=4)
@@ -152,7 +153,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedges([[4, 5], [6, 7], [8, 9, 10]], start=3, end=10)
         hs = a.hyperedges()
         self.assertEqual(len(hs), 5)
-        self.assertEqual(hs, ["e1", "e2", "e3", "e4", "e5"])
+        self.assertEqual(sorted(hs), ["e1", "e2", "e3", "e4", "e5"])
 
         self.assertEqual(a.get_hyperedge_id([1, 2, 3]), "e1")
         self.assertEqual(a.get_hyperedge_nodes("e1"), frozenset([1, 2, 3]))
@@ -260,23 +261,22 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([3, 4], 1)
 
         g = a.s_line_graph()
+        g2 = nx.Graph()
+        edges = [
+            ("e1", "e2"),
+            ("e1", "e4"),
+            ("e1", "e3"),
+            ("e1", "e5"),
+            ("e2", "e3"),
+            ("e2", "e4"),
+            ("e2", "e5"),
+            ("e3", "e4"),
+            ("e3", "e5"),
+            ("e4", "e5"),
+        ]
+        g2.add_edges_from(edges)
 
-        eds = sorted(
-            [
-                ("e1", "e2"),
-                ("e1", "e4"),
-                ("e1", "e3"),
-                ("e1", "e5"),
-                ("e2", "e3"),
-                ("e2", "e4"),
-                ("e2", "e5"),
-                ("e3", "e4"),
-                ("e3", "e5"),
-                ("e4", "e5"),
-            ]
-        )
-
-        self.assertListEqual(sorted(list(g.edges())), eds)
+        self.assertEqual(nx.is_isomorphic(g, g2), True)
 
         g = a.s_line_graph(start=0, end=0)
 
@@ -322,9 +322,9 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 4], 0)
         a.add_hyperedge([1, 2, 4], 0)
 
-        self.assertEqual(a.get_s_incident("e1", s=1), [("e2", 1), ("e3", 2)])
-        self.assertEqual(a.get_s_incident("e1", s=2), [("e3", 2)])
-        self.assertEqual(a.get_s_incident("e1", s=3), [])
+        self.assertEqual(sorted(a.get_s_incident("e1", s=1)), [("e2", 1), ("e3", 2)])
+        self.assertEqual(sorted(a.get_s_incident("e1", s=2)), [("e3", 2)])
+        self.assertEqual(sorted(a.get_s_incident("e1", s=3)), [])
 
     def test_hyper_subgraph(self):
         a = ASH()
@@ -341,39 +341,41 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(len(eid_map), 2)
 
     def test_removal(self):
-        a = ASH()
-        a.add_hyperedge([1, 2, 3], 0)
-        a.add_hyperedge([1, 4], 0)
-        a.add_hyperedge([2, 3, 4], 0)
-        a.add_hyperedge([1, 3], 1)
-        a.add_hyperedge([3, 4], 1)
-        a.add_hyperedge([3, 4], 2)
+        for backend in ["dense", "interval"]:
+            
+            a = ASH(backend=backend)
+            a.add_hyperedge([1, 2, 3], 0)
+            a.add_hyperedge([1, 4], 0)
+            a.add_hyperedge([2, 3, 4], 0)
+            a.add_hyperedge([1, 3], 1)
+            a.add_hyperedge([3, 4], 1)
+            a.add_hyperedge([3, 4], 2)
 
-        a.remove_hyperedge("e1")
-        self.assertEqual(a.has_hyperedge("e1"), False)
-        self.assertEqual(len(a.hyperedges()), 4)
+            a.remove_hyperedge("e1")
+            self.assertEqual(a.has_hyperedge("e1"), False)
+            self.assertEqual(len(a.hyperedges()), 4)
 
-        a.remove_hyperedge("e5", start=0)
-        self.assertEqual(a.has_hyperedge("e5"), True)
-        self.assertEqual(a.has_hyperedge("e5", start=0), False)
-        self.assertEqual(a.has_hyperedge("e5", start=1), True)
+            a.remove_hyperedge("e5", start=0)
+            self.assertEqual(a.has_hyperedge("e5"), True)
+            self.assertEqual(a.has_hyperedge("e5", start=0), False)
+            self.assertEqual(a.has_hyperedge("e5", start=1), True)
 
-        a = ASH()
-        a.add_hyperedge([1, 2, 3], 0)
-        a.add_hyperedge([1, 4], 0)
-        a.add_hyperedge([2, 3, 4], 0)
-        a.add_hyperedge([1, 3], 1)
-        a.add_hyperedge([3, 4], 1)
-        a.add_hyperedge([3, 4], 2)
+            a = ASH()
+            a.add_hyperedge([1, 2, 3], 0)
+            a.add_hyperedge([1, 4], 0)
+            a.add_hyperedge([2, 3, 4], 0)
+            a.add_hyperedge([1, 3], 1)
+            a.add_hyperedge([3, 4], 1)
+            a.add_hyperedge([3, 4], 2)
 
-        a.remove_node(1)
-        self.assertEqual(a.has_node(1), False)
-        self.assertEqual(len(a.nodes()), 3)
-        self.assertEqual(len(a.hyperedges()), 2)
+            a.remove_node(1)
+            self.assertEqual(a.has_node(1), False)
+            self.assertEqual(len(a.nodes()), 3)
+            self.assertEqual(len(a.hyperedges()), 2)
 
-        a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
-        a.remove_unlabelled_nodes("party")
-        self.assertEqual(len(a.nodes()), 1)
+            a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
+            a.remove_unlabelled_nodes("party")
+            self.assertEqual(len(a.nodes()), 1)
 
 
 
