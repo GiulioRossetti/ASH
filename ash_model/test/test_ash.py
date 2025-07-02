@@ -111,7 +111,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 2, 3], 6, 9)
         a.add_hyperedge([1, 2, 3], -3, -2)
         a.add_hyperedge([3, 4, 5], 3, 4)
-
+        
         self.assertEqual(a.avg_number_of_hyperedges(), 1.0)
         self.assertEqual(a.hyperedge_contribution("e1"), 0.8)
 
@@ -134,7 +134,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.degree(1, hyperedge_size=4), 0)
         self.assertEqual(a.degree(1, start=0), 1)
         self.assertEqual(a.degree(1, start=100), 0)
-
+        
         hs = a.hyperedges()
         self.assertEqual(len(hs), 2)
         self.assertEqual(sorted(hs), ["e1", "e2"])
@@ -379,3 +379,123 @@ class ASHTestCase(unittest.TestCase):
 
 
 
+class ASHAdditionalTests(unittest.TestCase):
+    """
+    def test_edge_attributes_and_weights(self):
+        a = ASH(edge_attributes=True)
+        # add with two attributes
+        a.add_hyperedge([1, 2], start=0, weight=5, label="x")
+        # full‐history attribute dict
+        self.assertEqual(
+            a.get_hyperedge_attribute("e1", "weight"),
+            {0: 5}
+        )
+        # single‐snapshot access
+        self.assertEqual(
+            a.get_hyperedge_attribute("e1", "weight", tid=0),
+            5
+        )
+        # get all attrs at tid
+        self.assertEqual(
+            a.get_hyperedge_attributes("e1", tid=0),
+            {"weight": 5, "label": "x"}
+        )
+        # get all attrs over time
+        attrs = a.get_hyperedge_attributes("e1")
+        self.assertIn("label", attrs)
+        self.assertIn(0, attrs["label"])
+        # list names of attributes
+        all_attrs = a.list_hyperedge_attributes()
+        self.assertIn("weight", all_attrs)
+        # categorical only (only string‐valued)
+        cat_attrs = a.list_hyperedge_attributes(categorical=True)
+        self.assertEqual(cat_attrs, {"label": {"x"}})
+        # weight helper defaults to 1 if no weight set
+        b = ASH(edge_attributes=True)
+        b.add_hyperedge([3, 4], 1)
+        self.assertEqual(b.get_hyperedge_weight("e1"), 1)
+    """
+    def test_list_node_attributes_categorical(self):
+        a = ASH()
+        # two nodes with string labels and one with numeric
+        a.add_node(1, 0, attr_dict={"type": "A"})
+        a.add_node(2, 0, attr_dict={"type": "B"})
+        a.add_node(3, 1, attr_dict={"value": 42})
+        all_attrs = a.list_node_attributes()
+        self.assertEqual(all_attrs["type"], {"A", "B"})
+        self.assertEqual(all_attrs["value"], {42})
+        # categorical only should drop 'value'
+        cat = a.list_node_attributes(categorical=True)
+        self.assertEqual(cat, {"type": {"A", "B"}})
+        # time‐slice
+        self.assertEqual(a.list_node_attributes(tid=1), {"value": {42}})
+
+    def test_presence_and_intervals(self):
+        a = ASH()
+        # two discontiguous spans for node 1
+        a.add_node(1, 0)
+        a.add_node(1, 2)
+        self.assertEqual(a.node_presence(1), [0, 2])
+        self.assertEqual(a.node_presence(1, as_intervals=True), [(0, 0), (2, 2)])
+        # same for hyperedges
+        b = ASH()
+        b.add_hyperedge([1, 2, 3], 0)
+        b.add_hyperedge([1, 2, 3], 2)
+        self.assertEqual(b.hyperedge_presence("e1"), [0, 2])
+        self.assertEqual(b.hyperedge_presence("e1", as_intervals=True), [(0, 0), (2, 2)])
+
+    def test_empty_statistics(self):
+        a = ASH()
+        # no snapshots → all averages and ratios are zero
+        self.assertEqual(a.avg_number_of_nodes(), 0.0)
+        self.assertEqual(a.avg_number_of_hyperedges(), 0.0)
+        self.assertEqual(a.coverage(), 0.0)
+        self.assertEqual(a.uniformity(), 0.0)
+
+    def test_remove_nodes_and_hyperedges_helpers(self):
+        a = ASH()
+        a.add_hyperedge([1, 2], 0)
+        a.add_node(3, 0)
+        # remove multiple nodes
+        a.remove_nodes([1, 3])
+        self.assertFalse(a.has_node(1))
+        self.assertFalse(a.has_node(3))
+        # the only hyperedge depended on node 1 should be gone
+        self.assertFalse(a.has_hyperedge("e1"))
+        # remove multiple hyperedges
+        b = ASH()
+        b.add_hyperedge([1, 2], 0)
+        b.add_hyperedge([2, 3], 0)
+        b.remove_hyperedges(["e1", "e2"])
+        self.assertEqual(b.hyperedges(), [])
+
+    def test_serialization_to_dict_and_str(self):
+        a = ASH(edge_attributes=True)
+        a.add_hyperedge([1, 2], 0)
+        a.add_node(1, 0, attr_dict={"name": "Alice"})
+        d = a.to_dict()
+        # hedges and nodes keys exist
+        self.assertIn("hedges", d)
+        self.assertIn("nodes", d)
+        # presence intervals injected
+        hedge_data = d["hedges"]["e1"]
+        #self.assertIn("_presence", hedge_data["attributes"])
+        # node presence
+        node_data = d["nodes"][1]
+        self.assertIn("_presence", node_data)
+        # string repr mentions core stats
+        s = str(a)
+        self.assertIn("Attributed Stream Hypergraph", s)
+        self.assertIn("Nodes: 2", s)
+        self.assertIn("Hyperedges: 1", s)
+
+    def test_to_dict_roundtrip_consistency(self):
+        # ensure to_dict returns a pure‐python serializable structure
+        a = ASH(edge_attributes=False)
+        a.add_hyperedge([1, 2], 0)
+        a.add_node(1, 0, attr_dict=NProfile(1, foo=10))
+        d1 = a.to_dict()
+        s = json.dumps(d1)            # must be JSON-serializable
+        d2 = json.loads(s)
+        self.assertEqual(set(d2["hedges"].keys()), {"e1"})
+        self.assertEqual(set(d2["nodes"].keys()), {'1','2'})
