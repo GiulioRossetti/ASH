@@ -247,6 +247,7 @@ class TestLineGraphProjection(unittest.TestCase):
 
     def test_default_s1(self):
         G = line_graph_projection(self.h, s=1, start=0, end=0, keep_attrs=False)
+        self.assertListEqual(sorted(G.nodes()), ['e1', 'e2', 'e3'])
         # e1 and e2 share node 2
         self.assertIn(('e1','e2'), G.edges())
         # no edge between e1 and e3
