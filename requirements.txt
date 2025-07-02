@@ -1,5 +1,5 @@
-halp
 numpy
-scipy
 networkx
+scipy
+csrgraph
 tqdm
