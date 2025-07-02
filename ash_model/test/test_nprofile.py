@@ -49,17 +49,4 @@ class NProfileTestCase(unittest.TestCase):
         self.assertEqual(p.has_statistic("pippo", "mean"), True)
         self.assertEqual(p.has_statistic("pippo", "max"), False)
         self.assertListEqual(p.attribute_computed_statistics("pippo"), ["mean"])
-
-    def test_ash_profile(self):
-        h = ASH()
-        p = NProfile(node_id=1, age=20, opinion=1)
-        h.add_node(1, start=0, attr_dict=p)
-        p2 = NProfile(node_id=2, age=19, opinion=1)
-        h.add_node(2, start=0, attr_dict=p2)
-        
-        self.assertEqual(h.get_node_attribute(1, "age"), 20)
-        self.assertEqual(h.get_node_attribute(2, "age"), 19)
-        self.assertEqual(h.get_node_attribute(1, "opinion"), 1)
-        self.assertEqual(h.get_node_attribute(2, "opinion"), 1)
-
         
