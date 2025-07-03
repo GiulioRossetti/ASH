@@ -175,7 +175,7 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
             presence = h.hyperedge_presence(he, as_intervals=True)
             nodes = h.get_hyperedge_nodes(he)
             for span in presence:
-                desc = ",".join(nodes)
+                desc = ",".join([str(n) for n in nodes])
                 desc = f"{desc}\t{span[0]},{span[1]}\n"
                 o.write(desc)
 
@@ -238,28 +238,40 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     with op(path, "rt") as f:
         data = json.loads(f.read())
 
-    for he_id, edge_data in data["hyperedges"].items():
-        for span in edge_data["presence"]:
+    # check if has edge attributes
+
+    for _, edge_data in data["hedges"].items():
+        for span in edge_data["attributes"]["_presence"]:
             for t in range(span[0], span[1] + 1):
-                h.add_hyperedge(
-                    edge_data["nodes"],
-                    start=t,
-                    **{k: v for k, v in edge_data[t].items() if k != "presence"},
+
+                kwargs = (
+                    {
+                        k: v
+                        for k, v in edge_data["attributes"].items()
+                        if k != "_presence"
+                    },
                 )
+                h.add_hyperedge(edge_data["nodes"], start=t, **kwargs)
 
     for node_id, node_data in data["nodes"].items():
         t_to_attrs = {}
         for attr_name, time_to_attr in node_data.items():
-            if attr_name != "presence":
+            if attr_name != "_presence":
                 for t, attr in time_to_attr.items():
-                    t_to_attrs.setdefault(t, {})[attr_name] = time_to_attr[t]
 
-        for span in node_data["presence"]:
+                    t_to_attrs.setdefault(int(t), {})[attr_name] = time_to_attr[t]
+
+        for span in node_data["_presence"]:
             for t in range(span[0], span[1] + 1):
+
                 h.add_node(
-                    node_id,
+                    int(node_id),
                     start=t,
-                    **t_to_attrs.get(t, {}),
+                    attr_dict=NProfile(
+                        node_id=node_id,
+                        **t_to_attrs.get(t, {}),
+                    ),
                 )
+        print(t_to_attrs)
 
     return h

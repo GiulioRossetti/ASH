@@ -24,29 +24,34 @@ from .presence_store import DensePresenceStore, IntervalPresenceStore, PresenceS
 class ASH:
     def __init__(
         self,
-        edge_attributes: bool = False,
         backend: str = "dense",
     ) -> None:
         """
-        :param edge_attributes: Whether to allow attributes for hyperedges
+        Initialize an ASH (Attributed Stream Hypergraph) instance.
+
+        :param backend: The backend for storing temporal information on hyperedges.
+        Supported values are "dense" (stores time → set[id]) and "interval"
+            (stores id → list[(start, end)] disjoint intervals).
+        :raises ValueError: If an unsupported backend is specified.
+
         """
 
         if backend == "dense":
             self._snapshots: PresenceStore = DensePresenceStore()
         elif backend == "interval":
-            self._snapshots = IntervalPresenceStore()
-        else:  # defensive – easier to spot typos
+            self._snapshots: PresenceStore = IntervalPresenceStore()
+        else:
             raise ValueError("backend must be 'dense' or 'interval' (got %r)" % backend)
 
         # edge data
         self._current_hyperedge_id: int = 0
         self._eid2nids: Dict[str, frozenset[int]] = {}
         self._nids2eid: Dict[frozenset[int], str] = {}
-        self.is_edge_attr: bool = edge_attributes
-        if self.is_edge_attr:
-            self._edge_attributes: DefaultDict[
-                str, DefaultDict[str, Dict[int, Any]]
-            ] = defaultdict(lambda: defaultdict(dict))
+
+        # {eid : {attr_name: value}}
+        self._edge_attributes: DefaultDict[str, DefaultDict[int, Dict[str, Any]]] = (
+            defaultdict(lambda: defaultdict(dict))
+        )
 
         # node data
         self._node_attrs: DefaultDict[int, DefaultDict[int, Dict[str, Any]]] = (
@@ -88,9 +93,25 @@ class ASH:
     # ------------------------------------------------------------------
 
     def temporal_snapshots_ids(self) -> List[int]:
+        """
+        Return a sorted list of all temporal snapshot ids (time instants) in the ASH.
+        This method retrieves the keys from the internal snapshot store, which
+        represent the time instants when hyperedges are present.
+
+        :return: Sorted list of temporal snapshot ids.
+        """
         return sorted(self._snapshots.keys())
 
     def stream_interactions(self) -> Generator[Tuple[int, str, str], None, None]:
+        """
+        Generate a stream of interactions in the ASH, yielding tuples of the form
+        (time_id, hyperedge_id, event_type), where event_type is either
+        "+" for addition or "-" for removal of a hyperedge at that time.
+        This method iterates through the temporal snapshots and compares the sets
+        of hyperedges present in consecutive snapshots to determine additions and removals.
+
+        :yield: Tuples of (time_id, hyperedge_id, event_type).
+        """
         tids = self.temporal_snapshots_ids()
         if not tids:
             return
@@ -112,8 +133,13 @@ class ASH:
         end: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
-        if kwargs and not self.is_edge_attr:
-            raise ValueError("Edge attributes are not enabled")
+        """
+        Add a hyperedge to the ASH. If nodes are not already present, they will be added.
+        :param nodes: Iterable of node IDs that form the hyperedge.
+        :param start: Start time of the hyperedge.
+        :param end: End time of the hyperedge (inclusive). If None, the hyperedge is considered to be present only at `start`.
+        :param kwargs: Optional attributes for the hyperedge.
+        """
 
         span = (start, start if end is None else end)
         f_nodes = frozenset(nodes)
@@ -141,9 +167,11 @@ class ASH:
             self._snapshots.setdefault(t, set()).add(hid)
 
         # Store attributes -------------------------------------------------
-        if self.is_edge_attr and kwargs:
-            for k, v in kwargs.items():
-                self._edge_attributes[hid][k][start] = v
+        if "weight" not in kwargs:
+            kwargs["weight"] = 1
+
+        for k, v in kwargs.items():
+            self._edge_attributes[hid][k] = v
 
     def add_hyperedges(
         self,
@@ -152,6 +180,14 @@ class ASH:
         end: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
+        """
+        Add multiple hyperedges to the ASH. If nodes are not already present, they will be added.
+        All hyperedges will be added with the same start and end times.
+        :param hyperedges: Iterable of iterables, where each inner iterable contains node IDs for a hyperedge.
+        :param start: Start time of the hyperedges.
+        :param end: End time of the hyperedges (inclusive). If None, the hyperedges are considered to be present only at `start`.
+        """
+
         for hedge in hyperedges:
             self.add_hyperedge(hedge, start, end, **kwargs)
 
@@ -166,6 +202,14 @@ class ASH:
         end: Optional[int] = None,
         attr_dict: Optional[Union[Dict[str, Any], NProfile]] = None,
     ) -> None:
+        """
+        Add a node to the ASH with optional attributes.
+        :param node: Node ID to add.
+        :param start: Start time of the node.
+        :param end: End time of the node (inclusive). If None, the node is considered to be present only at `start`.
+        :param attr_dict: Optional attributes for the node. Can be a dictionary or an NProfile instance.
+        """
+
         span = (start, start if end is None else end)
         attrs_source: Dict[str, Any]
         if isinstance(attr_dict, NProfile):
@@ -184,6 +228,13 @@ class ASH:
         end: Optional[int] = None,
         node_attr_dict: Optional[Dict[int, Union[NProfile, Dict[str, Any]]]] = None,
     ) -> None:
+        """
+        Add multiple nodes to the ASH with optional attributes.
+        :param nodes: Iterable of node IDs to add.
+        :param start: Start time of the nodes.
+        :param end: End time of the nodes (inclusive). If None, the nodes are considered to be present only at `start`.
+        :param node_attr_dict: Optional dictionary mapping node IDs to their attributes. If None, no attributes are added.
+        """
         node_attr_dict = node_attr_dict or {}
         for n in nodes:
             self.add_node(n, start, end, node_attr_dict.get(n))
@@ -198,13 +249,19 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> None:
+        """
+        Remove a hyperedge from the ASH, including its presence in the specified time window.
+        :param hyperedge_id: ID of the hyperedge to remove.
+        :param start: Start time of the removal. If None, the hyperedge is removed from all times.
+        :param end: End time of the removal (inclusive). If None, the hyperedge is removed only at `start`.
+        """
+
         time_window = set(self.__time_window(start, end))
         still_exists = False
         for t in self.temporal_snapshots_ids():
             if t in time_window:
                 self._snapshots.setdefault(t, set()).discard(hyperedge_id)
-                if self.is_edge_attr:
-                    self._edge_attributes[hyperedge_id].pop(t, None)
+                self._edge_attributes[hyperedge_id].pop(t, None)
             elif self.has_hyperedge(hyperedge_id, t):
                 still_exists = True
 
@@ -212,8 +269,7 @@ class ASH:
             nodes = self.get_hyperedge_nodes(hyperedge_id)
             del self._eid2nids[hyperedge_id]
             del self._nids2eid[nodes]
-            if self.is_edge_attr:
-                self._edge_attributes.pop(hyperedge_id, None)
+            self._edge_attributes.pop(hyperedge_id, None)
             for n in nodes:
                 self._stars[n].discard(hyperedge_id)
 
@@ -223,6 +279,12 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> None:
+        """
+        Remove multiple hyperedges from the ASH, including their presence in the specified time window.
+        :param hyperedges: Iterable of hyperedge IDs to remove.
+        :param start: Start time of the removal. If None, the hyperedges are removed from all times.
+        :param end: End time of the removal (inclusive). If None, the hyperedges are removed only at `start`.
+        """
         for hid in hyperedges:
             self.remove_hyperedge(hid, start, end)
 
@@ -232,6 +294,14 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> None:
+        """
+        Remove a node from the ASH, including its attributes and all hyperedges it is part of,
+        in the specified time window.
+        :param node: Node ID to remove.
+        :param start: Start time of the removal. If None, the node is removed from all times.
+        :param end: End time of the removal (inclusive). If None, the node is removed only at `start`.
+        """
+
         for t in self.__time_window(start, end):
             self._node_attrs[node].pop(t, None)
         if not self._node_attrs[node]:
@@ -247,6 +317,14 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> None:
+        """
+        Remove multiple nodes from the ASH, including their attributes and all hyperedges they are part of,
+        in the specified time window.
+        :param nodes: Iterable of node IDs to remove.
+        :param start: Start time of the removal. If None, the nodes are removed from all times.
+        :param end: End time of the removal (inclusive). If None, the nodes are removed only at `start`.
+        """
+
         for n in nodes:
             self.remove_node(n, start, end)
 
@@ -256,17 +334,15 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> None:
+        """
+        Remove nodes that do not have a specific attribute in the specified time window.
+        :param attr_name: The name of the attribute to check for.
+        :param start: Start time of the removal. If None, the nodes are checked in all times.
+        :param end: End time of the removal (inclusive). If None, the nodes are checked only at `start`.
+        """
+
         for node, t_attrs in list(self._node_attrs.items()):
             for t in self.__time_window(start, end):
-                if t in t_attrs and attr_name not in t_attrs[t]:
-                    self.remove_node(node, t, t)
-
-    def remove_unlabelled_nodes(
-        self, attr_name: str, start: Optional[int] = None, end: Optional[int] = None
-    ) -> None:
-        time_window = self.__time_window(start, end)
-        for node, t_attrs in list(self._node_attrs.items()):
-            for t in time_window:
                 if t in t_attrs and attr_name not in t_attrs[t]:
                     self.remove_node(node, t, t)
 
@@ -277,6 +353,12 @@ class ASH:
     def nodes(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> List[int]:
+        """
+        Return a list of node IDs present in the ASH within the specified time window.
+        :param start: Start time of the query. If None, all nodes are considered.
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :return: List of node IDs.
+        """
         if start is None:
             return list(self._node_attrs.keys())
         res: List[int] = []
@@ -297,6 +379,17 @@ class ASH:
         hyperedge_size: Optional[int] = None,
         as_ids: bool = True,
     ) -> List[Union[str, frozenset[int]]]:
+        """
+        Return a list of hyperedge IDs or their node sets present in the ASH within the specified time window.
+        Hyperedges are identified by their IDs (strings), or by sets of node IDs (frozensets).
+        If `hyperedge_size` is specified, only hyperedges of that size are returned.
+        The `as_ids` parameter determines whether to return hyperedge IDs or sets of node IDs.
+        :param start: Start time of the query. If None, all hyperedges are considered.
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :param hyperedge_size: If specified, only hyperedges of this size are returned.
+        :param as_ids: If True, return hyperedge IDs; if False, return sets of node IDs.
+        :return: List of hyperedge IDs or sets of node IDs.
+        """
         if start is None:
             hyperedges_set: Set[str] = set(self._eid2nids.keys())
         else:
@@ -321,6 +414,14 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> bool:
+        """
+        Check if a hyperedge is present in the ASH within the specified time window.
+        :param edge: Hyperedge ID (string) or an iterable of node IDs.
+        :param start: Start time of the query. If None, all hyperedges are considered.
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :return: True if the hyperedge is present, False otherwise.
+        """
+
         if not isinstance(edge, str):
             try:
                 edge = self.get_hyperedge_id(edge)
@@ -333,12 +434,32 @@ class ASH:
     def has_node(
         self, node: int, start: Optional[int] = None, end: Optional[int] = None
     ) -> bool:
+        """
+        Check if a node is present in the ASH within the specified time window.
+        :param node: Node ID to check.
+        :param start: Start time of the query. If None, all nodes are considered.
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :return: True if the node is present, False otherwise.
+        """
         return node in set(self.nodes(start, end))
 
     def get_hyperedge_nodes(self, hyperedge_id: str) -> frozenset[int]:
+        """
+        Get the set of node IDs that form a hyperedge.
+        If the hyperedge does not exist, returns an empty frozenset.
+        :param hyperedge_id: ID of the hyperedge.
+        :return: A frozenset of node IDs that are part of the hyperedge.
+        """
         return self._eid2nids.get(hyperedge_id, frozenset())
 
     def get_hyperedge_id(self, nodes: Iterable[int]) -> str:
+        """
+        Get the hyperedge ID for a given set of node IDs.
+        If the hyperedge does not exist, raises a KeyError.
+        :param nodes: Iterable of node IDs that form the hyperedge.
+        :return: The ID of the hyperedge as a string.
+        :raises KeyError: If the hyperedge does not exist.
+        """
         return self._nids2eid[frozenset(nodes)]
 
     # ------------------------------------------------------------------
@@ -346,6 +467,14 @@ class ASH:
     # ------------------------------------------------------------------
 
     def get_node_profile(self, node: int, tid: Optional[int] = None) -> NProfile:
+        """
+        Get the profile of a node, which includes its attributes at a specific time.
+        If `tid` is None, the profile will include all attributes across all times.
+        :param node: Node ID for which to get the profile.
+        :param tid: Time ID to filter the profile. If None, all time IDs are considered.
+        :return: An NProfile instance containing the node's attributes.
+        """
+
         if tid is None:
             attr_dict: DefaultDict[str, Dict[int, Any]] = defaultdict(dict)
             for t in self._node_attrs[node]:
@@ -360,16 +489,39 @@ class ASH:
         attr_name: str,
         tid: Optional[int] = None,
     ) -> Any:
+        """
+        Get a specific attribute of a node at a given time.
+        If `tid` is None, the attribute will be fetched from the latest time available.
+        :param node: Node ID for which to get the attribute.
+        :param attr_name: Name of the attribute to retrieve.
+        :param tid: Time ID to filter the attribute. If None, the latest time is considered.
+        :return: The value of the attribute for the node at the specified time.
+        """
         return self.get_node_profile(node, tid=tid).get_attribute(attr_name)
 
     def get_node_attributes(
         self, node: int, tid: Optional[int] = None
     ) -> Dict[str, Any]:
+        """
+        Get all attributes of a node at a given time.
+        If `tid` is None, the attributes will be fetched from the latest time available.
+        :param node: Node ID for which to get the attributes.
+        :param tid: Time ID to filter the attributes. If None, the latest time is considered.
+        :return: A dictionary of attributes for the node at the specified time.
+        """
+
         return self.get_node_profile(node, tid).get_attributes()
 
     def list_node_attributes(
         self, categorical: bool = False, tid: Optional[int] = None
     ) -> Dict[str, Set[Any]]:
+        """
+        List all attributes of nodes in the ASH, optionally filtered by time.
+        If `tid` is None, all attributes across all times are considered.
+        :param categorical: If True, only categorical attributes (strings) are returned.
+        :param tid: Time ID to filter the attributes. If None, all time IDs are considered.
+        :return: A dictionary where keys are attribute names and values are sets of attribute values.
+        """
         attributes: DefaultDict[str, Set[Any]] = defaultdict(set)
         if tid is None:
             for node in self.nodes():
@@ -388,47 +540,50 @@ class ASH:
             )
         return attributes
 
-    def get_hyperedge_attribute(
-        self, hyperedge_id: str, attribute_name: str, tid: Optional[int] = None
-    ) -> Any:
-        if not self.is_edge_attr:
+    def get_hyperedge_attribute(self, hyperedge_id: str, attribute_name: str) -> Any:
+        """
+        Get a specific attribute of a hyperedge.
+        :param hyperedge_id: ID of the hyperedge.
+        :param attribute_name: Name of the attribute to retrieve.
+        :return: The value of the attribute for the hyperedge, or None if not set
+        """
+        if hyperedge_id not in self._edge_attributes:
             return None
-        if tid is None:
-            return self._edge_attributes[hyperedge_id][attribute_name]
-        return self._edge_attributes[hyperedge_id][attribute_name][tid]
+        if attribute_name not in self._edge_attributes[hyperedge_id]:
+            return None
+        return self._edge_attributes[hyperedge_id][attribute_name]
 
     def get_hyperedge_attributes(
-        self, hyperedge_id: str, tid: Optional[int] = None
+        self, hyperedge_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        if not self.is_edge_attr:
-            return {}
-        if tid is None:
-            return self._edge_attributes[hyperedge_id]
-        return self._edge_attributes[hyperedge_id][tid]
+        """
+        Get all attributes of a hyperedge.
+        If `hyperedge_id` is None, returns attributes for all hyperedges.
+        If the hyperedge does not exist, returns an empty dictionary.
+        :param hyperedge_id: ID of the hyperedge. If None, all hyperedges
+        are considered.
+        :return: A dictionary of attributes for the hyperedge, or an empty dictionary if not found.
+        """
+        if hyperedge_id is None:
+            return {he: attrs for he, attrs in self._edge_attributes.items()}
+        return self._edge_attributes[hyperedge_id]
 
     def list_hyperedge_attributes(
-        self, categorical: bool = False, tid: Optional[int] = None
+        self, categorical: bool = False
     ) -> Dict[str, Set[Any]]:
-        attributes: DefaultDict[str, Set[Any]] = defaultdict(set)
-        if not self.is_edge_attr:
-            return attributes  # empty
 
-        if tid is None:
-            for hedge in self.hyperedges():
-                for attr, value in self._edge_attributes[hedge].items():
-                    attributes[attr].update(value.values())
-        else:
-            for hedge in self.hyperedges(tid):
-                for attr, value in self._edge_attributes[hedge].items():
-                    if tid in value:
-                        attributes[attr].add(value[tid])
+        attributes: DefaultDict[str, Set[Any]] = defaultdict(set)
+
+        for hedge in self.hyperedges():
+            for attr, value in self._edge_attributes[hedge].items():
+                attributes[attr].add(value)
 
         if categorical:
             attributes = defaultdict(
                 set,
                 {k: v for k, v in attributes.items() if isinstance(next(iter(v)), str)},
             )
-        return attributes  # type: ignore[return-value]
+        return attributes
 
     def get_hyperedge_weight(self, hyperedge_id: str) -> Union[int, float]:
         weight = self.get_hyperedge_attribute(hyperedge_id, "weight")
@@ -747,7 +902,6 @@ class ASH:
                 node, as_intervals=True  # type: ignore[arg-type]
             )
 
-        descr["is_edge_attr"] = self.is_edge_attr
         descr["current_eid"] = self._current_hyperedge_id
         return descr
 

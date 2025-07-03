@@ -111,7 +111,7 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 2, 3], 6, 9)
         a.add_hyperedge([1, 2, 3], -3, -2)
         a.add_hyperedge([3, 4, 5], 3, 4)
-        
+
         self.assertEqual(a.avg_number_of_hyperedges(), 1.0)
         self.assertEqual(a.hyperedge_contribution("e1"), 0.8)
 
@@ -134,7 +134,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(a.degree(1, hyperedge_size=4), 0)
         self.assertEqual(a.degree(1, start=0), 1)
         self.assertEqual(a.degree(1, start=100), 0)
-        
+
         hs = a.hyperedges()
         self.assertEqual(len(hs), 2)
         self.assertEqual(sorted(hs), ["e1", "e2"])
@@ -297,7 +297,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(bipartite.is_bipartite(g), True)
         edges, nodes = bipartite.sets(g)
         self.assertEqual(sorted(edges), ["e1", "e2", "e3", "e4", "e5"])
-        self.assertEqual(sorted(nodes),[1, 2, 3, 4])
+        self.assertEqual(sorted(nodes), [1, 2, 3, 4])
 
         g = a.bipartite_projection(start=0, end=0)
         self.assertEqual(bipartite.is_bipartite(g), True)
@@ -310,12 +310,11 @@ class ASHTestCase(unittest.TestCase):
         a.add_hyperedge([1, 3], 1)
         a.add_hyperedge([3, 4], 1)
 
-        dual, mapping  = a.dual_hypergraph()
+        dual, mapping = a.dual_hypergraph()
         self.assertIsInstance(dual, ASH)
         self.assertEqual(dual.number_of_nodes(), 5)
         self.assertEqual(dual.number_of_hyperedges(), 4)
 
-    
     def test_s_incident(self):
         a = ASH()
         a.add_hyperedge([1, 2, 3], 0)
@@ -342,7 +341,7 @@ class ASHTestCase(unittest.TestCase):
 
     def test_removal(self):
         for backend in ["dense", "interval"]:
-            
+
             a = ASH(backend=backend)
             a.add_hyperedge([1, 2, 3], 0)
             a.add_hyperedge([1, 4], 0)
@@ -373,10 +372,11 @@ class ASHTestCase(unittest.TestCase):
             self.assertEqual(len(a.nodes()), 3)
             self.assertEqual(len(a.hyperedges()), 2)
 
-            a.add_node(1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37))
+            a.add_node(
+                1, start=0, end=1, attr_dict=NProfile(node_id=1, party="L", age=37)
+            )
             a.remove_unlabelled_nodes("party")
             self.assertEqual(len(a.nodes()), 1)
-
 
 
 class ASHAdditionalTests(unittest.TestCase):
@@ -415,6 +415,7 @@ class ASHAdditionalTests(unittest.TestCase):
         b.add_hyperedge([3, 4], 1)
         self.assertEqual(b.get_hyperedge_weight("e1"), 1)
     """
+
     def test_list_node_attributes_categorical(self):
         a = ASH()
         # two nodes with string labels and one with numeric
@@ -442,7 +443,9 @@ class ASHAdditionalTests(unittest.TestCase):
         b.add_hyperedge([1, 2, 3], 0)
         b.add_hyperedge([1, 2, 3], 2)
         self.assertEqual(b.hyperedge_presence("e1"), [0, 2])
-        self.assertEqual(b.hyperedge_presence("e1", as_intervals=True), [(0, 0), (2, 2)])
+        self.assertEqual(
+            b.hyperedge_presence("e1", as_intervals=True), [(0, 0), (2, 2)]
+        )
 
     def test_empty_statistics(self):
         a = ASH()
@@ -470,7 +473,7 @@ class ASHAdditionalTests(unittest.TestCase):
         self.assertEqual(b.hyperedges(), [])
 
     def test_serialization_to_dict_and_str(self):
-        a = ASH(edge_attributes=True)
+        a = ASH()
         a.add_hyperedge([1, 2], 0)
         a.add_node(1, 0, attr_dict={"name": "Alice"})
         d = a.to_dict()
@@ -479,7 +482,7 @@ class ASHAdditionalTests(unittest.TestCase):
         self.assertIn("nodes", d)
         # presence intervals injected
         hedge_data = d["hedges"]["e1"]
-        #self.assertIn("_presence", hedge_data["attributes"])
+        self.assertIn("_presence", hedge_data["attributes"])
         # node presence
         node_data = d["nodes"][1]
         self.assertIn("_presence", node_data)
@@ -491,11 +494,11 @@ class ASHAdditionalTests(unittest.TestCase):
 
     def test_to_dict_roundtrip_consistency(self):
         # ensure to_dict returns a pure‐python serializable structure
-        a = ASH(edge_attributes=False)
+        a = ASH()
         a.add_hyperedge([1, 2], 0)
         a.add_node(1, 0, attr_dict=NProfile(1, foo=10))
         d1 = a.to_dict()
-        s = json.dumps(d1)            # must be JSON-serializable
+        s = json.dumps(d1)  # must be JSON-serializable
         d2 = json.loads(s)
         self.assertEqual(set(d2["hedges"].keys()), {"e1"})
-        self.assertEqual(set(d2["nodes"].keys()), {'1','2'})
+        self.assertEqual(set(d2["nodes"].keys()), {"1", "2"})

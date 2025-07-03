@@ -49,4 +49,3 @@ class NProfileTestCase(unittest.TestCase):
         self.assertEqual(p.has_statistic("pippo", "mean"), True)
         self.assertEqual(p.has_statistic("pippo", "max"), False)
         self.assertListEqual(p.attribute_computed_statistics("pippo"), ["mean"])
-        

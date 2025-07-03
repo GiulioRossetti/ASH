@@ -23,7 +23,7 @@ from ash_model import ASH
 
 
 def get_hypergraph():
-    a = ASH(edge_attributes=True)
+    a = ASH()
     a.add_hyperedge([1, 2, 3], 0)
     a.add_hyperedge([15, 25], 0)
     a.add_hyperedge([1, 24, 34], 0)

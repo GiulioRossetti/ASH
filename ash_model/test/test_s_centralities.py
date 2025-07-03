@@ -2,10 +2,11 @@ import unittest
 
 from ash_model.measures import *
 
+
 class SCentralitiesCase(unittest.TestCase):
     @staticmethod
     def get_hypergraph():
-        a = ASH(edge_attributes=True)
+        a = ASH()
         a.add_hyperedge([1, 2, 3], 0)
         a.add_hyperedge([1, 4], 0)
         a.add_hyperedge([1, 2, 3, 4], 0)
@@ -121,4 +122,3 @@ class SCentralitiesCase(unittest.TestCase):
             sec_node,
             {1: 2.449, 2: 2.449, 3: 2.449, 4: 2.449},
         )
-
