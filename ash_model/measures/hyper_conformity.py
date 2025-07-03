@@ -112,7 +112,7 @@ def hyper_conformity(
     full_res = []
 
     for comp in s_components(h, s):
-        b, he_map = h.induced_hypergraph(comp)
+        b, he_map = h.induced_hypergraph(comp, keep_attrs=True)
 
         g = b.s_line_graph(s=s, start=tid, end=tid)
 
@@ -164,7 +164,7 @@ def hyper_conformity(
             }
 
             for u in tqdm.tqdm(g1.nodes()):
-                sp = dict(all_shortest_s_walk_length(b, s, u))
+                sp = dict(all_shortest_s_walk_lengths(b, s, u))
 
                 dist_to_nodes = defaultdict(list)
                 for _, nodelist in sp.items():
