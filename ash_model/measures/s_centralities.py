@@ -95,7 +95,7 @@ def s_eccentricity(
     Returns the eccentricity of the nodes in the line graph of the hypergraph.
     If `edges` is True, the function computes the eccentricity for hyperedges (the nodes of the line graph).
     If `edges` is False, it computes the eccentricity for nodes by first converting the hypergraph to its dual.
-    
+
     :param h: the ASH instance
     :param s: minimum hyperedge overlap size for paths
     :param start: start time of the interval
@@ -160,7 +160,7 @@ def s_katz(
     the nodes of the line graph).
     If `edges` is False, it computes the Katz centrality for nodes by first converting
     the hypergraph to its dual.
-    
+
     :param h: the ASH instance
     :param s: minimum hyperedge overlap size for paths
     :param start: start time of the interval
@@ -206,7 +206,7 @@ def s_load_centrality(
     If `edges` is True, the function computes the load centrality for hyperedges (
     the nodes of the line graph).
     If `edges` is False, it computes the load centrality for nodes by first converting
-    the hypergraph to its dual. 
+    the hypergraph to its dual.
 
     :param h: the ASH instance
     :param s: minimum hyperedge overlap size for paths

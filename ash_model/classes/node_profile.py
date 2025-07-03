@@ -79,7 +79,9 @@ class NProfile:
             raise ValueError(f"Attribute '{attr_name}' not present in the profile.")
         self.__stats.setdefault(attr_name, {})[stat_name] = value
 
-    def get_statistic(self, attr_name: str, stats_name: Optional[str] = None) -> Dict[str, float]:
+    def get_statistic(
+        self, attr_name: str, stats_name: Optional[str] = None
+    ) -> Dict[str, float]:
         """
         Retrieve computed statistics for a given attribute.
 
@@ -96,7 +98,9 @@ class NProfile:
             return dict(self.__stats[attr_name])
         if stats_name in self.__stats[attr_name]:
             return {stats_name: self.__stats[attr_name][stats_name]}
-        raise ValueError(f"Statistic '{stats_name}' not computed for attribute '{attr_name}'.")
+        raise ValueError(
+            f"Statistic '{stats_name}' not computed for attribute '{attr_name}'."
+        )
 
     def has_statistic(self, attr_name: str, stats_name: str) -> bool:
         """

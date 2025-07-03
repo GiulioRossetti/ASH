@@ -9,7 +9,7 @@ def s_local_clustering_coefficient(
     s: int,
     hyperedge_id: str,
     start: Optional[int] = None,
-    end: Optional[int] = None
+    end: Optional[int] = None,
 ) -> float:
     """
     Compute the local clustering coefficient of a hyperedge within the s-overlap line graph of a hypergraph.
@@ -45,10 +45,7 @@ def s_local_clustering_coefficient(
 
 
 def average_s_local_clustering_coefficient(
-    h: ASH,
-    s: int,
-    start: Optional[int] = None,
-    end: Optional[int] = None
+    h: ASH, s: int, start: Optional[int] = None, end: Optional[int] = None
 ) -> float:
     """
     Compute the average local clustering coefficient across all hyperedges
@@ -72,10 +69,7 @@ def average_s_local_clustering_coefficient(
 
 
 def s_intersections(
-    h: ASH,
-    s: int,
-    start: Optional[int] = None,
-    end: Optional[int] = None
+    h: ASH, s: int, start: Optional[int] = None, end: Optional[int] = None
 ) -> int:
     """
     Count the number of s-overlap intersections (edges) in the hypergraph's
@@ -91,9 +85,7 @@ def s_intersections(
 
 
 def inclusiveness(
-    h: ASH,
-    start: Optional[int] = None,
-    end: Optional[int] = None
+    h: ASH, start: Optional[int] = None, end: Optional[int] = None
 ) -> float:
     """
     Computes the inclusiveness of the hypergraph over [start, end], defined as:

@@ -1,8 +1,8 @@
-import unittest
-from ash_model import ASH, NProfile
-from ash_model.measures import *
 import json
 import os
+import unittest
+
+from ash_model.measures import *
 
 
 class HyperConformityTestCase(unittest.TestCase):

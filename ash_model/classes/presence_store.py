@@ -37,6 +37,7 @@ from typing import Dict, Iterable, Iterator, List, Set, Tuple
 # Abstract façade
 ###############################################################################
 
+
 class PresenceStore(ABC):
     """Minimal dict‑like interface required by :class:`ASH`."""
 
@@ -74,9 +75,11 @@ class PresenceStore(ABC):
     def __len__(self) -> int:  # pragma: no cover – trivial
         return len(list(self.keys()))
 
+
 ###############################################################################
 # Dense implementation (status quo)
 ###############################################################################
+
 
 class DensePresenceStore(defaultdict, PresenceStore):
     """Keep the original *dense* mapping ``time → set[id]`` intact."""
@@ -93,9 +96,11 @@ class DensePresenceStore(defaultdict, PresenceStore):
     def setdefault(self, t: int, default: Set[int]) -> Set[int]:  # type: ignore[override]
         return super().setdefault(t, default)
 
+
 ###############################################################################
-# Interval implementation 
+# Interval implementation
 ###############################################################################
+
 
 class _SnapshotMutable(set):
     """A *mutable* view returned by :pymeth:`IntervalPresenceStore.setdefault`."""
@@ -123,6 +128,7 @@ class _SnapshotMutable(set):
         if element not in self:
             raise KeyError(element)
         self.discard(element)
+
 
 class IntervalPresenceStore(PresenceStore):
     """Sparse *interval* representation.

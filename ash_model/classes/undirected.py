@@ -36,11 +36,7 @@ class ASH:
         elif backend == "interval":
             self._snapshots = IntervalPresenceStore()
         else:  # defensive – easier to spot typos
-            raise ValueError(
-                "backend must be 'dense' or 'interval' (got %r)"
-                % backend
-            )
-
+            raise ValueError("backend must be 'dense' or 'interval' (got %r)" % backend)
 
         # edge data
         self._current_hyperedge_id: int = 0
@@ -53,15 +49,15 @@ class ASH:
             ] = defaultdict(lambda: defaultdict(dict))
 
         # node data
-        self._node_attrs: DefaultDict[
-            int, DefaultDict[int, Dict[str, Any]]
-        ] = defaultdict(lambda: defaultdict(dict))
+        self._node_attrs: DefaultDict[int, DefaultDict[int, Dict[str, Any]]] = (
+            defaultdict(lambda: defaultdict(dict))
+        )
         self._stars: DefaultDict[int, Set[str]] = defaultdict(set)
 
     # ------------------------------------------------------------------
     # Utility methods
     # ------------------------------------------------------------------
-    
+
     def __presence_to_intervals(self, presence: List[int]) -> List[Tuple[int, int]]:
         """Convert a list of time instants into contiguous intervals."""
         presence = sorted(presence)
@@ -79,11 +75,8 @@ class ASH:
 
         intervals.append((start, end))
         return intervals
-    
-    def __time_window(
-        self,
-        start: Optional[int], end: Optional[int]
-    ) -> List[int]:
+
+    def __time_window(self, start: Optional[int], end: Optional[int]) -> List[int]:
         if start is None:
             return self.temporal_snapshots_ids()
         if end is None:
@@ -111,7 +104,6 @@ class ASH:
                 yield t, hid, "+"
             for hid in prev - curr:
                 yield t, hid, "-"
-
 
     def add_hyperedge(
         self,
@@ -282,7 +274,9 @@ class ASH:
     # Node & Hyperedge queries
     # ------------------------------------------------------------------
 
-    def nodes(self, start: Optional[int] = None, end: Optional[int] = None) -> List[int]:
+    def nodes(
+        self, start: Optional[int] = None, end: Optional[int] = None
+    ) -> List[int]:
         if start is None:
             return list(self._node_attrs.keys())
         res: List[int] = []
@@ -368,7 +362,9 @@ class ASH:
     ) -> Any:
         return self.get_node_profile(node, tid=tid).get_attribute(attr_name)
 
-    def get_node_attributes(self, node: int, tid: Optional[int] = None) -> Dict[str, Any]:
+    def get_node_attributes(
+        self, node: int, tid: Optional[int] = None
+    ) -> Dict[str, Any]:
         return self.get_node_profile(node, tid).get_attributes()
 
     def list_node_attributes(
@@ -388,13 +384,9 @@ class ASH:
         if categorical:
             attributes = defaultdict(
                 set,
-                {
-                    k: v
-                    for k, v in attributes.items()
-                    if isinstance(next(iter(v)), str)
-                },
+                {k: v for k, v in attributes.items() if isinstance(next(iter(v)), str)},
             )
-        return attributes  
+        return attributes
 
     def get_hyperedge_attribute(
         self, hyperedge_id: str, attribute_name: str, tid: Optional[int] = None
@@ -434,11 +426,7 @@ class ASH:
         if categorical:
             attributes = defaultdict(
                 set,
-                {
-                    k: v
-                    for k, v in attributes.items()
-                    if isinstance(next(iter(v)), str)
-                },
+                {k: v for k, v in attributes.items() if isinstance(next(iter(v)), str)},
             )
         return attributes  # type: ignore[return-value]
 
@@ -450,7 +438,9 @@ class ASH:
     # Statistics
     # ------------------------------------------------------------------
 
-    def number_of_nodes(self, start: Optional[int] = None, end: Optional[int] = None) -> int:
+    def number_of_nodes(
+        self, start: Optional[int] = None, end: Optional[int] = None
+    ) -> int:
         return len(self.nodes(start, end))
 
     def number_of_hyperedges(
@@ -498,7 +488,9 @@ class ASH:
 
         if hyperedge_size is not None:
             star_set = {
-                s for s in star_set if len(self.get_hyperedge_nodes(s)) == hyperedge_size
+                s
+                for s in star_set
+                if len(self.get_hyperedge_nodes(s)) == hyperedge_size
             }
 
         if as_ids:
@@ -555,7 +547,10 @@ class ASH:
     # ------------------------------------------------------------------
 
     def bipartite_projection(
-        self, start: Optional[int] = None, end: Optional[int] = None, keep_attrs: bool = False
+        self,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        keep_attrs: bool = False,
     ) -> nx.Graph:
         from ash_model.utils import bipartite_projection
 
@@ -569,7 +564,10 @@ class ASH:
         return dual_hypergraph_projection(self, start, end)
 
     def clique_projection(
-        self, start: Optional[int] = None, end: Optional[int] = None, keep_attrs: bool = False
+        self,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        keep_attrs: bool = False,
     ) -> nx.Graph:
         from ash_model.utils import clique_projection
 
@@ -587,7 +585,9 @@ class ASH:
     # ------------------------------------------------------------------
 
     def avg_number_of_nodes(self) -> float:
-        nodes_snapshots = [self.number_of_nodes(tid) for tid in self.temporal_snapshots_ids()]
+        nodes_snapshots = [
+            self.number_of_nodes(tid) for tid in self.temporal_snapshots_ids()
+        ]
         return sum(nodes_snapshots) / len(nodes_snapshots) if nodes_snapshots else 0.0
 
     def avg_number_of_hyperedges(self) -> float:
@@ -605,7 +605,11 @@ class ASH:
     def hyperedge_presence(
         self, hyperedge_id: str, as_intervals: bool = False
     ) -> List[Union[int, Tuple[int, int]]]:
-        pres = [t for t in self.temporal_snapshots_ids() if self.has_hyperedge(hyperedge_id, t)]
+        pres = [
+            t
+            for t in self.temporal_snapshots_ids()
+            if self.has_hyperedge(hyperedge_id, t)
+        ]
         return (
             self.__presence_to_intervals(pres) if as_intervals else pres  # type: ignore[return-value]
         )
@@ -614,15 +618,23 @@ class ASH:
         total_snapshots = len(self.temporal_snapshots_ids())
         if total_snapshots == 0:
             return 0.0
-        return sum(1 for tid in self.temporal_snapshots_ids() if self.has_node(node, tid)) / total_snapshots
+        return (
+            sum(1 for tid in self.temporal_snapshots_ids() if self.has_node(node, tid))
+            / total_snapshots
+        )
 
     def hyperedge_contribution(self, hyperedge_id: str) -> float:
         total_snapshots = len(self.temporal_snapshots_ids())
         if total_snapshots == 0:
             return 0.0
-        return sum(
-            1 for tid in self.temporal_snapshots_ids() if self.has_hyperedge(hyperedge_id, tid)
-        ) / total_snapshots
+        return (
+            sum(
+                1
+                for tid in self.temporal_snapshots_ids()
+                if self.has_hyperedge(hyperedge_id, tid)
+            )
+            / total_snapshots
+        )
 
     def coverage(self) -> float:
         tids = self.temporal_snapshots_ids()
