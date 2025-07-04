@@ -1,6 +1,7 @@
 import unittest
 from ash_model.classes import DensePresenceStore, IntervalPresenceStore
 
+
 class TestDensePresenceStore(unittest.TestCase):
     def setUp(self):
         self.store = DensePresenceStore()
@@ -27,6 +28,7 @@ class TestDensePresenceStore(unittest.TestCase):
         self.assertIn(3, self.store)
         self.assertEqual(len(self.store), 1)
         self.assertEqual(list(iter(self.store)), [3])
+
 
 class TestIntervalPresenceStore(unittest.TestCase):
     def setUp(self):
@@ -88,6 +90,3 @@ class TestIntervalPresenceStore(unittest.TestCase):
         snap8.add(1)
         # Order may vary, so use count equal assertion
         self.assertCountEqual(self.store._intervals[1], [(4, 6), (8, 8)])
-
-if __name__ == '__main__':
-    unittest.main()

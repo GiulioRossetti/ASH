@@ -902,7 +902,6 @@ class ASH:
                 node, as_intervals=True  # type: ignore[arg-type]
             )
 
-        descr["current_eid"] = self._current_hyperedge_id
         return descr
 
     # ------------------------------------------------------------------

@@ -7,7 +7,10 @@ import networkx as nx
 
 from ash_model import ASH, NProfile
 
-def clique_projection(h: ASH, start: int = None, end: int = None, keep_attrs: bool = False) -> nx.Graph:
+
+def clique_projection(
+    h: ASH, start: int = None, end: int = None, keep_attrs: bool = False
+) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the clique projection of the
     given ASH object.
@@ -35,12 +38,15 @@ def clique_projection(h: ASH, start: int = None, end: int = None, keep_attrs: bo
                 if node in h.nodes():
                     # Copy attributes from ASH node to NetworkX node
                     attrs = h.get_node_attributes(node)
-                    
+
                     res.nodes[node].update(attrs)
-    
+
     return res
 
-def bipartite_projection(h: ASH, start: int = None, end: int = None, keep_attrs: bool = False) -> nx.Graph:
+
+def bipartite_projection(
+    h: ASH, start: int = None, end: int = None, keep_attrs: bool = False
+) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the bipartite projection of the
     given ASH object.
@@ -70,11 +76,14 @@ def bipartite_projection(h: ASH, start: int = None, end: int = None, keep_attrs:
             if node in h.nodes():
                 # Copy attributes from ASH node to NetworkX node
                 attrs = h.get_node_attributes(node)
-                    
+
                 g.nodes[node].update(attrs)
     return g
 
-def line_graph_projection(h: ASH, s: int = 1, start: int = None, end: int = None, keep_attrs: bool = False) -> nx.Graph:
+
+def line_graph_projection(
+    h: ASH, s: int = 1, start: int = None, end: int = None, keep_attrs: bool = False
+) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the line graph projection of the
     given ASH object.
@@ -90,29 +99,31 @@ def line_graph_projection(h: ASH, s: int = 1, start: int = None, end: int = None
     """
 
     g = nx.Graph()
-        
+
     # Get hyperedges in the specified time window that have at least s nodes
-    hyperedges = [he for he in h.hyperedges(start, end) 
-                    if len(h.get_hyperedge_nodes(he)) >= s]
-    
+    hyperedges = [
+        he for he in h.hyperedges(start, end) if len(h.get_hyperedge_nodes(he)) >= s
+    ]
+
     if keep_attrs:
         for he in hyperedges:
             g.add_node(he, attr_dict=h.hyperedges[he].attr_dict.to_dict())
     else:
         for he in hyperedges:
             g.add_node(he)
-    
+
     # Add edges between hyperedges that intersect in at least s nodes
     for i, he1 in enumerate(hyperedges):
-        for he2 in hyperedges[i+1:]:
+        for he2 in hyperedges[i + 1 :]:
             nodes1 = set(h.get_hyperedge_nodes(he1))
             nodes2 = set(h.get_hyperedge_nodes(he2))
             intersection_size = len(nodes1 & nodes2)
-            
+
             if intersection_size >= s:
-                g.add_edge(he1, he2)
-    
+                g.add_edge(he1, he2, w=intersection_size)
+
     return g
+
 
 def dual_hypergraph_projection(h: ASH, start: int = None, end: int = None) -> tuple:
     """
@@ -125,7 +136,7 @@ def dual_hypergraph_projection(h: ASH, start: int = None, end: int = None) -> tu
     :param h: The ASH object to be transformed into a dual hypergraph.
     :param start: Specify the start of a time window
     :param end: SpSpecify the end of a time window
-    
+
     :return: the dual ASH and a node-to-edge mapping dictionary
     """
 
@@ -144,6 +155,7 @@ def dual_hypergraph_projection(h: ASH, start: int = None, end: int = None) -> tu
 
     return b, old_nodes_to_new_edges
 
+
 def clique_projection_by_time(h: ASH, keep_attrs: bool = False) -> Dict[int, nx.Graph]:
     """
     Returns a dictionary of NetworkX Graph objects that are the clique projections
@@ -158,11 +170,16 @@ def clique_projection_by_time(h: ASH, keep_attrs: bool = False) -> Dict[int, nx.
 
     clique_projections = {}
     for t in h.temporal_snapshots_ids():
-        clique_projections[t] = clique_projection(h, start=t, end=t, keep_attrs=keep_attrs)
+        clique_projections[t] = clique_projection(
+            h, start=t, end=t, keep_attrs=keep_attrs
+        )
 
     return clique_projections
 
-def bipartite_projection_by_time(h: ASH, keep_attrs: bool = False) -> Dict[int, nx.Graph]:
+
+def bipartite_projection_by_time(
+    h: ASH, keep_attrs: bool = False
+) -> Dict[int, nx.Graph]:
     """
     Returns a dictionary of NetworkX Graph objects that are the bipartite projections
     of the given ASH object for each time step.
@@ -176,11 +193,16 @@ def bipartite_projection_by_time(h: ASH, keep_attrs: bool = False) -> Dict[int, 
 
     bipartite_projections = {}
     for t in h.temporal_snapshots_ids():
-        bipartite_projections[t] = bipartite_projection(h, start=t, end=t, keep_attrs=keep_attrs)
+        bipartite_projections[t] = bipartite_projection(
+            h, start=t, end=t, keep_attrs=keep_attrs
+        )
 
     return bipartite_projections
 
-def line_graph_projection_by_time(h: ASH, s: int = 1, keep_attrs: bool = False) -> Dict[int, nx.Graph]:
+
+def line_graph_projection_by_time(
+    h: ASH, s: int = 1, keep_attrs: bool = False
+) -> Dict[int, nx.Graph]:
     """
     Returns a dictionary of NetworkX Graph objects that are the line graph projections
     of the given ASH object for each time step.
@@ -195,9 +217,12 @@ def line_graph_projection_by_time(h: ASH, s: int = 1, keep_attrs: bool = False) 
 
     line_graph_projections = {}
     for t in h.temporal_snapshots_ids():
-        line_graph_projections[t] = line_graph_projection(h, s=s, start=t, end=t, keep_attrs=keep_attrs)
+        line_graph_projections[t] = line_graph_projection(
+            h, s=s, start=t, end=t, keep_attrs=keep_attrs
+        )
 
     return line_graph_projections
+
 
 def dual_hypergraph_projection_by_time(h: ASH) -> Dict[int, tuple]:
     """
