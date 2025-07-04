@@ -46,7 +46,9 @@ def all_simple_paths(
         return iter([])
 
     # Yield only the simple paths that satisfy the s-path condition
-    for path in nx.all_simple_paths(lg, source=hyperedge_a, target=hyperedge_b, cutoff=cutoff):
+    for path in nx.all_simple_paths(
+        lg, source=hyperedge_a, target=hyperedge_b, cutoff=cutoff
+    ):
         if is_s_path(h, path):
             yield path
 
@@ -120,7 +122,7 @@ def all_shortest_s_paths(
     else:
         # Pairwise between all
         for i, u in enumerate(hyperedges):
-            for v in hyperedges[i+1:]:
+            for v in hyperedges[i + 1 :]:
                 paths = list(all_simple_paths(h, s, u, v, start, end, cutoff))
                 if not paths:
                     continue
@@ -171,7 +173,7 @@ def all_shortest_s_path_lengths(
         # Full pairwise
         for i, u in enumerate(hyperedges):
             result[u][u] = 0
-            for v in hyperedges[i+1:]:
+            for v in hyperedges[i + 1 :]:
                 paths = list(all_simple_paths(h, s, u, v, start, end, cutoff))
                 if paths:
                     length = min(len(p) for p in paths) - 1
@@ -200,7 +202,7 @@ def all_shortest_s_walks(
     :return:             Single path (list) if two endpoints specified, or dict of
                          {target: path} if one endpoint, or nested dict if neither.
     """
-    
+
     return shortest_s_walk(h, s, hyperedge_a, None, start, end)
 
 
@@ -262,7 +264,7 @@ def shortest_s_walk(
         if fr and fr not in g or to and to not in g:
             return []
         if weight:
-            return nx.shortest_path(g, source=fr, target=to, weight='w')
+            return nx.shortest_path(g, source=fr, target=to, weight="w")
         return nx.shortest_path(g, source=fr, target=to)
     else:
         # Dual graph handling
@@ -274,7 +276,10 @@ def shortest_s_walk(
         raw = shortest_s_walk(h1, s, src, dst, start, end, weight, edge=True)
         # remap back
         if isinstance(raw, dict):
-            return {eid_to_node[k]: [eid_to_node[n] for n in path] for k, path in raw.items()}
+            return {
+                eid_to_node[k]: [eid_to_node[n] for n in path]
+                for k, path in raw.items()
+            }
         return [eid_to_node[n] for n in raw]
 
 
@@ -308,6 +313,7 @@ def s_distance(
     to: Optional[str] = None,
     start: Optional[int] = None,
     end: Optional[int] = None,
+    weight: bool = False,
     edge: bool = True,
 ) -> Union[int, Dict[str, Dict[str, int]], None]:
     """
@@ -320,24 +326,81 @@ def s_distance(
     :param to:   Target ID.
     :param start:Start time bound.
     :param end:  End time bound.
+    :param weight:Use edge weight attribute 'w' if True.
     :param edge: If False, use dual hypergraph distances.
     :return:     Single distance, nested dict of distances, or None if unreachable.
     """
     if edge:
-        g = h.s_line_graph(s, start, end)
-        if fr and fr not in g or to and to not in g:
+        G = h.s_line_graph(s, start, end)
+        # guard: if either endpoint is missing, bail
+        if (fr and fr not in G) or (to and to not in G):
             return None
-        return nx.shortest_path_length(g, source=fr, target=to)
+        # pick the right algorithm
+        if fr and to:
+            return nx.shortest_path_length(
+                G, source=fr, target=to, weight="w" if weight else None
+            )
+        elif fr:
+            # distances from fr to all reachable nodes
+            return nx.single_source_dijkstra_path_length(
+                G, fr, weight="w" if weight else None
+            )
+        else:
+            # distances from fr to all reachable nodes
+            return {
+                fr: nx.single_source_dijkstra_path_length(
+                    G, fr, weight="w" if weight else None
+                )
+                for fr in G.nodes()
+            }
     else:
-        h1, node_to_eid = h.dual_hypergraph(start=start, end=end)
-        eid_to_node = {eid: node for node, eid in node_to_eid.items()}
-        # map fr/to
+        # build dual and invert its node‐to‐eid map
+        H_dual, node_to_eid = h.dual_hypergraph(
+            start=start, end=end
+        )  # node represent hyperedges
+        eid_to_node = {
+            eid: node for node, eid in node_to_eid.items()
+        }  # maps projected hyperedges to real nodes
+        # while node_to_eid maps real nodes to projected hyperedges
+
+        # translate your fr/to into the dual graph’s hyperedges
         src = node_to_eid.get(fr, fr)
         dst = node_to_eid.get(to, to)
-        dist = s_distance(h1, s, src, dst, start, end, edge=True)
-        if isinstance(dist, dict):
-            return {eid_to_node[k]: v for k, v in dist.items()}
-        return dist
+
+        # compute distances on the dual graph
+        dual_res = s_distance(
+            H_dual, s, fr=src, to=dst, start=start, end=end, edge=True, weight=weight
+        )
+        # raise ValueError(f"{dual_res}, {src}, {dst}")
+        if dual_res is None:
+            return None
+
+        # if it’s a single integer, map back and return
+        if isinstance(dual_res, int):
+            return dual_res
+
+        # if it's a nested dict, map it back
+        if isinstance(dual_res, dict) and any(
+            isinstance(v, dict) for v in dual_res.values()
+        ):
+            remapped: Dict[str, Dict[str, int]] = {}
+            for dual_src, targets in dual_res.items():
+                src = eid_to_node.get(dual_src, dual_src)
+                remapped[src] = {}
+                for dual_trg, dist in targets.items():
+                    trg = eid_to_node.get(dual_trg, dual_trg)
+                    remapped[src][trg] = dist
+            return remapped
+
+        # else it must be a normal dict
+        remapped: Dict[str, int] = {}
+        for dual_trg, dist in dual_res.items():
+            # remap the target hyperedge ID
+            trg = eid_to_node.get(dual_trg, dual_trg)
+            # remap the source hyperedge IDs
+            remapped[trg] = dist
+        print(f"remapped: {remapped}")
+        return remapped
 
 
 def average_s_distance(
@@ -345,6 +408,7 @@ def average_s_distance(
     s: int,
     start: Optional[int] = None,
     end: Optional[int] = None,
+    weight: bool = False,
     edge: bool = True,
 ) -> float:
     """
@@ -354,12 +418,17 @@ def average_s_distance(
     :param s:    Minimum overlap size.
     :param start:Start time bound.
     :param end:  End time bound.
+    :param weight:Use edge weight attribute 'w' if True (unused here).
     :param edge: (Unused) Included for API consistency.
     :return:     Average distance across all connected pairs.
     """
+    if not edge:
+        h, _ = h.dual_hypergraph(start=start, end=end)
+
     g = h.s_line_graph(s, start, end)
-    if g.number_of_nodes() == 0:
-        return 0.0
+
+    if weight:
+        return nx.average_shortest_path_length(g, weight="w")
     return nx.average_shortest_path_length(g)
 
 
@@ -411,21 +480,19 @@ def s_diameter(
     :param s:      Minimum overlap size.
     :param start:  Start time bound.
     :param end:    End time bound.
-    :param weight: Use weighted distances if True (unused here).
-    :param edge:   (Unused) API consistency.
+    :param weight: Use weighted distances if True.
+    :param edge:   If False, compute on dual hypergraph.
     :return:       Integer diameter of the graph (0 if empty).
     """
+    if not edge:
+        h, _ = h.dual_hypergraph(start=start, end=end)
     g = h.s_line_graph(s, start, end)
-    if g.number_of_nodes() == 0:
-        return 0
-    # Compute all-pairs shortest path lengths
-    lengths = dict(nx.all_pairs_shortest_path_length(g))
-    # Find maximum finite distance
-    return max(
-        dist
-        for src, targets in lengths.items()
-        for _, dist in targets.items()
-    )
+    # lcc
+    comps = list(nx.connected_components(g))
+    lcc = max(comps, key=len) if comps else set()
+    lcc = g.subgraph(lcc)
+    diam = nx.diameter(lcc, weight="w" if weight else None)
+    return diam if diam is not None else 0
 
 
 def s_components(
@@ -450,8 +517,10 @@ def s_components(
         yield from nx.connected_components(g)
     else:
         h1, node_to_eid = h.dual_hypergraph(start=start, end=end)
+        translate = {eid: node for node, eid in node_to_eid.items()}
+        # iterate over components in the dual graph
         for comp in s_components(h1, s, start, end, edge=True):
-            yield {eid for eid in comp}
+            yield {translate[eid] for eid in comp}
 
 
 def is_s_path(h: ASH, walk: List[str]) -> bool:
@@ -480,4 +549,3 @@ def is_s_path(h: ASH, walk: List[str]) -> bool:
     if any(count > 1 for count in node_counts.values()):
         return False
     return True
-

@@ -1,13 +1,12 @@
 import unittest
-from ash_model import ASH
+
 from ash_model.paths import *
-import networkx as nx
 
 
 class TimeRespectingWalksCase(unittest.TestCase):
     @staticmethod
     def get_hypergraph():
-        a = ASH(hedge_removal=True)
+        a = ASH()
         a.add_hyperedge([1, 2, 3], 0, 4)
         a.add_hyperedge([1, 4], 0, 1)
         a.add_hyperedge([1, 2, 3, 4], 2, 3)
