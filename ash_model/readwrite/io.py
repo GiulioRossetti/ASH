@@ -38,7 +38,7 @@ def __write_profile_to_csv(
             res = f"{node}{delimiter}{tid}"
             profiles = h.get_node_profile(node, tid)
             descr = profiles.get_attributes()
-            for k in sorted(descr):
+            for k in sorted(descr.keys()):
                 res = f"{res}{delimiter}{descr[k]}"
             f.write(f"{res}\n")
 
@@ -55,9 +55,7 @@ def write_profiles_to_csv(h: ASH, path: str, delimiter: str = ",") -> None:
     head = True
     for node in h.nodes():
         if head:
-            prof = h.get_node_profile(node)
-            heads = list(prof.get_attributes().keys())
-            heads = f"{delimiter}".join(sorted(heads))
+            heads = delimiter.join(sorted(h.list_node_attributes().keys()))
             head = f"node_id{delimiter}tid{delimiter}{heads}\n"
 
             with open(path, "w") as f:
@@ -75,12 +73,23 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
     :return:
     """
     res = {}
+    with open(path, "r") as f:
+        # readl all
+        x = f.readlines()
+        print(x)
     with open(path) as f:
         head = f.readline().rstrip().split(delimiter)
 
         for row in f:
             row = row.rstrip().split(delimiter)
             prof = {head[i]: row[i] for i in range(2, len(row))}
+            # convert types
+            for k, v in prof.items():
+                if v.isdigit():
+                    prof[k] = int(v)
+                elif v.replace(".", "", 1).isdigit():
+                    prof[k] = float(v)
+                # else keep as string
             if int(row[0]) not in res:
                 res[int(row[0])] = {int(row[1]): NProfile(node_id=int(row[0]), **prof)}
             else:
@@ -164,6 +173,7 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
     Does not support attributes.
     The CSV file will have the following format:
     n1,n2,...\tstart,end
+    Warning: there is no guarantee that the order of hyperedges will be preserved when reading back.
 
     :param h: ASH object to write.
     :param path: Path to the CSV file.
@@ -184,6 +194,7 @@ def read_sh_from_csv(path: str) -> ASH:
     """
     Read a list of timestamped hyperedges from a CSV file.
     Does not support attributes.
+    Warning: there is no guarantee that the order of hyperedges will be preserved.
 
     :param path: Path to the CSV file.
     :return:
@@ -244,13 +255,10 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
         for span in edge_data["attributes"]["_presence"]:
             for t in range(span[0], span[1] + 1):
 
-                kwargs = (
-                    {
-                        k: v
-                        for k, v in edge_data["attributes"].items()
-                        if k != "_presence"
-                    },
-                )
+                kwargs = {
+                    k: v for k, v in edge_data["attributes"].items() if k != "_presence"
+                }
+
                 h.add_hyperedge(edge_data["nodes"], start=t, **kwargs)
 
     for node_id, node_data in data["nodes"].items():
@@ -272,6 +280,5 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
                         **t_to_attrs.get(t, {}),
                     ),
                 )
-        print(t_to_attrs)
 
     return h
