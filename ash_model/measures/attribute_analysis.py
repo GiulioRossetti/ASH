@@ -118,13 +118,16 @@ def hyperedge_aggregate_node_profile(
     attribute_values = defaultdict(list)
     for node in nodes:
         profile = h.get_node_profile(node, tid)
+
         if not attr_name:
             for name, value in profile.get_attributes().items():
                 attribute_values[name].append(value)
         else:
-            attribute_values[attr_name].append(profile.get_attribute(attr_name))
+            key = tid if tid is not None else 0
+            attribute_values[attr_name].append(profile.get_attribute(attr_name)[key])
 
     for name, values in attribute_values.items():
+
         if isinstance(values[0], str):
             val = name_to_func[categorical_aggr](values)
             aggr_profile.add_attribute(name, val)
@@ -319,7 +322,7 @@ def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object
     return res
 
 
-def consistency(h: ASH, node: int = None) -> dict:
+def attribute_consistency(h: ASH, node: int = None) -> dict:
     """
     The consistency measures the extent to which a nodes' attribute value
     remains constant/change across time. The higher the value,
