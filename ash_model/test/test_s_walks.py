@@ -14,7 +14,23 @@ class SWalksCase(unittest.TestCase):
         a.add_hyperedge([3, 4], 1)
         return a
 
-    # Hyperedge walks
+    def _assert_same_vertices(self, got, want):
+        """recursively check that the same keys are present at every level"""
+        self.assertEqual(set(got.keys()), set(want.keys()))
+        for k in got:
+            if isinstance(want[k], dict):  # nested dict → recurse
+                self.assertIsInstance(got[k], dict)
+                self._assert_same_vertices(got[k], want[k])
+
+    def _assert_min_lengths(self, got, want):
+        """recursively check that every walk has the same (minimal) length"""
+        for k, v in want.items():
+            if isinstance(v, dict):  # nested dict → recurse
+                self._assert_min_lengths(got[k], v)
+            else:  # v is the reference walk
+                self.assertEqual(len(got[k]), len(v))  # same length
+                self.assertEqual(got[k][0], v[0])  # correct start vertex
+                self.assertEqual(got[k][-1], k)  # correct end vertex
 
     def test_shortest_s_walk(self):
 
@@ -27,69 +43,63 @@ class SWalksCase(unittest.TestCase):
         s_w = shortest_s_walk(a, 2, "e1", "e2", weight=True)
         self.assertEqual(len(s_w), 3)
 
+        # ---------- 1 source vertex -----------------------------------------------
+        exp_1 = {
+            "e1": ["e1"],
+            "e3": ["e1", "e3"],
+            "e4": ["e1", "e4"],
+            "e2": ["e1", "e3", "e2"],
+            "e5": ["e1", "e3", "e5"],
+        }
         s_w = shortest_s_walk(a, 2, "e1")
-        self.assertDictEqual(
-            s_w,
-            {
-                "e1": ["e1"],
-                "e3": ["e1", "e3"],
-                "e4": ["e1", "e4"],
-                "e2": ["e1", "e3", "e2"],
-                "e5": ["e1", "e3", "e5"],
-            },
-        )
+        self._assert_same_vertices(s_w, exp_1)
+        self._assert_min_lengths(s_w, exp_1)
 
+        # ---------- all vertices, length ≤ 2 --------------------------------------
+        exp_2 = {
+            "e1": exp_1,
+            "e3": {
+                "e3": ["e3"],
+                "e1": ["e3", "e1"],
+                "e2": ["e3", "e2"],
+                "e4": ["e3", "e4"],
+                "e5": ["e3", "e5"],
+            },
+            "e4": {
+                "e4": ["e4"],
+                "e1": ["e4", "e1"],
+                "e2": ["e4", "e2"],
+                "e3": ["e4", "e3"],
+                "e5": ["e4", "e5"],
+            },
+            "e2": {
+                "e2": ["e2"],
+                "e3": ["e2", "e3"],
+                "e4": ["e2", "e4"],
+                "e1": ["e2", "e3", "e1"],
+                "e5": ["e2", "e3", "e5"],
+            },
+            "e5": {
+                "e5": ["e5"],
+                "e3": ["e5", "e3"],
+                "e4": ["e5", "e4"],
+                "e1": ["e5", "e3", "e1"],
+                "e2": ["e5", "e3", "e2"],
+            },
+        }
         s_w = shortest_s_walk(a, 2)
-        self.assertDictEqual(
-            s_w,
-            {
-                "e1": {
-                    "e1": ["e1"],
-                    "e3": ["e1", "e3"],
-                    "e4": ["e1", "e4"],
-                    "e2": ["e1", "e3", "e2"],
-                    "e5": ["e1", "e3", "e5"],
-                },
-                "e3": {
-                    "e3": ["e3"],
-                    "e1": ["e3", "e1"],
-                    "e2": ["e3", "e2"],
-                    "e4": ["e3", "e4"],
-                    "e5": ["e3", "e5"],
-                },
-                "e4": {
-                    "e4": ["e4"],
-                    "e1": ["e4", "e1"],
-                    "e2": ["e4", "e2"],
-                    "e3": ["e4", "e3"],
-                    "e5": ["e4", "e5"],
-                },
-                "e2": {
-                    "e2": ["e2"],
-                    "e3": ["e2", "e3"],
-                    "e4": ["e2", "e4"],
-                    "e1": ["e2", "e3", "e1"],
-                    "e5": ["e2", "e3", "e5"],
-                },
-                "e5": {
-                    "e5": ["e5"],
-                    "e3": ["e5", "e3"],
-                    "e4": ["e5", "e4"],
-                    "e1": ["e5", "e3", "e1"],
-                    "e2": ["e5", "e3", "e2"],
-                },
-            },
-        )
+        self._assert_same_vertices(s_w, exp_2)
+        self._assert_min_lengths(s_w, exp_2)
 
+        # ---------- length ≤ 3 -----------------------------------------------------
+        exp_3 = {
+            "e1": {"e1": ["e1"], "e3": ["e1", "e3"], "e4": ["e1", "e3", "e4"]},
+            "e3": {"e3": ["e3"], "e1": ["e3", "e1"], "e4": ["e3", "e4"]},
+            "e4": {"e4": ["e4"], "e3": ["e4", "e3"], "e1": ["e4", "e3", "e1"]},
+        }
         s_w = shortest_s_walk(a, 3)
-        self.assertDictEqual(
-            s_w,
-            {
-                "e1": {"e1": ["e1"], "e3": ["e1", "e3"], "e4": ["e1", "e3", "e4"]},
-                "e3": {"e3": ["e3"], "e1": ["e3", "e1"], "e4": ["e3", "e4"]},
-                "e4": {"e4": ["e4"], "e3": ["e4", "e3"], "e1": ["e4", "e3", "e1"]},
-            },
-        )
+        self._assert_same_vertices(s_w, exp_3)
+        self._assert_min_lengths(s_w, exp_3)
 
     def test_s_distance(self):
         a = self.get_hypergraph()

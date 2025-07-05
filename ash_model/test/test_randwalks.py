@@ -7,7 +7,7 @@ from ash_model import ASH
 from ash_model.paths.randwalks import (
     random_walk_probabilities,
     random_walks,
-    time_respecting_random_walks,
+    # time_respecting_random_walks,
 )
 
 
