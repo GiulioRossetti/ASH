@@ -243,3 +243,51 @@ class IntervalPresenceStore(PresenceStore):
             self._time_counts[t] -= 1
             if self._time_counts[t] == 0:
                 del self._time_counts[t]
+
+    def _add_interval(self, hid: int, start: int, end: int) -> None:
+        """Insert the entire [start,end] span into ``hid``'s interval list in one pass."""
+        intervals = self._intervals[hid]
+        new_s, new_e = start, end
+        i = 0
+        # 1) Merge any overlapping or adjacent existing intervals
+        while i < len(intervals):
+            s, e = intervals[i]
+            if e + 1 < new_s:
+                i += 1
+                continue
+            if s - 1 > new_e:
+                break
+            # overlapping or adjacent -> absorb
+            new_s = min(new_s, s)
+            new_e = max(new_e, e)
+            intervals.pop(i)
+        # 2) Insert the merged interval at the correct position
+        intervals.insert(i, (new_s, new_e))
+        # 3) Bulk‑update time_counts for the range
+        for t in range(start, end + 1):
+            self._time_counts[t] += 1
+
+    def _remove_interval(self, hid: int, start: int, end: int) -> None:
+        """Remove the entire [start,end] span from ``hid``'s interval list in one pass."""
+        intervals = self._intervals.get(hid, [])
+        i = 0
+        while i < len(intervals):
+            s, e = intervals[i]
+            if e < start or s > end:
+                i += 1
+                continue
+            # overlapping: may need to split or shrink
+            before = (s, start - 1) if s < start else None
+            after = (end + 1, e) if e > end else None
+            intervals.pop(i)
+            if after:
+                intervals.insert(i, after)
+            if before:
+                intervals.insert(i, before)
+                i += 1
+        # Bulk‑decrement time_counts for the range
+        for t in range(start, end + 1):
+            if t in self._time_counts:
+                self._time_counts[t] -= 1
+                if self._time_counts[t] == 0:
+                    del self._time_counts[t]

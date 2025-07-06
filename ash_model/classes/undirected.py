@@ -163,8 +163,11 @@ class ASH:
                 self._stars[n].add(hid)
 
         # Register presence ------------------------------------------------
-        for t in range(span[0], span[1] + 1):
-            self._snapshots.setdefault(t, set()).add(hid)
+        if isinstance(self._snapshots, IntervalPresenceStore):
+            self._snapshots._add_interval(hid, span[0], span[1])
+        else:
+            for t in range(span[0], span[1] + 1):
+                self._snapshots.setdefault(t, set()).add(hid)
 
         # Store attributes -------------------------------------------------
         if "weight" not in kwargs:
@@ -256,15 +259,31 @@ class ASH:
         :param end: End time of the removal (inclusive). If None, the hyperedge is removed only at `start`.
         """
 
-        time_window = set(self.__time_window(start, end))
+        # Determine removal spans
+        if isinstance(self._snapshots, IntervalPresenceStore):
+            spans = (
+                self.hyperedge_presence(hyperedge_id, as_intervals=True)
+                if start is None
+                else [(start, start if end is None else end)]
+            )
+            for s, e in spans:
+                self._snapshots._remove_interval(hyperedge_id, s, e)
+                # Remove edge attributes for these times
+                for t in range(s, e + 1):
+                    self._edge_attributes[hyperedge_id].pop(t, None)
+        else:
+            time_window = set(self.__time_window(start, end))
+            for t in self.temporal_snapshots_ids():
+                if t in time_window:
+                    self._snapshots.setdefault(t, set()).discard(hyperedge_id)
+                    self._edge_attributes[hyperedge_id].pop(t, None)
+
+        # Cleanup metadata if no presence remains
         still_exists = False
         for t in self.temporal_snapshots_ids():
-            if t in time_window:
-                self._snapshots.setdefault(t, set()).discard(hyperedge_id)
-                self._edge_attributes[hyperedge_id].pop(t, None)
-            elif self.has_hyperedge(hyperedge_id, t):
+            if self.has_hyperedge(hyperedge_id, t):
                 still_exists = True
-
+                break
         if not still_exists:
             nodes = self.get_hyperedge_nodes(hyperedge_id)
             del self._eid2nids[hyperedge_id]
