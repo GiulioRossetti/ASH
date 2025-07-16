@@ -1,5 +1,6 @@
 import gzip
 import json
+from collections import defaultdict
 
 from ash_model import ASH, NProfile
 
@@ -249,7 +250,12 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
     with op(path, "rt") as f:
         data = json.loads(f.read())
 
-    # check if has edge attributes
+    # Add nodes
+    attrs = defaultdict(lambda: defaultdict(dict))
+    for node_id, node_data in data["nodes"].items():
+        for tid, attr in node_data.items():
+            attrs[int(node_id)][int(tid)] = attr
+    h._node_attrs = attrs
 
     for _, edge_data in data["hedges"].items():
         for span in edge_data["attributes"]["_presence"]:
@@ -260,25 +266,5 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
                 }
 
                 h.add_hyperedge(edge_data["nodes"], start=t, **kwargs)
-
-    for node_id, node_data in data["nodes"].items():
-        t_to_attrs = {}
-        for attr_name, time_to_attr in node_data.items():
-            if attr_name != "_presence":
-                for t, attr in time_to_attr.items():
-
-                    t_to_attrs.setdefault(int(t), {})[attr_name] = time_to_attr[t]
-
-        for span in node_data["_presence"]:
-            for t in range(span[0], span[1] + 1):
-
-                h.add_node(
-                    int(node_id),
-                    start=t,
-                    attr_dict=NProfile(
-                        node_id=node_id,
-                        **t_to_attrs.get(t, {}),
-                    ),
-                )
 
     return h

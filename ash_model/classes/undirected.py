@@ -485,21 +485,31 @@ class ASH:
     # Node & Hyperedge attributes
     # ------------------------------------------------------------------
 
+    def get_node_profiles_by_time(self, node: int) -> Dict[int, NProfile]:
+        """
+        Get the profiles of a node at all available time instants.
+
+        :param node: Node ID for which to get the profiles.
+        :return: A dictionary mapping time IDs to NProfile instances.
+        """
+        return {
+            tid: self.get_node_profile(node, tid)
+            for tid in self.node_presence(node, as_intervals=False)
+        }
+
     def get_node_profile(self, node: int, tid: Optional[int] = None) -> NProfile:
         """
         Get the profile of a node, which includes its attributes at a specific time.
-        If `tid` is None, the profile will include all attributes across all times.
+        If `tid` is None, the profile will be aggregated across all time IDs.
+
         :param node: Node ID for which to get the profile.
         :param tid: Time ID to filter the profile. If None, all time IDs are considered.
         :return: An NProfile instance containing the node's attributes.
         """
+        from ash_model.measures.attribute_analysis import aggregate_node_profile
 
         if tid is None:
-            attr_dict: DefaultDict[str, Dict[int, Any]] = defaultdict(dict)
-            for t in self._node_attrs[node]:
-                for attr, value in self._node_attrs[node][t].items():
-                    attr_dict[attr][t] = value
-            return NProfile(node, **attr_dict)  # type: ignore[arg-type]
+            return aggregate_node_profile(self, node)
         return NProfile(node, **dict(self._node_attrs[node][tid]))  # type: ignore[arg-type]
 
     def get_node_attribute(
@@ -915,11 +925,7 @@ class ASH:
             descr["hedges"][hedge] = edge_data
 
         for node in self.nodes():
-            npr = self.get_node_profile(node)
-            descr["nodes"][node] = npr.get_attributes()
-            descr["nodes"][node]["_presence"] = self.node_presence(
-                node, as_intervals=True  # type: ignore[arg-type]
-            )
+            descr["nodes"][node] = self._node_attrs[node]
 
         return descr
 

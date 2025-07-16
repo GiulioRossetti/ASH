@@ -57,14 +57,13 @@ class ASHTestCase(unittest.TestCase):
         a.add_node(1, start=0, end=2, attr_dict={"label": "A"})
 
         attr = a.get_node_profile(1)
-        self.assertEqual(
-            attr, NProfile(1, **{"t": [[0, 2]], "label": {0: "A", 1: "A", 2: "A"}})
-        )
+        self.assertEqual(attr, NProfile(1, **{"label": "A"}))
+
         attr = a.get_node_profile(1, tid=0)
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
         label = a.get_node_attribute(1, attr_name="label")
-        self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
+        self.assertEqual(label, "A")
 
         label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
@@ -74,14 +73,12 @@ class ASHTestCase(unittest.TestCase):
         a.add_node(1, start=0, end=2, attr_dict=NProfile(1, label="A"))
 
         attr = a.get_node_profile(1)
-        self.assertEqual(
-            attr, NProfile(1, **{"t": [[0, 2]], "label": {0: "A", 1: "A", 2: "A"}})
-        )
+        self.assertEqual(attr, NProfile(1, **{"label": "A"}))
         attr = a.get_node_profile(1, tid=0)
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
         label = a.get_node_attribute(1, attr_name="label")
-        self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
+        self.assertEqual(label, "A")
 
         label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
@@ -380,30 +377,21 @@ class ASHTestCase(unittest.TestCase):
 
 
 class ASHAdditionalTests(unittest.TestCase):
-    """
+
     def test_edge_attributes_and_weights(self):
-        a = ASH(edge_attributes=True)
+        a = ASH()
         # add with two attributes
         a.add_hyperedge([1, 2], start=0, weight=5, label="x")
         # full‐history attribute dict
-        self.assertEqual(
-            a.get_hyperedge_attribute("e1", "weight"),
-            {0: 5}
-        )
+        self.assertEqual(a.get_hyperedge_attribute("e1", "weight"), 5)
         # single‐snapshot access
-        self.assertEqual(
-            a.get_hyperedge_attribute("e1", "weight", tid=0),
-            5
-        )
-        # get all attrs at tid
-        self.assertEqual(
-            a.get_hyperedge_attributes("e1", tid=0),
-            {"weight": 5, "label": "x"}
-        )
-        # get all attrs over time
+        self.assertEqual(a.get_hyperedge_attribute("e1", "weight"), 5)
+        # get all attrs
+        self.assertEqual(a.get_hyperedge_attributes("e1"), {"weight": 5, "label": "x"})
+        # get all attrs
         attrs = a.get_hyperedge_attributes("e1")
         self.assertIn("label", attrs)
-        self.assertIn(0, attrs["label"])
+
         # list names of attributes
         all_attrs = a.list_hyperedge_attributes()
         self.assertIn("weight", all_attrs)
@@ -411,10 +399,9 @@ class ASHAdditionalTests(unittest.TestCase):
         cat_attrs = a.list_hyperedge_attributes(categorical=True)
         self.assertEqual(cat_attrs, {"label": {"x"}})
         # weight helper defaults to 1 if no weight set
-        b = ASH(edge_attributes=True)
+        b = ASH()
         b.add_hyperedge([3, 4], 1)
         self.assertEqual(b.get_hyperedge_weight("e1"), 1)
-    """
 
     def test_list_node_attributes_categorical(self):
         a = ASH()
@@ -483,9 +470,10 @@ class ASHAdditionalTests(unittest.TestCase):
         # presence intervals injected
         hedge_data = d["hedges"]["e1"]
         self.assertIn("_presence", hedge_data["attributes"])
-        # node presence
-        node_data = d["nodes"][1]
-        self.assertIn("_presence", node_data)
+
+        # node attributes are present
+        node_data = d["nodes"][1]  # node 1 at time 0
+        self.assertEqual(node_data, {0: {"name": "Alice"}})
         # string repr mentions core stats
         s = str(a)
         self.assertIn("Attributed Stream Hypergraph", s)
