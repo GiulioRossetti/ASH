@@ -11,9 +11,12 @@ from ash_model.utils import (
     bipartite_projection_by_time,
     line_graph_projection_by_time,
     dual_hypergraph_projection_by_time,
+    aggregate_node_profile,
+    hyperedge_aggregate_node_profile,
 )
 from ash_model import ASH, NProfile
 from scipy import sparse
+import numpy as np
 
 
 import unittest
@@ -449,6 +452,83 @@ class TestFromNetworkxBipartiteList(unittest.TestCase):
             for he in h2.hyperedges(t):
                 nodes = h2.get_hyperedge_nodes(he)
                 # self.assertIn(set(nodes), [set(g.neighbors(r)) for r in g.nodes() if g.nodes[r]['bipartite'] == 1])
+
+
+class ProfileAggrTestCase(unittest.TestCase):
+    @staticmethod
+    def get_hypergraph():
+        a = ASH()
+        a.add_hyperedge([1, 2, 3], 0)
+        a.add_hyperedge([1, 4], 0)
+        a.add_hyperedge([1, 2, 3, 4], 0)
+        a.add_hyperedge([1, 3, 4], 1)
+        a.add_hyperedge([3, 4], 1)
+
+        a.add_node(
+            1,
+            start=0,
+            end=0,
+            attr_dict=NProfile(node_id=1, party="L", age=37, gender="M"),
+        )
+        a.add_node(
+            1,
+            start=1,
+            end=1,
+            attr_dict=NProfile(node_id=1, party="R", age=37, gender="M"),
+        )
+        a.add_node(
+            2,
+            start=0,
+            end=0,
+            attr_dict=NProfile(node_id=2, party="L", age=20, gender="F"),
+        )
+        a.add_node(
+            3,
+            start=0,
+            end=1,
+            attr_dict=NProfile(node_id=3, party="L", age=11, gender="F"),
+        )
+        a.add_node(
+            4,
+            start=0,
+            end=1,
+            attr_dict=NProfile(node_id=4, party="R", age=45, gender="M"),
+        )
+        return a
+
+    def test_aggregate_node_profile(self):
+        a = self.get_hypergraph()
+        # force deterministic categorical aggregation
+        prof = aggregate_node_profile(
+            a, 1, categorical_aggr="first", numerical_aggr="mean"
+        )
+        attrs = dict(prof.items())
+        self.assertEqual(attrs["party"], "L")  # first of ['L','R']
+        self.assertEqual(attrs["gender"], "M")  # always 'M'
+        self.assertEqual(attrs["age"], 37.0)  # mean of [37,37]
+
+    def test_hyperedge_aggregate_node_profile(self):
+        a = self.get_hypergraph()
+        # pick the hyperedge [1,2,3] at time 0
+        hes = list(a.hyperedges(start=0))
+        he = next(h for h in hes if set(a.get_hyperedge_nodes(h)) == {1, 2, 3})
+
+        # aggregate all attributes at tid=0
+        prof = hyperedge_aggregate_node_profile(a, he, 0)
+        items = dict(prof.items())
+        # party mode is 'L', age mean=(37+20+11)/3
+        self.assertEqual(items["party"], "L")
+        self.assertAlmostEqual(items["age"], (37 + 20 + 11) / 3)
+
+        # check std was recorded
+        std = prof.get_statistic("age", "std")["std"]
+        self.assertAlmostEqual(std, np.std([37, 20, 11]))
+
+        # test attr_name selection
+        prof2 = hyperedge_aggregate_node_profile(a, he, 0, attr_name="age")
+        items2 = dict(prof2.items())
+        self.assertIn("age", items2)
+        self.assertEqual(len(items2), 1)
 
 
 if __name__ == "__main__":

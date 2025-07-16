@@ -106,9 +106,9 @@ class ASH:
         """
         Generate a stream of interactions in the ASH, yielding tuples of the form
         (time_id, hyperedge_id, event_type), where event_type is either
-        "+" for addition or "-" for removal of a hyperedge at that time.
+        "+" for activation or "-" for deactivation of a hyperedge at that time.
         This method iterates through the temporal snapshots and compares the sets
-        of hyperedges present in consecutive snapshots to determine additions and removals.
+        of hyperedges present in consecutive snapshots to determine hyperedge changes.
 
         :yield: Tuples of (time_id, hyperedge_id, event_type).
         """
@@ -135,6 +135,7 @@ class ASH:
     ) -> None:
         """
         Add a hyperedge to the ASH. If nodes are not already present, they will be added.
+        If end time is not specified, then the hyperedge is considered to be present only at `start` (end = start).
         :param nodes: Iterable of node IDs that form the hyperedge.
         :param start: Start time of the hyperedge.
         :param end: End time of the hyperedge (inclusive). If None, the hyperedge is considered to be present only at `start`.
@@ -186,9 +187,12 @@ class ASH:
         """
         Add multiple hyperedges to the ASH. If nodes are not already present, they will be added.
         All hyperedges will be added with the same start and end times.
+        if `end` is not specified, then the hyperedges are considered to be present only at `start` (end = start).
+
         :param hyperedges: Iterable of iterables, where each inner iterable contains node IDs for a hyperedge.
         :param start: Start time of the hyperedges.
         :param end: End time of the hyperedges (inclusive). If None, the hyperedges are considered to be present only at `start`.
+        :param kwargs: Optional attributes for the hyperedges. These will be applied to all hyperedges.
         """
 
         for hedge in hyperedges:
@@ -207,6 +211,13 @@ class ASH:
     ) -> None:
         """
         Add a node to the ASH with optional attributes.
+        Attributes can be provided as a dictionary of the form {attr_name: value} or as an NProfile instance.
+        If the node is not already present, it will be created with the specified attributes.
+        If end time is not specified, then the node is considered to be present only at `start` (end = start).
+
+        To add a node with different attributes at different times, you can call this method multiple times with different `start` and `end` values.
+
+
         :param node: Node ID to add.
         :param start: Start time of the node.
         :param end: End time of the node (inclusive). If None, the node is considered to be present only at `start`.
@@ -233,6 +244,9 @@ class ASH:
     ) -> None:
         """
         Add multiple nodes to the ASH with optional attributes.
+        Attributes can be provided as a dictionary mapping node IDs to their attributes.
+
+
         :param nodes: Iterable of node IDs to add.
         :param start: Start time of the nodes.
         :param end: End time of the nodes (inclusive). If None, the nodes are considered to be present only at `start`.
@@ -355,6 +369,8 @@ class ASH:
     ) -> None:
         """
         Remove nodes that do not have a specific attribute in the specified time window.
+        If no time window is specified, the nodes are checked in all times.
+
         :param attr_name: The name of the attribute to check for.
         :param start: Start time of the removal. If None, the nodes are checked in all times.
         :param end: End time of the removal (inclusive). If None, the nodes are checked only at `start`.
@@ -374,6 +390,7 @@ class ASH:
     ) -> List[int]:
         """
         Return a list of node IDs present in the ASH within the specified time window.
+
         :param start: Start time of the query. If None, all nodes are considered.
         :param end: End time of the query (inclusive). If None, only the start time is considered.
         :return: List of node IDs.
@@ -403,6 +420,7 @@ class ASH:
         Hyperedges are identified by their IDs (strings), or by sets of node IDs (frozensets).
         If `hyperedge_size` is specified, only hyperedges of that size are returned.
         The `as_ids` parameter determines whether to return hyperedge IDs or sets of node IDs.
+
         :param start: Start time of the query. If None, all hyperedges are considered.
         :param end: End time of the query (inclusive). If None, only the start time is considered.
         :param hyperedge_size: If specified, only hyperedges of this size are returned.
@@ -435,6 +453,8 @@ class ASH:
     ) -> bool:
         """
         Check if a hyperedge is present in the ASH within the specified time window.
+        Accepts either a hyperedge ID (string) or an iterable of node IDs.
+
         :param edge: Hyperedge ID (string) or an iterable of node IDs.
         :param start: Start time of the query. If None, all hyperedges are considered.
         :param end: End time of the query (inclusive). If None, only the start time is considered.
@@ -455,6 +475,7 @@ class ASH:
     ) -> bool:
         """
         Check if a node is present in the ASH within the specified time window.
+
         :param node: Node ID to check.
         :param start: Start time of the query. If None, all nodes are considered.
         :param end: End time of the query (inclusive). If None, only the start time is considered.
@@ -466,6 +487,7 @@ class ASH:
         """
         Get the set of node IDs that form a hyperedge.
         If the hyperedge does not exist, returns an empty frozenset.
+
         :param hyperedge_id: ID of the hyperedge.
         :return: A frozenset of node IDs that are part of the hyperedge.
         """
@@ -475,6 +497,7 @@ class ASH:
         """
         Get the hyperedge ID for a given set of node IDs.
         If the hyperedge does not exist, raises a KeyError.
+
         :param nodes: Iterable of node IDs that form the hyperedge.
         :return: The ID of the hyperedge as a string.
         :raises KeyError: If the hyperedge does not exist.
@@ -499,14 +522,15 @@ class ASH:
 
     def get_node_profile(self, node: int, tid: Optional[int] = None) -> NProfile:
         """
-        Get the profile of a node, which includes its attributes at a specific time.
+        Get the profile of a node.
+        The profile contains the node's attributes at a specific time ID.
         If `tid` is None, the profile will be aggregated across all time IDs.
 
         :param node: Node ID for which to get the profile.
         :param tid: Time ID to filter the profile. If None, all time IDs are considered.
         :return: An NProfile instance containing the node's attributes.
         """
-        from ash_model.measures.attribute_analysis import aggregate_node_profile
+        from ash_model.utils import aggregate_node_profile
 
         if tid is None:
             return aggregate_node_profile(self, node)
@@ -517,14 +541,15 @@ class ASH:
         node: int,
         attr_name: str,
         tid: Optional[int] = None,
-    ) -> Any:
+    ) -> Union[Any, Dict[int, Any]]:
         """
         Get a specific attribute of a node at a given time.
-        If `tid` is None, the attribute will be fetched from the latest time available.
+        If `tid` is None, a dictionary mapping time IDs to attribute values is returned.
+
         :param node: Node ID for which to get the attribute.
         :param attr_name: Name of the attribute to retrieve.
         :param tid: Time ID to filter the attribute. If None, all time IDs are considered.
-        :return: The value of the attribute for the node at the specified time.
+        :return: The value of the attribute for the node at the specified time, or a dictionary of values if `tid` is None.
         """
 
         if tid is None:
@@ -540,10 +565,11 @@ class ASH:
     ) -> Dict[str, Any]:
         """
         Get all attributes of a node at a given time.
-        If `tid` is None, the attributes will be fetched from the latest time available.
+        If `tid` is None, returns attributes across all time IDs.
+
         :param node: Node ID for which to get the attributes.
-        :param tid: Time ID to filter the attributes. If None, the latest time is considered.
-        :return: A dictionary of attributes for the node at the specified time.
+        :param tid: Time ID to filter the attributes. If None, all time IDs are considered.
+        :return: A dictionary of attributes for the node at the specified time, or across all times if `tid` is None.
         """
 
         if tid is None:
@@ -599,6 +625,7 @@ class ASH:
         Get all attributes of a hyperedge.
         If `hyperedge_id` is None, returns attributes for all hyperedges.
         If the hyperedge does not exist, returns an empty dictionary.
+
         :param hyperedge_id: ID of the hyperedge. If None, all hyperedges
         are considered.
         :return: A dictionary of attributes for the hyperedge, or an empty dictionary if not found.
@@ -610,6 +637,13 @@ class ASH:
     def list_hyperedge_attributes(
         self, categorical: bool = False
     ) -> Dict[str, Set[Any]]:
+        """
+        List all attributes of hyperedges in the ASH.
+        If `categorical` is True, only categorical attributes (strings) are returned.
+
+        :param categorical: If True, only categorical attributes (strings) are returned.
+        :return: A dictionary where keys are attribute names and values are sets of attribute values.
+        """
 
         attributes: DefaultDict[str, Set[Any]] = defaultdict(set)
 
@@ -625,6 +659,13 @@ class ASH:
         return attributes
 
     def get_hyperedge_weight(self, hyperedge_id: str) -> Union[int, float]:
+        """
+        Get the weight of a hyperedge.
+        If the weight is not set, returns 1 by default.
+
+        :param hyperedge_id: ID of the hyperedge.
+        :return: The weight of the hyperedge, or 1 if not set.
+        """
         weight = self.get_hyperedge_attribute(hyperedge_id, "weight")
         return 1 if weight is None else weight
 
@@ -635,19 +676,52 @@ class ASH:
     def number_of_nodes(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> int:
+        """
+        Return the number of unique nodes present in the ASH within the specified time window.
+        :param start: Start time of the query. If None, all nodes are considered.
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: The number of unique nodes.
+        """
+
         return len(self.nodes(start, end))
 
     def number_of_hyperedges(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> int:
+        """
+        Return the number of unique hyperedges present in the ASH within the specified time window.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :return: The number of unique hyperedges.
+        """
         return self.size(start, end)
 
     def size(self, start: Optional[int] = None, end: Optional[int] = None) -> int:
+        """
+        Return the number of hyperedges present in the ASH within the specified time window.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: The number of hyperedges.
+        """
+
         return len(self.hyperedges(start, end))
 
     def hyperedge_size_distribution(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> Dict[int, int]:
+        """
+        Return the distribution of hyperedge sizes within the specified time window.
+        The keys are the sizes of hyperedges (number of nodes in each hyperedge),
+        and the values are the counts of hyperedges of that size.
+        :param start: Start time of the query. If None, all hyperedges are considered.
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: A dictionary where keys are hyperedge sizes and values are counts of hyperedges
+        of that size.
+        """
+
         distr: DefaultDict[int, int] = defaultdict(int)
         for he in self.hyperedges(start, end):
             distr[len(self.get_hyperedge_nodes(he))] += 1
@@ -656,6 +730,17 @@ class ASH:
     def degree_distribution(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> Dict[int, int]:
+        """
+        Return the distribution of node degrees within the specified time window.
+        The keys are the degrees of nodes (number of hyperedges each node is part of),
+        and the values are the counts of nodes with that degree.
+        :param start: Start time of the query. If None, all nodes are considered.
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: A dictionary where keys are node degrees and values are counts of nodes with that
+        degree.
+        """
+
         distr: DefaultDict[int, int] = defaultdict(int)
         for node in self.nodes(start, end):
             distr[self.degree(node, start, end)] += 1
@@ -673,6 +758,21 @@ class ASH:
         hyperedge_size: Optional[int] = None,
         as_ids: bool = True,
     ) -> List[Union[str, frozenset[int]]]:
+        """
+        Return the star of a node, which is the set of hyperedges that contain the node
+        within the specified time window. If `hyperedge_size` is specified, only hyperedges
+        of that size are returned. The `as_ids` parameter determines whether to return hyperedge
+        IDs (strings) or sets of node IDs (frozensets).
+        :param node: Node ID for which to get the star.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start time is considered.
+        :param hyperedge_size: If specified, only hyperedges of this size are returned.
+        :param as_ids: If True, return hyperedge IDs; if False, return sets
+        of node IDs.
+        :return: A list of hyperedge IDs or sets of node IDs that form the star
+        of the node within the specified time window.
+        """
+
         if start is None:
             star_set: Set[str] = set(self._stars[node])
         else:
@@ -698,6 +798,18 @@ class ASH:
         end: Optional[int] = None,
         hyperedge_size: Optional[int] = None,
     ) -> int:
+        """
+        Return the degree of a node, which is the number of hyperedges that contain the node
+        within the specified time window. If `hyperedge_size` is specified, only hyperedges
+        of that size are counted.
+        :param node: Node ID for which to get the degree.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :param hyperedge_size: If specified, only hyperedges of this size are counted.
+        :return: The degree of the node within the specified time window.
+        """
+
         return len(self.star(node, start, end, hyperedge_size, as_ids=False))
 
     def s_degree(
@@ -709,6 +821,18 @@ class ASH:
     def degree_by_hyperedge_size(
         self, node: int, start: Optional[int] = None, end: Optional[int] = None
     ) -> Dict[int, int]:
+        """
+        Return the degree of a node by hyperedge size, which is a dictionary where keys are
+        hyperedge sizes (number of nodes in each hyperedge) and values are the counts of
+        hyperedges of that size that contain the node within the specified time window.
+        :param node: Node ID for which to get the degree by hyperedge size.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: A dictionary where keys are hyperedge sizes and values are counts of hyperedges
+        of that size that contain the node within the specified time window.
+        """
+
         distr: DefaultDict[int, int] = defaultdict(int)
         for he in self.star(node, start, end, as_ids=False):
             distr[len(he)] += 1
@@ -721,6 +845,20 @@ class ASH:
         end: Optional[int] = None,
         hyperedge_size: Optional[int] = None,
     ) -> Set[int]:
+        """
+        Return the set of neighbors of a node, which are the nodes that share hyperedges with
+        the specified node within the given time window. If `hyperedge_size` is specified,
+        only hyperedges of that size are considered for determining neighbors.
+        :param node: Node ID for which to get the neighbors.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :param hyperedge_size: If specified, only hyperedges of this size are considered for
+        determining neighbors.
+        :return: A set of node IDs that are neighbors of the specified node within the
+        specified time window.
+        """
+
         neighbors: Set[int] = set()
         for he in self.star(node, start, end, hyperedge_size, as_ids=False):
             neighbors.update(he)
@@ -734,6 +872,19 @@ class ASH:
         end: Optional[int] = None,
         hyperedge_size: Optional[int] = None,
     ) -> int:
+        """
+        Return the number of unique neighbors of a node, which are the nodes that share hyperedges
+        with the specified node within the given time window. If `hyperedge_size` is specified
+        only hyperedges of that size are considered for determining neighbors.
+        :param node: Node ID for which to get the number of neighbors.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :param hyperedge_size: If specified, only hyperedges of this size are considered for
+        determining neighbors.
+        :return: The number of unique neighbors of the specified node within the specified time window.
+        """
+
         return len(self.neighbors(node, start, end, hyperedge_size))
 
     # ------------------------------------------------------------------
@@ -746,6 +897,17 @@ class ASH:
         end: Optional[int] = None,
         keep_attrs: bool = False,
     ) -> nx.Graph:
+        """
+        Create a bipartite projection of the ASH.
+
+        :param start: Start time of the projection. If None, all hyperedges are considered.
+        :param end: End time of the projection (inclusive). If None, only the start
+        time is considered.
+        :param keep_attrs: If True, keep node and hyperedge attributes in the projection.
+        :return: A bipartite graph where nodes are hyperedges and nodes, and edges
+        represent incidences between them.
+        """
+
         from ash_model.utils import bipartite_projection
 
         return bipartite_projection(self, start, end, keep_attrs)
@@ -753,6 +915,15 @@ class ASH:
     def dual_hypergraph(
         self, start: Optional[int] = None, end: Optional[int] = None
     ) -> Tuple["ASH", Dict[str, str]]:
+        """
+        Create a dual hypergraph projection of the ASH.
+        :param start: Start time of the projection. If None, all hyperedges are considered.
+        :param end: End time of the projection (inclusive). If None, only the start
+        time is considered.
+        :return: A tuple containing the dual hypergraph and a mapping of original hyperedge IDs
+        to new hyperedge IDs in the dual hypergraph.
+        """
+
         from ash_model.utils import dual_hypergraph_projection
 
         return dual_hypergraph_projection(self, start, end)
@@ -763,6 +934,15 @@ class ASH:
         end: Optional[int] = None,
         keep_attrs: bool = False,
     ) -> nx.Graph:
+        """
+        Create a clique projection of the ASH.
+        :param start: Start time of the projection. If None, all hyperedges are considered.
+        :param end: End time of the projection (inclusive). If None, only the start
+        time is considered.
+        :param keep_attrs: If True, keep node and hyperedge attributes in the projection.
+        :return: A graph where each hyperedge is decomposed into a clique.
+        """
+
         from ash_model.utils import clique_projection
 
         return clique_projection(self, start, end, keep_attrs=keep_attrs)
@@ -770,6 +950,16 @@ class ASH:
     def s_line_graph(
         self, s: int = 1, start: Optional[int] = None, end: Optional[int] = None
     ) -> nx.Graph:
+        """
+        Create a line graph projection of the ASH, where each hyperedge is represented as a
+        node, and edges represent shared nodes between hyperedges.
+        :param s: Minimum size of hyperedges to consider in the projection.
+        :param start: Start time of the projection. If None, all hyperedges are considered
+        :param end: End time of the projection (inclusive). If None, only the start
+        time is considered.
+        :return: A line graph where nodes represent hyperedges and edges represent shared nodes.
+        """
+
         from ash_model.utils import line_graph_projection
 
         return line_graph_projection(self, s, start, end)
@@ -779,18 +969,36 @@ class ASH:
     # ------------------------------------------------------------------
 
     def avg_number_of_nodes(self) -> float:
+        """
+        Calculate the average number of nodes across all temporal snapshots.
+        :return: The average number of nodes.
+        """
         nodes_snapshots = [
             self.number_of_nodes(tid) for tid in self.temporal_snapshots_ids()
         ]
         return sum(nodes_snapshots) / len(nodes_snapshots) if nodes_snapshots else 0.0
 
     def avg_number_of_hyperedges(self) -> float:
+        """
+        Calculate the average number of hyperedges across all temporal snapshots.
+        :return: The average number of hyperedges.
+        """
+
         hes_snapshots = [self.size(tid) for tid in self.temporal_snapshots_ids()]
         return sum(hes_snapshots) / len(hes_snapshots) if hes_snapshots else 0.0
 
     def node_presence(
         self, node: int, as_intervals: bool = False
     ) -> List[Union[int, Tuple[int, int]]]:
+        """
+        Get the presence of a node across all temporal snapshots.
+        If `as_intervals` is True, returns the presence as intervals (start, end
+        times). Otherwise, returns a list of time IDs where the node is present.
+        :param node: Node ID for which to get the presence.
+        :param as_intervals: If True, return presence as intervals; if False,
+        return presence as a list of time IDs.
+        :return: A list of time IDs or intervals where the node is present.
+        """
         times = sorted(self._node_attrs[node].keys())
         return (
             self.__presence_to_intervals(times) if as_intervals else times  # type: ignore[return-value]
@@ -799,6 +1007,16 @@ class ASH:
     def hyperedge_presence(
         self, hyperedge_id: str, as_intervals: bool = False
     ) -> List[Union[int, Tuple[int, int]]]:
+        """
+        Get the presence of a hyperedge across all temporal snapshots.
+        If `as_intervals` is True, returns the presence as intervals (start, end
+        times). Otherwise, returns a list of time IDs where the hyperedge is present.
+        :param hyperedge_id: ID of the hyperedge for which to get the presence.
+        :param as_intervals: If True, return presence as intervals; if False,
+        return presence as a list of time IDs.
+        :return: A list of time IDs or intervals where the hyperedge is present.
+        """
+
         pres = [
             t
             for t in self.temporal_snapshots_ids()
@@ -809,6 +1027,13 @@ class ASH:
         )
 
     def node_contribution(self, node: int) -> float:
+        """
+        Calculate the contribution of a node to the ASH, defined as the fraction of temporal snapshots
+        in which the node is present.
+        :param node: Node ID for which to calculate the contribution.
+        :return: The contribution of the node as a float between 0 and 1.
+        """
+
         total_snapshots = len(self.temporal_snapshots_ids())
         if total_snapshots == 0:
             return 0.0
@@ -818,6 +1043,13 @@ class ASH:
         )
 
     def hyperedge_contribution(self, hyperedge_id: str) -> float:
+        """
+        Calculate the contribution of a hyperedge to the ASH, defined as the fraction of temporal
+        snapshots in which the hyperedge is present.
+        :param hyperedge_id: ID of the hyperedge for which to calculate the contribution.
+        :return: The contribution of the hyperedge as a float between 0 and 1
+        """
+
         total_snapshots = len(self.temporal_snapshots_ids())
         if total_snapshots == 0:
             return 0.0
@@ -831,6 +1063,12 @@ class ASH:
         )
 
     def coverage(self) -> float:
+        """
+        Calculate the coverage of the ASH, defined as the average number of nodes present across all
+        temporal snapshots, normalized by the total number of nodes.
+        :return: The coverage of the ASH as a float between 0 and 1
+        """
+
         tids = self.temporal_snapshots_ids()
         if not tids or self.number_of_nodes() == 0:
             return 0.0
@@ -838,6 +1076,12 @@ class ASH:
         return w / (len(tids) * self.number_of_nodes())
 
     def uniformity(self) -> float:
+        """
+        Calculate the uniformity of the ASH, defined as the fraction of pairs of nodes that
+        are present together in at least one temporal snapshot, normalized by the total number of pairs.
+        :return: The uniformity of the ASH as a float between 0 and 1
+        """
+
         nds = self.nodes()
         numerator, denominator = 0, 0
         for u, v in combinations(nds, 2):
@@ -857,6 +1101,18 @@ class ASH:
     def temporal_slice(
         self, start: int, end: Optional[int] = None, keep_attrs: bool = True
     ) -> Tuple["ASH", Dict[str, str]]:
+        """
+        Create a temporal slice of the ASH from `start` to `end` (inclusive).
+        If `end` is None, the slice will only include the time `start`.
+        The `keep_attrs` parameter determines whether to keep node attributes in the slice.
+        :param start: Start time of the slice.
+        :param end: End time of the slice (inclusive). If None, the slice will
+        only include the time `start`.
+        :param keep_attrs: If True, node attributes are preserved in the slice.
+        :return: A tuple containing the new ASH and a mapping from old hyperedge IDs
+        to new hyperedge IDs.
+        """
+
         res = ASH()
         eid_to_new_eid: Dict[str, str] = {}
         if end is None:
@@ -877,6 +1133,15 @@ class ASH:
     def induced_hypergraph(
         self, hyperedge_set: Iterable[str], keep_attrs: bool = True
     ) -> Tuple["ASH", Dict[str, str]]:
+        """
+        Create an induced hypergraph from the ASH using a set of hyperedge IDs.
+        The `keep_attrs` parameter determines whether to keep node attributes in the new hypergraph.
+        :param hyperedge_set: Iterable of hyperedge IDs to include in the induced hypergraph
+        :param keep_attrs: If True, node attributes are preserved in the new hypergraph.
+        :return: A tuple containing the new ASH and a mapping from old hyperedge IDs
+        to new hyperedge IDs.
+        """
+
         b = ASH()
         old_eid_to_new: Dict[str, str] = {}
 
@@ -903,6 +1168,19 @@ class ASH:
         start: Optional[int] = None,
         end: Optional[int] = None,
     ) -> List[Tuple[str, int]]:
+        """
+        Get hyperedges that are incident to a given hyperedge with at least `s` nodes
+        in common within the specified time window. Returns a list of tuples containing
+        hyperedge IDs and the number of nodes they share with the specified hyperedge.
+        :param hyperedge_id: ID of the hyperedge to check against.
+        :param s: Minimum number of nodes that must be shared with the specified hyperedge.
+        :param start: Start time of the query. If None, all hyperedges are considered
+        :param end: End time of the query (inclusive). If None, only the start
+        time is considered.
+        :return: A list of tuples where each tuple contains a hyperedge ID and the number
+        of nodes it shares with the specified hyperedge.
+        """
+
         res: List[Tuple[str, int]] = []
         nodes = set(self.get_hyperedge_nodes(hyperedge_id))
         hes = self.hyperedges(start, end)
@@ -919,9 +1197,15 @@ class ASH:
     # ------------------------------------------------------------------
 
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the ASH to a dictionary representation.
+        This includes nodes, hyperedges, and their attributes.
+        :return: A dictionary representation of the ASH.
+        """
         return self.__dict__()
 
     def __dict__(self) -> Dict[str, Any]:
+
         descr: Dict[str, Any] = {"nodes": {}, "hedges": {}}
 
         for hedge in self.hyperedges():

@@ -4,6 +4,7 @@ from math import log, e
 import numpy as np
 
 from ash_model import ASH, NProfile
+from ash_model.utils import hyperedge_aggregate_node_profile
 
 
 def __entropy(labels, base=None):
@@ -38,8 +39,8 @@ def __entropy(labels, base=None):
 
 def __purity(labels):
     """
-    purity is the relative frequency of the most common class
-    this returns a dictionary mapping the most common class to its purity
+    purity is the relative frequency of the most common attribute value
+    this returns a dictionary mapping the most common value to its purity
 
     :param labels:
     :return:
@@ -53,94 +54,15 @@ def __purity(labels):
     return {counter[0]: counter[1] / len(labels)}
 
 
-def aggregate_node_profile(
-    h: ASH, node: int, categorical_aggr: str = "mode", numerical_aggr: str = "mean"
-) -> NProfile:
+def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
     """
-    Returns an aggregated profile of a node over all time points.
-    The categorical_aggr parameter specifies the aggregation method for categorical attributes.
-    The numerical_aggr parameter specifies the aggregation method for numerical attributes.
+    Computes the purity of the hyperedge profile, i.e., the relative frequency of the most common attribute value
+    for each attribute in the hyperedge nodes' profiles.
 
     :param h: The ASH object
-    :param node: The node id
-    :param categorical_aggr: The aggregation method for categorical attributes. Options: "mode", "first", "last"
-    :param numerical_aggr: The aggregation method for numerical attributes. Options: "mean", "median", "first", "last"
-    :return: The aggregated profile of the node
-    """
-    name_to_func = {
-        "mode": lambda x: max(set(x), key=x.count),
-        "first": lambda x: x[0],
-        "last": lambda x: x[-1],
-        "mean": lambda x: sum(x) / len(x),
-        "median": lambda x: sorted(x)[len(x) // 2],
-    }
-
-    aggr_profile = NProfile(node)
-    attr_dicts = [
-        h.get_node_profile(node, tid=t).get_attributes()
-        for t in sorted(h.node_presence(node))
-    ]
-    attribute_values = defaultdict(list)
-    for attr_dict in attr_dicts:
-        for name, value in attr_dict.items():
-            attribute_values[name].append(value)
-
-    for name, values in attribute_values.items():
-        if isinstance(values[0], str):
-            aggr_profile.add_attribute(name, name_to_func[categorical_aggr](values))
-        else:
-            aggr_profile.add_attribute(name, name_to_func[numerical_aggr](values))
-    return aggr_profile
-
-
-def hyperedge_aggregate_node_profile(
-    h: ASH,
-    hyperedge_id: str,
-    tid: int,
-    attr_name: str = None,
-    categorical_aggr: str = "mode",
-    numerical_aggr: str = "mean",
-) -> NProfile:
-    """
-    Returns an aggregated profile of the nodes in a hyperedge
-
-    """
-    name_to_func = {
-        "mode": lambda x: max(set(x), key=x.count),
-        "first": lambda x: x[0],
-        "last": lambda x: x[-1],
-        "mean": lambda x: sum(x) / len(x),
-        "median": lambda x: np.median(x),
-    }
-
-    aggr_profile = NProfile(None)
-    nodes = h.get_hyperedge_nodes(hyperedge_id)
-    attribute_values = defaultdict(list)
-    for node in nodes:
-        profile = h.get_node_profile(node, tid)
-
-        if not attr_name:
-            for name, value in profile.get_attributes().items():
-                attribute_values[name].append(value)
-        else:
-            key = tid if tid is not None else 0
-            attribute_values[attr_name].append(profile.get_attribute(attr_name)[key])
-
-    for name, values in attribute_values.items():
-
-        if isinstance(values[0], str):
-            val = name_to_func[categorical_aggr](values)
-            aggr_profile.add_attribute(name, val)
-
-        else:
-            val = name_to_func[numerical_aggr](values)
-            aggr_profile.add_attribute(name, val)
-            aggr_profile.add_statistic(name, "std", np.std(values))
-
-    return aggr_profile
-
-
-def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
+    :param hyperedge_id: The hyperedge id
+    :param tid: The temporal id
+    :return: A dictionary with attribute names as keys and their purity as values"""
 
     nodes = h.get_hyperedge_nodes(hyperedge_id)
 
@@ -165,11 +87,13 @@ def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
 
 def hyperedge_profile_entropy(h: ASH, hyperedge_id: str, tid: int) -> dict:
     """
+    Computes the entropy of the hyperedge profile, i.e., the entropy of the attribute values
+    for each attribute in the hyperedge nodes' profiles.
 
-    :param h:
-    :param hyperedge_id:
-    :param tid:
-    :return:
+    :param h: The ASH object
+    :param hyperedge_id: The hyperedge id
+    :param tid: The temporal id
+    :return: A dictionary with attribute names as keys and their entropy as values
     """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
 
@@ -195,17 +119,19 @@ def star_profile_entropy(
     h: ASH, node_id: int, tid: int, method: str = "aggregate"
 ) -> dict:
     """
-    Computes entropy for nodes in the star of node_id. If 'aggregate',
-    it is computed by first aggregating the hyperedges into a single profile.
-    If 'collapse', all the star nodes are considered.
+    Returns the entropy of the star profile of a node, i.e., the entropy of the attribute values
+    for each attribute in the profiles of the nodes in the star of the given node.
+    If method is 'aggregate', it is computed by first aggregating each hyperedge into a single profile
+    (see hyperedge_aggregate_node_profile).
+    Else if method is 'collapse', all the node's neighbors are considered.
 
-    :param h:
-    :param node_id:
-    :param tid:
-    :param method:
-    :return:
+    :param h: ASH instance
+    :param node_id: Specify the node for which we want to calculate the star profile entropy
+    :param tid: Specify the temporal id
+    :param method: Specify the method to be used in calculating the star profile entropy. Options are 'aggregate' or 'collapse'.
+    :return: A dictionary with the entropy of each attribute
     """
-    star = h.star(node_id, tid=tid)
+    star = h.star(node_id, start=tid)
 
     if method == "aggregate":
 
@@ -216,9 +142,7 @@ def star_profile_entropy(
             profiles.append(aggr)
 
     elif method == "collapse":
-        nodes = []
-        for hyperedge_id in star:
-            nodes += h.get_hyperedge_nodes(hyperedge_id)
+        nodes = h.neighbors(node_id, start=tid)
         profiles = [h.get_node_profile(n, tid) for n in set(nodes)]
 
     else:
@@ -242,20 +166,19 @@ def star_profile_homogeneity(
     h: ASH, node_id: int, tid: int, method: str = "aggregate"
 ) -> dict:
     """
-    The star_profile_homogeneity function computes the homogeneity of a node with respect to its star. For each node
-    attribute value regarding the node, the function computes the relative frequency of that value among the star's
-    other nodes.
-    If method is 'aggregate', it is computed by first aggregating the hyperedges into a single profile.
-    Else if method is 'collapse', all the star nodes are considered.
-
+    Returns the homogeneity of the star profile of a node, i.e., the relative frequency of the node's attribute value
+    for each attribute in the profiles of the nodes in the star of the given node.
+    If method is 'aggregate', it is computed by first aggregating each hyperedge into a single profile
+    (see hyperedge_aggregate_node_profile).
+    Else if method is 'collapse', all the node's neighbors are considered.
 
     :param h: ASH instance
-    :param node_id: Specify the node for which we want to calculate the star homogeneity
-    :param tid: Specify the temporal id
-    :param method: Specify the method to be used in calculating the star profile homogeneity
+    :param node_id: node id
+    :param tid: temporal id
+    :param method: Specify the method to be used in calculating the star profile homogeneity. Options are 'aggregate' or 'collapse'.
     :return: A dictionary with the homogeneity of each attribute
     """
-    star = h.star(node_id, tid=tid)
+    star = h.star(node_id, start=tid)
 
     if method == "aggregate":
         profiles = []
@@ -265,10 +188,9 @@ def star_profile_homogeneity(
             profiles.append(aggr)
 
     elif method == "collapse":
-        nodes = []
-        for hyperedge_id in star:
-            nodes += h.get_hyperedge_nodes(hyperedge_id)
-        profiles = [h.get_node_profile(n, tid) for n in set(nodes)]
+        profiles = [
+            h.get_node_profile(n, tid) for n in set(h.neighbors(node_id, start=tid))
+        ]
     else:
         raise ValueError("method must either be 'aggregate' or 'collapse'")
 
@@ -288,16 +210,12 @@ def star_profile_homogeneity(
 
 def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object:
     """
-    The average_group_degree function calculates the average degree of each group (nodes having the same label in the
-    ASH). The function takes as input an ASH object, and returns a dictionary with keys corresponding to attributes (
-    e.g., 'gender') and values corresponding to dictionaries with keys corresponding to attribute values (e.g.,
-    'male') and values corresponding to the average degree of nodes that have that attribute value.
+    Computes the average degree of each group (nodes having the same label in the attribute)
 
     :param h: ASH instance
+    :param tid: the temporal id
     :param hyperedge_size: Specify the size of the hyperedges
-    :param tid: Specify the temporal id
-    :return: A dictionary of dictionaries containing the average group degree
-
+    :return: A dictionary with attribute names as keys and a dictionary of average degrees for each attribute value
     """
     attributes = h.list_node_attributes(tid=tid, categorical=True)
 
@@ -306,9 +224,9 @@ def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object
         for attribute in attributes
     }
 
-    for n in h.nodes(tid=tid):
+    for n in h.nodes(start=tid):
         for attr_name in attributes:
-            deg = h.degree(n, hyperedge_size=hyperedge_size, tid=tid)
+            deg = h.degree(n, hyperedge_size=hyperedge_size, start=tid)
             attr = h.get_node_attribute(n, attr_name=attr_name, tid=tid)
             group_degrees[attr_name][attr].append(deg)
 
@@ -340,13 +258,16 @@ def attribute_consistency(h: ASH, node: int = None) -> dict:
     else:
         nodes = h.nodes()
     for n in nodes:
-        profile = h.get_node_profile(n)
+        all_profiles = h.get_node_profiles_by_time(n)
         for attr_name in attributes:
-            if profile.has_attribute(attr_name):
-                value = profile.get_attribute(attr_name)
-                labels = list(value.values())
-                consist = 1 - __entropy(labels, base=len(attributes[attr_name]))
-                res[n][attr_name] = consist
-            else:
-                res[n][attr_name] = None
+            labels = []
+            for time, profile in all_profiles.items():
+                if profile.has_attribute(attr_name):
+                    label = profile.get_attribute(attr_name)
+                    labels.append(label)
+
+            consist = 1 - __entropy(labels, base=len(attributes[attr_name]))
+            res[n][attr_name] = consist
+    if node:
+        return res[node]
     return res

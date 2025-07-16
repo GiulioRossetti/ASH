@@ -1,7 +1,11 @@
-import tqdm
+from ash_model.paths.walks import all_shortest_s_walk_lengths, s_components
+from ash_model.utils import hyperedge_most_frequent_node_attribute_value
+from ash_model import ASH
 
-from ash_model.measures.attribute_analysis import hyperedge_aggregate_node_profile
-from ash_model.paths.walks import *
+import networkx as nx
+from itertools import combinations
+from collections import defaultdict
+import tqdm
 
 
 def __label_frequency(
@@ -112,7 +116,7 @@ def hyper_conformity(
     full_res = []
 
     for comp in s_components(h, s):
-        b, he_map = h.induced_hypergraph(comp, keep_attrs=True)
+        b, he_map = h.induced_hypergraph(comp)
 
         g = b.s_line_graph(s=s, start=tid, end=tid)
 
@@ -124,7 +128,7 @@ def hyper_conformity(
 
             if len(alphas) < 1 or len(labels) < 1:
                 raise ValueError(
-                    "At least one value must be specified for both alphas and labels"
+                    "At list one value must be specified for both alphas and labels"
                 )
 
             profiles = []
@@ -137,10 +141,14 @@ def hyper_conformity(
             # hyperedge most frequent label
             for he in b.hyperedges():
                 for label in labels:
-                    v = hyperedge_aggregate_node_profile(
-                        b, he, tid, label
-                    ).get_attribute(label)
-
+                    v = list(
+                        hyperedge_most_frequent_node_attribute_value(
+                            b, he, label, tid
+                        ).keys()
+                    )
+                    if len(v) == 0:
+                        continue
+                    v = v[0]
                     labels_value_frequency[label][v] += 1
                     # annotate the line graph
                     g1.add_node(he, **{label: v})
