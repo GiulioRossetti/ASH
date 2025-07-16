@@ -175,8 +175,7 @@ class TestCliqueProjection(unittest.TestCase):
         G = clique_projection(self.h, start=0, end=0, keep_attrs=True)
         # node attributes should propagate
         for n in G.nodes():
-            self.assertIn("color", G.nodes[n])
-            self.assertEqual(G.nodes[n]["color"], {0: str(n)})
+            self.assertEqual(G.nodes[n][0]["color"], str(n))
 
     def test_by_time(self):
         # add hyperedge at time 1
@@ -222,8 +221,9 @@ class TestBipartiteProjection(unittest.TestCase):
         # only graph-nodes corresponding to ASH nodes get attrs
 
         for n in [1, 2, 3]:
-            self.assertIn("label", G.nodes[n])
-            self.assertEqual(G.nodes[n]["label"], {0: f"N{n}"})
+            attrs = self.h.get_node_attributes(n)
+            attrs["bipartite"] = 0  # add bipartite attr
+            self.assertEqual(G.nodes[n], attrs)
 
     def test_by_time(self):
         self.h.add_hyperedge([3, 4], start=1)

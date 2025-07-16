@@ -63,7 +63,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
         label = a.get_node_attribute(1, attr_name="label")
-        self.assertEqual(label, "A")
+        self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
 
         label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")
@@ -78,7 +78,7 @@ class ASHTestCase(unittest.TestCase):
         self.assertEqual(attr, NProfile(1, **{"label": "A"}))
 
         label = a.get_node_attribute(1, attr_name="label")
-        self.assertEqual(label, "A")
+        self.assertEqual(label, {0: "A", 1: "A", 2: "A"})
 
         label = a.get_node_attribute(1, attr_name="label", tid=0)
         self.assertEqual(label, "A")

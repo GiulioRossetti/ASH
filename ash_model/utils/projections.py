@@ -76,7 +76,6 @@ def bipartite_projection(
             if node in h.nodes():
                 # Copy attributes from ASH node to NetworkX node
                 attrs = h.get_node_attributes(node)
-
                 g.nodes[node].update(attrs)
     return g
 

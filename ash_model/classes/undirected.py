@@ -523,10 +523,17 @@ class ASH:
         If `tid` is None, the attribute will be fetched from the latest time available.
         :param node: Node ID for which to get the attribute.
         :param attr_name: Name of the attribute to retrieve.
-        :param tid: Time ID to filter the attribute. If None, the latest time is considered.
+        :param tid: Time ID to filter the attribute. If None, all time IDs are considered.
         :return: The value of the attribute for the node at the specified time.
         """
-        return self.get_node_profile(node, tid=tid).get_attribute(attr_name)
+
+        if tid is None:
+            return {
+                t: self._node_attrs[node][t].get(attr_name, None)
+                for t in self._node_attrs[node]
+            }
+        else:
+            return self.get_node_attributes(node, tid).get(attr_name, None)
 
     def get_node_attributes(
         self, node: int, tid: Optional[int] = None
@@ -539,7 +546,10 @@ class ASH:
         :return: A dictionary of attributes for the node at the specified time.
         """
 
-        return self.get_node_profile(node, tid).get_attributes()
+        if tid is None:
+            return self._node_attrs[node] if node in self._node_attrs else {}
+        else:
+            return self._node_attrs[node][tid] if tid in self._node_attrs[node] else {}
 
     def list_node_attributes(
         self, categorical: bool = False, tid: Optional[int] = None
@@ -925,7 +935,7 @@ class ASH:
             descr["hedges"][hedge] = edge_data
 
         for node in self.nodes():
-            descr["nodes"][node] = self._node_attrs[node]
+            descr["nodes"][node] = self.get_node_attributes(node)
 
         return descr
 
