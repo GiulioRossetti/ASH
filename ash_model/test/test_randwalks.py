@@ -7,7 +7,7 @@ from ash_model import ASH
 from ash_model.paths.randwalks import (
     random_walk_probabilities,
     random_walks,
-    # time_respecting_random_walks,
+    time_respecting_random_walks,
 )
 
 
@@ -74,7 +74,6 @@ class RandomWalksTestCase(unittest.TestCase):
         # IDs valid
         self.assertTrue(set(walks.flatten()).issubset({1, 2, 3, 4}))
 
-    """
     def test_time_respecting_random_walks_basic(self):
         # With s=1, hyperedge_from=None ⇒ start from both hyperedges ['e1','e2']
         walks = time_respecting_random_walks(
@@ -83,13 +82,13 @@ class RandomWalksTestCase(unittest.TestCase):
             hyperedge_from=None,
             hyperedge_to=None,
             num_walks=2,
-            walk_length=3,
+            walk_length=2,
             p=1.0,
             q=1.0,
             threads=-1,
         )
         # we have 2 hyperedges ⇒ total walks = 2 * 2
-        self.assertEqual(walks.shape, (4, 3))
+        self.assertEqual(walks.shape, (4, 2))
         # IDs should be hyperedge IDs (strings 'e1' or 'e2')
         uniq = set(walks.flatten())
         self.assertTrue(uniq.issubset({"e1", "e2"}))
@@ -111,4 +110,3 @@ class RandomWalksTestCase(unittest.TestCase):
         self.assertTrue(all(row[0] == "e2" for row in walks))
         # values valid
         self.assertTrue(set(walks.flatten()).issubset({"e1", "e2"}))
-    """

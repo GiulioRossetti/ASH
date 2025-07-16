@@ -94,7 +94,6 @@ def random_walks(
     return remapped_walks
 
 
-"""
 def time_respecting_random_walks(
     h: ASH,
     s: int,
@@ -108,7 +107,7 @@ def time_respecting_random_walks(
     q: float = 1.0,
     threads: int = -1,
 ) -> np.ndarray:
-    
+    """
     Generate time-respecting random walks on the hypergraph.
     :param h: The ASH object.
     :param s: the minimum hyperedge overlap size for subsequent steps.
@@ -122,45 +121,51 @@ def time_respecting_random_walks(
     :param q: In-out parameter (higher means more likely to explore new nodes).
     :param threads: Number of threads to use for parallel processing.
     :return: Sparse matrix representing the transition probabilities of the random walks.
-    
+    """
 
     if isinstance(hyperedge_from, str):
         hyperedge_from = [hyperedge_from]  # Convert to list if a single edge
     elif hyperedge_from is None:
         hyperedge_from = h.hyperedges(start=start, end=end, as_ids=True)
 
-    G = nx.DiGraph()
+    G_nx = nx.DiGraph()
+    dags = []
     for he in hyperedge_from:
         dag, _, _ = temporal_s_dag(h, s, he, hyperedge_to, start=start, end=end)
-        G.add_edges_from(dag.edges(data=True))
+        dags.append(dag)
+    G_nx = nx.compose_all(dags)
 
     # relabel nodes
-    node_mapping = {node: idx for idx, node in enumerate(G.nodes())}
-    G = nx.relabel_nodes(G, node_mapping)
+    node_mapping = {old: new for new, old in enumerate(G_nx.nodes())}
+    inv_mapping = {new: old for old, new in node_mapping.items()}
+    G_nx = nx.relabel_nodes(G_nx, node_mapping)
 
-    adj = nx.to_numpy_array(
-        G, nodelist=sorted(G.nodes()), dtype=float
-    )  # Convert to numpy array
-    adj = sparse.csr_matrix(adj)  # Convert to sparse matrix
+    # Build sparse adjacency matrix
+    adj = nx.to_numpy_array(G_nx, nodelist=sorted(G_nx.nodes()), dtype=float)
+    adj = sparse.csr_matrix(adj)
 
-    G = cg.csrgraph(adj, threads=threads)
+    # Initialize csrgraph
+    G_cg = cg.csrgraph(adj, threads=threads)
 
-    if hyperedge_from is None:
+    # Prepare start_nodes: either None (→ all nodes) or an int64 numpy array
+    raw_start = [node_mapping[he] for he in hyperedge_from if he in node_mapping]
+    if not raw_start:
         start_nodes = None
     else:
-        start_nodes = [
-            node_mapping[node] for node in hyperedge_from if node in node_mapping
-        ]
-    allwalks = G.random_walks(
-        walklen=walk_length,  # length of the walks
-        epochs=num_walks,  # how many times to start a walk from each node
+        start_nodes = np.array(raw_start, dtype=np.int64)
+
+    # Run the walks
+    allwalks = G_cg.random_walks(
+        walklen=walk_length,
+        epochs=num_walks,
         start_nodes=start_nodes,
-        return_weight=1 / p,
-        neighbor_weight=1 / q,
+        return_weight=1.0 / p,
+        neighbor_weight=1.0 / q,
     )
-    # Remap node indices back to original node IDs
-    remapped_walks = np.array(
-        [[list(node_mapping.keys())[idx] for idx in walk] for walk in allwalks]
+
+    # Map back to original node IDs
+    remapped = np.array(
+        [[inv_mapping[idx] for idx in walk] for walk in allwalks], dtype=object
     )
-    return remapped_walks
-"""
+
+    return remapped
