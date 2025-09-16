@@ -1,6 +1,7 @@
 import gzip
 import json
 from collections import defaultdict
+from typing import List, Dict, Tuple, Any, Optional
 
 from ash_model import ASH, NProfile
 
@@ -13,6 +14,8 @@ __all__ = [
     "read_sh_from_csv",
     "write_ash_to_json",
     "read_ash_from_json",
+    "write_hif",
+    "read_hif",
 ]
 
 
@@ -266,5 +269,166 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
                 }
 
                 h.add_hyperedge(edge_data["nodes"], start=t, **kwargs)
+
+    return h
+
+
+def __to_hif(h: ASH, metadata: Optional[Dict[str, Any]] = None) -> None:
+
+    hif: Dict[str, Any] = {}
+    hif["network-type"] = "undirected"
+    if metadata is not None:
+        hif["metadata"] = metadata
+
+    # --- Incidences: one record per node–edge membership -------------
+    incidences: List[Dict[str, Any]] = []
+    for hid in h.hyperedges():
+        weight = h.get_hyperedge_weight(hid)
+        for n in h.get_hyperedge_nodes(hid):
+            rec = {"node": n, "edge": hid}
+            if weight != 1:
+                rec["weight"] = weight
+            incidences.append(rec)
+    hif["incidences"] = incidences
+
+    # --- Nodes: include time‐varying attrs as intervals ---------------
+    nodes_list: List[Dict[str, Any]] = []
+    # first, get full set of node‐attr names
+    all_node_attrs = set(h.list_node_attributes().keys())
+    for n in h.nodes():
+        attrs: Dict[str, Any] = {}
+        # for each attr, build list of (start, end, value) intervals
+        for attr in all_node_attrs:
+            time_values = h.get_node_attribute(n, attr)  # {t: value}
+            if not any(v is not None for v in time_values.values()):
+                continue
+            # collapse into contiguous spans with same value
+            times = sorted(time_values.keys())
+            spans: List[Tuple[int, int, Any]] = []
+            s = times[0]
+            e = s
+            cur = time_values[s]
+            for t in times[1:]:
+                v = time_values[t]
+                if v == cur and t == e + 1:
+                    e = t
+                else:
+                    spans.append((s, e, cur))
+                    s, e, cur = t, t, v
+            spans.append((s, e, cur))
+            attrs[attr] = spans
+        # also include node presence intervals explicitly
+        attrs["_presence"] = h.node_presence(n, as_intervals=True)
+        nodes_list.append({"node": n, "attrs": attrs})
+    hif["nodes"] = nodes_list
+
+    # --- Edges: existing attrs + temporal presence ------------------
+    edges_list: List[Dict[str, Any]] = []
+    for hid in h.hyperedges():
+        attrs = dict(h.get_hyperedge_attributes(hid))
+        # embed temporal presence as intervals
+        attrs["_presence"] = h.hyperedge_presence(hid, as_intervals=True)  # type: ignore[arg-type]
+        edges_list.append({"edge": hid, "attrs": attrs})
+    hif["edges"] = edges_list
+
+    return hif
+
+
+def __from_hif(data: dict) -> ASH:
+    """
+    Convert HIF data dictionary to ASH object.
+
+    :param data: Dictionary containing HIF data
+    :return: ASH object
+    """
+    h = ASH()
+
+    # Process nodes and their attributes
+    if "nodes" in data:
+        for node_data in data["nodes"]:
+            node_id = node_data["node"]
+            attrs = node_data.get("attrs", {})
+
+            # Process each attribute (except _presence which is handled separately)
+            for attr_name, spans in attrs.items():
+                if attr_name == "_presence":
+                    continue  # Skip presence, it's handled by hyperedge creation
+
+                # spans is a list of (start, end, value) tuples
+                for start, end, value in spans:
+                    for t in range(start, end + 1):
+                        # Set node attribute for each timestamp
+                        if not hasattr(h, "_node_attrs"):
+                            h._node_attrs = defaultdict(lambda: defaultdict(dict))
+                        h._node_attrs[node_id][t][attr_name] = value
+
+    # Process hyperedges
+    if "edges" in data:
+        for edge_data in data["edges"]:
+            edge_id = edge_data["edge"]
+            attrs = edge_data.get("attrs", {})
+
+            # Get presence intervals
+            presence_intervals = attrs.get("_presence", [])
+
+            # Get other attributes (excluding _presence)
+            edge_attrs = {k: v for k, v in attrs.items() if k != "_presence"}
+
+            # We need to get the nodes for this edge from incidences
+            edge_nodes = []
+            if "incidences" in data:
+                edge_nodes = [
+                    inc["node"] for inc in data["incidences"] if inc["edge"] == edge_id
+                ]
+                # Remove duplicates while preserving order
+                seen = set()
+                edge_nodes = [x for x in edge_nodes if not (x in seen or seen.add(x))]
+
+            # Add hyperedge for each presence interval
+            for start, end in presence_intervals:
+                h.add_hyperedge(edge_nodes, start=start, end=end, **edge_attrs)
+
+    return h
+
+
+def write_hif(
+    h: ASH, path: str, metadata: Optional[Dict[str, Any]] = None, compress: bool = False
+) -> None:
+    """
+    Write an ASH object to a HIF file.
+
+    :param h: ASH object to write.
+    :param path: Path to the HIF file.
+    :param compress: If True, the file will be compressed using gzip.
+    :return: None
+    """
+    hif = __to_hif(h, metadata)
+
+    if compress:
+        op = gzip.open
+    else:
+        op = open
+
+    with op(path, "wt") as f:
+        json.dump(hif, f, indent=2)
+
+
+def read_hif(path: str, compress: bool = False) -> ASH:
+    """
+    Read an ASH object from a HIF file.
+
+    :param path: Path to the HIF file.
+    :param compress: If True, the file is assumed to be compressed using gzip.
+    :return: ASH object
+    """
+    if compress:
+        op = gzip.open
+    else:
+        op = open
+
+    with op(path, "rt") as f:
+        data = json.loads(f.read())
+
+    h = __from_hif(data)
 
     return h

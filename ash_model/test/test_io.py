@@ -16,6 +16,8 @@ from ash_model.readwrite import (
     read_sh_from_csv,
     write_ash_to_json,
     read_ash_from_json,
+    read_hif,
+    write_hif,
 )
 
 
@@ -178,6 +180,81 @@ class IOTestCase(unittest.TestCase):
             read_sh_from_csv("no_such_file.csv")
         with self.assertRaises(FileNotFoundError):
             read_ash_from_json("no_such_file.json")
+
+    def test_hif(self):
+        import fastjsonschema
+        import json
+        import requests
+
+        url = "https://raw.githubusercontent.com/pszufe/HIF-standard/main/schemas/hif_schema.json"
+        schema = requests.get(url).json()
+        validator = fastjsonschema.compile(schema)
+
+        # write
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.close()
+
+        write_hif(self.a, tf.name)
+
+        with open(tf.name) as tmp:
+            data = json.loads(tmp.read())
+
+        try:
+            validator(data)
+        except Exception:
+            raise ValueError("invalid hif")
+
+        a2 = read_hif(tf.name)
+
+        # check equivalence
+        try:
+            # same nodes
+            self.assertCountEqual(a2.nodes(), self.a.nodes())
+
+            # same hyperedges (by node sets, since edge IDs may differ)
+            sets_a = [
+                frozenset(self.a.get_hyperedge_nodes(h)) for h in self.a.hyperedges()
+            ]
+            sets_a2 = [frozenset(a2.get_hyperedge_nodes(h)) for h in a2.hyperedges()]
+            self.assertCountEqual(sets_a2, sets_a)
+
+            # same temporal snapshots
+            self.assertEqual(
+                sorted(a2.temporal_snapshots_ids()),
+                sorted(self.a.temporal_snapshots_ids()),
+            )
+
+            # check hyperedge presence times match for corresponding edges
+            for h1 in self.a.hyperedges():
+                nodes1 = frozenset(self.a.get_hyperedge_nodes(h1))
+                presence1 = frozenset(self.a.hyperedge_presence(h1))
+
+                # find corresponding edge in a2
+                found = False
+                for h2 in a2.hyperedges():
+                    nodes2 = frozenset(a2.get_hyperedge_nodes(h2))
+                    if nodes1 == nodes2:
+                        presence2 = frozenset(a2.hyperedge_presence(h2))
+                        if presence1 == presence2:
+                            # check edge attributes match
+                            weight1 = self.a.get_hyperedge_weight(h1)
+                            weight2 = a2.get_hyperedge_weight(h2)
+                            self.assertEqual(weight1, weight2)
+                            found = True
+                            break
+
+                self.assertTrue(found, f"Could not find matching edge for {nodes1}")
+
+            # check node profiles are preserved
+            for n in self.a.nodes():
+                for t in self.a.node_presence(n):
+                    if n in a2.nodes() and t in a2.node_presence(n):
+                        p1 = self.a.get_node_profile(n, t)
+                        p2 = a2.get_node_profile(n, t)
+                        self.assertEqual(p1, p2)
+
+        finally:
+            os.remove(tf.name)
 
 
 if __name__ == "__main__":
