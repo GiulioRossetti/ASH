@@ -1,161 +1,127 @@
-from ash_model import ASH
+from typing import Any, Dict, List, Optional, Tuple, Union
+from collections import namedtuple
+
 import numpy as np
 from scipy import sparse
-import csrgraph as cg
-from ash_model.paths import temporal_s_dag
 import networkx as nx
+import csrgraph as cg
 
-from typing import Tuple, Dict, Union
+from ash_model import ASH
+from ash_model.paths import temporal_s_dag
+
+TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
+TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
+
+
+def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
+    """
+    Normalize each row of a numpy matrix so that rows sum to 1.
+    """
+    row_sums = matrix.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1.0
+    return matrix / row_sums
+
+
+def _map_to_indices(items: List[Any]) -> Tuple[Dict[Any, int], Dict[int, Any]]:
+    """
+    Create forward and reverse mappings between items and integer indices.
+    """
+    fwd = {item: idx for idx, item in enumerate(items)}
+    rev = {idx: item for item, idx in fwd.items()}
+    return fwd, rev
+
+
+def _build_node_transition_matrix(
+    h: ASH, start: Optional[int], end: Optional[int]
+) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
+    """
+    Construct transition probability matrix between nodes in hyperedges.
+    """
+    nodes = list(h.nodes(start=start, end=end))
+    n2idx, _ = _map_to_indices(nodes)
+    n = len(nodes)
+    T = np.zeros((n, n), dtype=float)
+
+    for edge in h.hyperedges(start=start, end=end, as_ids=False):
+        vertices = list(edge)
+        weight = len(vertices) - 1
+        for u in vertices:
+            for v in vertices:
+                if u != v:
+                    T[n2idx[u], n2idx[v]] += weight
+
+    T = _normalize_rows(T)
+    return sparse.csr_matrix(T), n2idx
+
+
+def _build_edge_transition_matrix(
+    h: ASH, start: Optional[int], end: Optional[int]
+) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
+    """
+    Construct transition probability matrix on the line graph of hyperedges.
+    """
+    G = h.s_line_graph(start=start, end=end)
+    nodes = sorted(G.nodes())
+    n2idx, _ = _map_to_indices(nodes)
+
+    A = nx.to_numpy_array(G, nodelist=nodes, dtype=float)
+    A = _normalize_rows(A)
+    return sparse.csr_matrix(A), n2idx
 
 
 def random_walk_probabilities(
-    h: ASH, start: int = None, end: int = None, edge: bool = False
-) -> Tuple[sparse.csr_matrix, Dict[int, int]]:
+    h: ASH,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edge: bool = False,
+) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
     """
-    Calculate the transition probabilities for random walks on the hypergraph.
-    :param h: The ASH object.
-    :param start: Lower temporal bound for the walks.
-    :param end: Upper temporal bound for the walks.
-    :param edge:
-    ,mn
+    Compute CSR transition matrix and index mapping for nodes or hyperedges.
     """
     if edge:
-        g = h.s_line_graph(start=start, end=end)
-        T = nx.to_numpy_array(g, nodelist=sorted(g.nodes()), dtype=float)
-        T = T / T.sum(axis=1, keepdims=True)
-
-        n2idx = {node: i for i, node in enumerate(g.nodes())}
-        return sparse.csr_matrix(T), n2idx
-
-    nnodes = h.number_of_nodes(start=start, end=end)
-    T = np.zeros((nnodes, nnodes), dtype=float)
-
-    n2idx = {node: i for i, node in enumerate(h.nodes(start=start, end=end))}
-
-    for edge in h.hyperedges(start=start, end=end, as_ids=False):
-        edge = list(edge)  # Convert frozen set to list for indexing
-        for i_ in range(len(edge)):
-            i = n2idx[edge[i_]]
-            for j_ in range(i_ + 1, len(edge)):
-                j = n2idx[edge[j_]]
-                T[i, j] += len(edge) - 1
-                T[j, i] += len(edge) - 1
-    T = np.matrix(T)
-    T = T / T.sum(axis=1)
-
-    return sparse.csr_matrix(T), n2idx
+        return _build_edge_transition_matrix(h, start, end)
+    return _build_node_transition_matrix(h, start, end)
 
 
 def random_walks(
     h: ASH,
-    start_from: Union[int, str, list] = None,
+    start_from: Union[int, str, List[Union[int, str]], None] = None,
     num_walks: int = 100,
     walk_length: int = 10,
     p: float = 1.0,
     q: float = 1.0,
     edge: bool = False,
-    start: int = None,
-    end: int = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
     threads: int = -1,
 ) -> np.ndarray:
     """
-    Generate random walks on the hypergraph.
+    Generate biased random walks on ASH hypergraph (node or edge graph).
 
-    :param h: The ASH object.
-    :param start: Lower temporal bound for the walks.
-    :param end: Upper temporal bound for the walks.
-    :param num_walks: Number of random walks to generate.
-    :param walk_length: Length of each walk.
-    :param p: Return parameter (higher means less likely to return to the previous node).
-    :param q: In-out parameter (higher means more likely to explore new nodes).
-    :return: Sparse matrix representing the transition probabilities of the random walks.
+    :param h: ASH hypergraph object
+    :param start_from: Node or list of nodes to start walks from
+    :param num_walks: Number of walks per start node
+    :param walk_length: Length of each walk
+    :param p: Return parameter
+    :param q: In-out parameter
+    :param edge: If True, walk on hyperedge line graph
+    :param start: Lower temporal bound
+    :param end: Upper temporal bound
+    :param threads: Parallel threads for random walk computation
+    :returns: Array of walks (each walk is a list of original node/edge IDs)
     """
+    T_csr, n2idx = random_walk_probabilities(h, start, end, edge=edge)
+    idx2n = {idx: node for node, idx in n2idx.items()}
+    G = cg.csrgraph(T_csr, threads=threads)
 
-    T, n2idx = random_walk_probabilities(h, start, end, edge=edge)
-    idx2n = {v: k for k, v in n2idx.items()}  # idx to node
-    G = cg.csrgraph(T, threads=threads)
-    if isinstance(start_from, (int, str)):
-        start_from = n2idx[start_from]  # Convert node ID to index
-    elif isinstance(start_from, list):
-        start_from = [
-            n2idx[node] for node in start_from
-        ]  # Convert list of node IDs to indices
-    else:
-        start_from = None  # Start from all nodes
-    all_walks = G.random_walks(
-        walklen=walk_length,  # length of the walks
-        epochs=num_walks,  # how many times to start a walk from each node
-        start_nodes=start_from,  # starting nodes
-        return_weight=1 / p,
-        neighbor_weight=1 / q,
-    )
-    # Remap node indices back to original node IDs
-    remapped_walks = np.array([[idx2n[idx] for idx in walk] for walk in all_walks])
-    return remapped_walks
-
-
-def time_respecting_random_walks(
-    h: ASH,
-    s: int,
-    hyperedge_from: str = None,  # or list[str],
-    hyperedge_to: str = None,
-    start: int = None,
-    end: int = None,
-    num_walks: int = 100,
-    walk_length: int = 10,
-    p: float = 1.0,
-    q: float = 1.0,
-    threads: int = -1,
-) -> np.ndarray:
-    """
-    Generate time-respecting random walks on the hypergraph.
-    :param h: The ASH object.
-    :param s: the minimum hyperedge overlap size for subsequent steps.
-    :param hyperedge_from: The hyperedge from which to start the walks.
-    :param hyperedge_to: The hyperedge to which the walks should go.
-    :param start: Lower temporal bound for the walks.
-    :param end: Upper temporal bound for the walks.
-    :param num_walks: Number of random walks to generate.
-    :param walk_length: Length of each walk.
-    :param p: Return parameter (higher means less likely to return to the previous node).
-    :param q: In-out parameter (higher means more likely to explore new nodes).
-    :param threads: Number of threads to use for parallel processing.
-    :return: Sparse matrix representing the transition probabilities of the random walks.
-    """
-
-    if isinstance(hyperedge_from, str):
-        hyperedge_from = [hyperedge_from]  # Convert to list if a single edge
-    elif hyperedge_from is None:
-        hyperedge_from = h.hyperedges(start=start, end=end, as_ids=True)
-
-    G_nx = nx.DiGraph()
-    dags = []
-    for he in hyperedge_from:
-        dag, _, _ = temporal_s_dag(h, s, he, hyperedge_to, start=start, end=end)
-        dags.append(dag)
-    G_nx = nx.compose_all(dags)
-
-    # relabel nodes
-    node_mapping = {old: new for new, old in enumerate(G_nx.nodes())}
-    inv_mapping = {new: old for old, new in node_mapping.items()}
-    G_nx = nx.relabel_nodes(G_nx, node_mapping)
-
-    # Build sparse adjacency matrix
-    adj = nx.to_numpy_array(G_nx, nodelist=sorted(G_nx.nodes()), dtype=float)
-    adj = sparse.csr_matrix(adj)
-
-    # Initialize csrgraph
-    G_cg = cg.csrgraph(adj, threads=threads)
-
-    # Prepare start_nodes: either None (→ all nodes) or an int64 numpy array
-    raw_start = [node_mapping[he] for he in hyperedge_from if he in node_mapping]
-    if not raw_start:
+    if start_from is None:
         start_nodes = None
     else:
-        start_nodes = np.array(raw_start, dtype=np.int64)
+        if not isinstance(start_from, list):
+            start_from = [start_from]
+        start_nodes = [n2idx[item] for item in start_from]
 
-    # Run the walks
-    allwalks = G_cg.random_walks(
+    raw = G.random_walks(
         walklen=walk_length,
         epochs=num_walks,
         start_nodes=start_nodes,
@@ -163,9 +129,113 @@ def time_respecting_random_walks(
         neighbor_weight=1.0 / q,
     )
 
-    # Map back to original node IDs
-    remapped = np.array(
-        [[inv_mapping[idx] for idx in walk] for walk in allwalks], dtype=object
+    return np.array([[idx2n[idx] for idx in walk] for walk in raw])
+
+
+def time_respecting_random_walks(
+    h: ASH,
+    s: int,
+    hyperedge_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
+    hyperedge_to: Optional[Union[int, str]] = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    num_walks: int = 100,
+    walk_length: int = 10,
+    p: float = 1.0,
+    q: float = 1.0,
+    threads: int = -1,
+) -> Dict[Tuple[str, str], List[List[TemporalEdge]]]:
+    """
+    Perform biased, time-respecting random s-walks on a temporal hypergraph.
+
+    :param h: ASH hypergraph object
+    :param s: Minimum s-incidence threshold
+    :param hyperedge_from: Hyperedge ID(s) to start walks from
+    :param hyperedge_to: Hyperedge ID to stop walks at (optional)
+    :param start: Lower temporal bound
+    :param end: Upper temporal bound
+    :param num_walks: Number of walks per start edge
+    :param walk_length: Maximum steps per walk
+    :param p: Return parameter
+    :param q: In-out parameter
+    :param threads: Parallel threads
+    :returns: Mapping (start_edge, end_edge) -> list of walks (temporal edge sequences)
+    """
+    # Build temporal DAG
+    DAG, sources, _ = temporal_s_dag(
+        h, s, hyperedge_from, hyperedge_to, start=start, end=end
     )
 
-    return remapped
+    # Index mapping
+    nodes = list(DAG.nodes())
+    n2idx, idx2n = _map_to_indices(nodes)
+
+    # CSR adjacency
+    rows, cols, data = [], [], []
+    for u, v, attrs in DAG.edges(data=True):
+        rows.append(n2idx[u])
+        cols.append(n2idx[v])
+        data.append(attrs.get("weight", 1.0))
+    T_csr = sparse.csr_matrix((data, (rows, cols)), shape=(len(nodes), len(nodes)))
+
+    G = cg.csrgraph(T_csr, threads=threads)
+
+    # Determine start indices
+    if hyperedge_from is None:
+        start_indices = [n2idx[n] for n in sources]
+    else:
+        if not isinstance(hyperedge_from, list):
+            hyperedge_from = [hyperedge_from]
+        start_indices = [
+            idx
+            for n, idx in n2idx.items()
+            if n.split("_")[0] in map(str, hyperedge_from)
+        ]
+
+    raw_walks = G.random_walks(
+        walklen=walk_length,
+        epochs=num_walks,
+        start_nodes=start_indices,
+        return_weight=1.0 / p,
+        neighbor_weight=1.0 / q,
+    )
+
+    # Aggregate walks by (start_edge, end_edge)
+    from collections import defaultdict
+
+    res: Dict[Tuple[str, str], List[List[TemporalEdge]]] = defaultdict(list)
+    for seq in raw_walks:
+        path: List[TemporalEdge] = []
+        prev: Optional[int] = None
+        for idx in seq:
+            if prev is None:
+                prev = idx
+                continue
+            u_node = idx2n[prev]
+            v_node = idx2n[idx]
+            try:
+                fr, ft = u_node.split("_")
+                to, tt = v_node.split("_")
+            except ValueError:
+                """
+                report = ""
+                report += f"u_node: {u_node}\n"
+                report += f"v_node: {v_node}\n"
+                report += f"prev: {prev}\n"
+                report += f"idx: {idx}\n"
+                report += f"seq: {seq}\n"
+                report += f"nodes: {DAG.nodes()}\n"
+                raise ValueError(f"Unexpected node format in DAG: {report}")
+                """
+                continue
+
+            weight = DAG[u_node][v_node].get("weight", 1.0)
+            path.append(TemporalEdge(fr, to, weight, int(tt)))
+            prev = idx
+            if hyperedge_to and to == str(hyperedge_to):
+                break
+        if path:
+            key = (path[0].fr, path[-1].to)
+            res[key].append(path)
+
+    return dict(res)

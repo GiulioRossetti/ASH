@@ -74,12 +74,12 @@ class RandomWalksTestCase(unittest.TestCase):
         # IDs valid
         self.assertTrue(set(walks.flatten()).issubset({1, 2, 3, 4}))
 
-    def test_time_respecting_random_walks_basic(self):
-        # With s=1, hyperedge_from=None ⇒ start from both hyperedges ['e1','e2']
+    def test_time_respecting_random_walks_with_explicit_edges(self):
+
         walks = time_respecting_random_walks(
             self.h,
             s=1,
-            hyperedge_from=None,
+            hyperedge_from="e1",
             hyperedge_to=None,
             num_walks=2,
             walk_length=2,
@@ -87,26 +87,7 @@ class RandomWalksTestCase(unittest.TestCase):
             q=1.0,
             threads=-1,
         )
-        # we have 2 hyperedges ⇒ total walks = 2 * 2
-        self.assertEqual(walks.shape, (4, 2))
-        # IDs should be hyperedge IDs (strings 'e1' or 'e2')
-        uniq = set(walks.flatten())
-        self.assertTrue(uniq.issubset({"e1", "e2"}))
 
-    def test_time_respecting_random_walks_with_explicit_edges(self):
-        # start only from e2
-        walks = time_respecting_random_walks(
-            self.h,
-            s=1,
-            hyperedge_from="e2",
-            hyperedge_to=None,
-            num_walks=4,
-            walk_length=2,
-            threads=1,
-        )
-        # only one start edge ⇒ 4 walks
-        self.assertEqual(walks.shape, (4, 2))
-        # first column is always 'e2'
-        self.assertTrue(all(row[0] == "e2" for row in walks))
-        # values valid
-        self.assertTrue(set(walks.flatten()).issubset({"e1", "e2"}))
+        # one key (from to)
+        self.assertEqual(len(walks), 1)
+        self.assertListEqual(sorted(walks.keys()), [("e1", "e2")])

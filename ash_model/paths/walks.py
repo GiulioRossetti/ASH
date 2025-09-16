@@ -188,6 +188,8 @@ def all_shortest_s_walks(
     hyperedge_a: Optional[str] = None,
     start: Optional[int] = None,
     end: Optional[int] = None,
+    weight: bool = False,
+    edge: bool = True,
 ) -> Union[List[str], Dict[str, List[str]]]:
     """
     Retrieve the shortest s-walk(s) in the hypergraph or its dual.
@@ -203,7 +205,7 @@ def all_shortest_s_walks(
                          {target: path} if one endpoint, or nested dict if neither.
     """
 
-    return shortest_s_walk(h, s, hyperedge_a, None, start, end)
+    return shortest_s_walk(h, s, hyperedge_a, None, start, end, weight, edge)
 
 
 def all_shortest_s_walk_lengths(
