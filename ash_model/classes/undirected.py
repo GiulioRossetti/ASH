@@ -573,9 +573,13 @@ class ASH:
         """
 
         if tid is None:
-            return self._node_attrs[node] if node in self._node_attrs else {}
+            return dict(self._node_attrs[node]) if node in self._node_attrs else {}
         else:
-            return self._node_attrs[node][tid] if tid in self._node_attrs[node] else {}
+            return (
+                dict(self._node_attrs[node][tid])
+                if tid in self._node_attrs[node]
+                else {}
+            )
 
     def list_node_attributes(
         self, categorical: bool = False, tid: Optional[int] = None
@@ -603,7 +607,7 @@ class ASH:
                 set,
                 {k: v for k, v in attributes.items() if isinstance(next(iter(v)), str)},
             )
-        return attributes
+        return dict(attributes)
 
     def get_hyperedge_attribute(self, hyperedge_id: str, attribute_name: str) -> Any:
         """
@@ -632,7 +636,7 @@ class ASH:
         """
         if hyperedge_id is None:
             return {he: attrs for he, attrs in self._edge_attributes.items()}
-        return self._edge_attributes[hyperedge_id]
+        return dict(self._edge_attributes[hyperedge_id])
 
     def list_hyperedge_attributes(
         self, categorical: bool = False
@@ -656,7 +660,7 @@ class ASH:
                 set,
                 {k: v for k, v in attributes.items() if isinstance(next(iter(v)), str)},
             )
-        return attributes
+        return dict(attributes)
 
     def get_hyperedge_weight(self, hyperedge_id: str) -> Union[int, float]:
         """
