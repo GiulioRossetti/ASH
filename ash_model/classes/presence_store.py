@@ -103,7 +103,7 @@ class DensePresenceStore(defaultdict, PresenceStore):
 
 
 class _SnapshotMutable(set):
-    """A *mutable* view returned by :pymeth:`IntervalPresenceStore.setdefault`."""
+    """A *mutable* view returned by :meth:`IntervalPresenceStore.setdefault`."""
 
     __slots__ = ("_store", "_time")
 
@@ -135,9 +135,9 @@ class IntervalPresenceStore(PresenceStore):
 
     Internally we keep:
 
-    * ``_intervals`` – mapping ``id → List[(start, end)]`` (sorted, disjoint).
-    * ``_time_counts`` – small helper ``time → #ids alive`` so that
-      :pymeth:`keys` is O(1) instead of scanning every interval on demand.
+    ``_intervals`` – mapping ``id → List[(start, end)]`` (sorted, disjoint).
+    ``_time_counts`` – small helper ``time → #ids alive`` so that :meth:`keys` is O(1) instead of scanning every interval on demand.
+
     """
 
     def __init__(self):

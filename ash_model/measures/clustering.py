@@ -23,6 +23,7 @@ def s_local_clustering_coefficient(
     :param hyperedge_id: identifier of the hyperedge in the line graph
     :param start:        optional start time (inclusive)
     :param end:          optional end time (inclusive)
+
     :return:             local clustering coefficient in [0,1]
     """
     # Build the s-overlap line graph once
@@ -55,6 +56,7 @@ def average_s_local_clustering_coefficient(
     :param s:     minimum hyperedge overlap size for projection
     :param start: optional start time (inclusive)
     :param end:   optional end time (inclusive)
+
     :return:      average local clustering coefficient in [0,1], or 0 if no nodes
     """
     lg = h.s_line_graph(s, start, end)
@@ -79,6 +81,7 @@ def s_intersections(
     :param s:     minimum hyperedge overlap size
     :param start: optional start time (inclusive)
     :param end:   optional end time (inclusive)
+
     :return:      number of intersections of size >= s
     """
     return h.s_line_graph(s, start, end).number_of_edges()
@@ -98,6 +101,7 @@ def inclusiveness(
     :param h:      an ASH instance
     :param start:  optional start time (inclusive)
     :param end:    optional end time (inclusive)
+
     :return:       a float in [0,1], or 0.0 if there are no hyperedges
     """
     node_sets = [set(he) for he in h.hyperedges(start, end, as_ids=False)]

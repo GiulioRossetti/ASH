@@ -122,6 +122,7 @@ def time_respecting_s_walks(
     :param start: First snapshot to include.
     :param end: Last snapshot to include.
     :param sample: Fraction of source-target pairs to sample (0 < sample <= 1).
+
     :returns: Mapping (start_edge, end_edge) -> list of walks (TemporalEdge lists).
     """
     DAG, sources, targets = temporal_s_dag(
@@ -181,6 +182,7 @@ def all_time_respecting_s_walks(
     :param start: Earliest snapshot to include.
     :param end: Latest snapshot to include.
     :param sample: Fraction of source-target samples per origin.
+
     :returns: Mapping (origin_edge, destination_edge) -> list of walks.
     """
     res = {}
@@ -205,6 +207,7 @@ def annotate_walks(paths: list) -> dict:
     Annotate a list of s-walks with standard path metrics.
 
     :param paths: The walks to classify.
+
     :returns: Dictionary of metric names to lists of walks.
     """
     metrics = []
@@ -273,6 +276,7 @@ def walk_length(path: list) -> int:
     Compute the number of edges in a temporal walk.
 
     :param path: The walk to measure.
+
     :returns: Number of steps in the walk.
     """
     return len(path)
@@ -283,6 +287,7 @@ def walk_duration(path: list) -> int:
     Compute the duration of a temporal walk.
 
     :param path: The walk to measure.
+
     :returns: Time difference between first and last edge.
     """
     return int(path[-1].tid) - int(path[0].tid)
@@ -293,6 +298,7 @@ def walk_weight(path: list) -> int:
     Compute the total weight of a temporal walk.
 
     :param path: The walk to measure.
+
     :returns: Cumulative weight of the walk.
     """
     return sum(p.weight for p in path)

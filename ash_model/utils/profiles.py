@@ -15,6 +15,7 @@ def aggregate_node_profile(
     :param node: The node id
     :param categorical_aggr: The aggregation method for categorical attributes. Options: "mode", "first", "last"
     :param numerical_aggr: The aggregation method for numerical attributes. Options: "mean", "median", "first", "last"
+
     :return: The aggregated profile of the node
     """
     name_to_func = {
@@ -55,6 +56,7 @@ def hyperedge_most_frequent_node_attribute_value(
     :param hyperedge_id: The hyperedge id
     :param attr_name: The attribute name to consider
     :param tid: The temporal id. If None, considers all time points
+
     :return: A dictionary with the most frequent value of the attribute in the hyperedge nodes
     """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
@@ -100,6 +102,7 @@ def hyperedge_aggregate_node_profile(
     :param attr_name: The attribute name to aggregate. If None, all attributes are aggregated
     :param categorical_aggr: The aggregation method for categorical attributes. Options: "mode", "first", "last"
     :param numerical_aggr: The aggregation method for numerical attributes. Options: "mean", "median", "first", "last"
+
     :return: The aggregated profile of the hyperedge nodes
     """
     name_to_func = {

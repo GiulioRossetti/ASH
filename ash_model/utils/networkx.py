@@ -8,6 +8,7 @@ from ash_model import ASH, NProfile
 def _validate_graph(graph: nx.Graph) -> None:
     """
     Ensure the input is an undirected NetworkX Graph.
+
     :raises TypeError: if not a networkx.Graph instance.
     """
     if not isinstance(graph, nx.Graph):
@@ -31,14 +32,14 @@ def _add_nodes(
     :param end: Optional end time for node presence.
     :param keep_attrs: If True, preserves original node attributes.
     """
-    
+
     if not bipartite:
-        node_data = graph.nodes(data=True) 
+        node_data = graph.nodes(data=True)
     else:
         # For bipartite graphs, we only want the nodes from one partition
         nodes, _ = nx.algorithms.bipartite.sets(graph)
         node_data = ((node, graph.nodes[node]) for node in nodes)
-    
+
     for node, data in node_data:
         if keep_attrs:
             attrs = copy.copy(data)
@@ -79,6 +80,7 @@ def from_networkx_graph(
     :param start: Start time of hyperedges and nodes.
     :param end: Optional end time of hyperedges and nodes.
     :param keep_attrs: If True, node attributes are preserved.
+
     :return: Populated ASH object.
     """
     _validate_graph(graph)
@@ -99,6 +101,7 @@ def from_networkx_graph_list(
 
     :param graphs: Sequence of undirected NetworkX Graphs.
     :param keep_attrs: If True, node attributes are preserved.
+
     :return: Populated ASH with hyperedges from each snapshot.
     """
     ash = ASH()
@@ -120,6 +123,7 @@ def from_networkx_maximal_cliques(
     :param graph: Undirected NetworkX Graph.
     :param start: Start time of clique hyperedges.
     :param end: Optional end time of clique hyperedges.
+
     :return: ASH object with each maximal clique as a hyperedge.
     """
     _validate_graph(graph)
@@ -130,19 +134,20 @@ def from_networkx_maximal_cliques(
             ash.add_hyperedge(clique, start=start, end=end)
     # add all nodes with profiles
     for node, data in graph.nodes(data=True):
-        ash.add_node(node, start=start, end=end, attr_dict=NProfile(node, **copy.copy(data)))
+        ash.add_node(
+            node, start=start, end=end, attr_dict=NProfile(node, **copy.copy(data))
+        )
     return ash
 
 
-def from_networkx_maximal_cliques_list(
-    graphs: Sequence[nx.Graph]
-) -> ASH:
+def from_networkx_maximal_cliques_list(graphs: Sequence[nx.Graph]) -> ASH:
     """
     Convert maximal cliques across time from a list of NetworkX Graphs into an ASH.
 
     Each graph index is the start time of its clique hyperedges and node presence.
 
     :param graphs: Sequence of undirected NetworkX Graphs.
+
     :return: Time­sliced ASH with cliques as hyperedges.
     """
     ash = ASH()
@@ -152,7 +157,9 @@ def from_networkx_maximal_cliques_list(
             if len(clique) > 1:
                 ash.add_hyperedge(clique, start=t, end=t)
         for node, data in graph.nodes(data=True):
-            ash.add_node(node, start=t, end=t, attr_dict=NProfile(node, **copy.copy(data)))
+            ash.add_node(
+                node, start=t, end=t, attr_dict=NProfile(node, **copy.copy(data))
+            )
     return ash
 
 
@@ -170,7 +177,9 @@ def from_networkx_bipartite(
     :param start: Start time for presence.
     :param end: Optional end time for presence.
     :param keep_attrs: If True, preserves node attributes of the original graph.
+
     :raises ValueError: If the graph is not bipartite.
+
     :return: ASH with hyperedges corresponding to bipartite partitions.
     """
     _validate_graph(graph)
@@ -183,7 +192,9 @@ def from_networkx_bipartite(
     for he in edges:
         neighbors = list(graph.neighbors(he))
         if neighbors:  # only add non-empty hyperedges
-            print(f"Adding hyperedge {he} with neighbors {neighbors} from graph {graph}")
+            print(
+                f"Adding hyperedge {he} with neighbors {neighbors} from graph {graph}"
+            )
             ash.add_hyperedge(neighbors, start=start, end=end)
     # add all nodes
     _add_nodes(ash, graph, start, end, keep_attrs, bipartite=True)
@@ -199,6 +210,7 @@ def from_networkx_bipartite_list(
 
     :param graphs: Sequence of undirected bipartite NetworkX Graphs.
     :param keep_attrs: If True, preserves node attributes.
+
     :return: ASH with hyperedges per snapshot.
     """
     ash = ASH()
@@ -212,9 +224,9 @@ def from_networkx_bipartite_list(
             neighbors = list(graph.neighbors(he))
             if neighbors:
                 ash.add_hyperedge(neighbors, start=t, end=t)
-                
+
         node_data = ((node, graph.nodes[node]) for node in nodes)
-    
+
         for node, data in node_data:
             if keep_attrs:
                 attrs = copy.copy(data)

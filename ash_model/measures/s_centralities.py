@@ -13,6 +13,7 @@ def __s_linegraph(
     :param start:
     :param end:
     :param edges:
+
     :return:
     """
     if edges:
@@ -45,6 +46,7 @@ def s_betweenness_centrality(
     :param edges: if True, compute for hyperedges; if False, compute for nodes
     :param normalized: if True, normalize the betweenness centrality values
     :param weight: if True, use edge weights for the betweenness centrality calculation
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their betweenness centrality values
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -75,6 +77,7 @@ def s_closeness_centrality(
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their closeness centrality values
     """
 
@@ -101,6 +104,7 @@ def s_eccentricity(
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their eccentricity values
     """
 
@@ -123,13 +127,15 @@ def s_harmonic_centrality(
     the nodes of the line graph).
     If `edges` is False, it computes the harmonic centrality for nodes by first converting
     the hypergraph to its dual.
+
     :param h: the ASH instance
     :param s: minimum hyperedge overlap size for paths
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
-    :return: a dictionary mapping node IDs (or edge IDs if `edges` is True
-    ) to their harmonic centrality values
+
+    :return: a dictionary mapping node IDs (or edge IDs if `edges` is True)
+        to their harmonic centrality values
 
     """
 
@@ -170,8 +176,8 @@ def s_katz(
     :param alpha: attenuation factor for the Katz centrality
     :param beta: scaling factor for the Katz centrality
     :param weight: if True, use edge weights for the Katz centrality calculation
-    :return: a dictionary mapping node IDs (or edge IDs if `edges` is True
-    ) to their Katz centrality values
+
+    :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their Katz centrality values
 
     """
 
@@ -215,6 +221,7 @@ def s_load_centrality(
     :param edges: if True, compute for hyperedges; if False, compute for nodes
     :param normalized: if True, normalize the load centrality values
     :param weight: if True, use edge weights for the load centrality calculation
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their load centrality values
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -249,7 +256,6 @@ def s_eigenvector_centrality(
     If `edges` is False, it computes the eigenvector centrality for nodes by first
     converting the hypergraph to its dual.
 
-
     :param h: the ASH instance
     :param s: minimum hyperedge overlap size for paths
     :param start: start time of the interval
@@ -258,6 +264,7 @@ def s_eigenvector_centrality(
     :param weight: if True, use edge weights for the eigenvector centrality calculation
     :param max_iter: maximum number of iterations for the eigenvector centrality calculation
     :param tol: tolerance for convergence in the eigenvector centrality calculation
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their eigenvector centrality values
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -291,6 +298,7 @@ def s_information_centrality(
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
     :param weight: if True, use edge weights for the information centrality calculation
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their information centrality values
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -323,6 +331,7 @@ def s_second_order_centrality(
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
+
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their second-order centrality values
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)

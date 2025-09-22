@@ -18,6 +18,7 @@ def __label_frequency(
     :param u: node id
     :param labels: list of node categorical labels
     :param hierarchies: dict of labels hierarchies
+
     :return: node profiles similarity score in [-1, 1]
     """
     s = 1
@@ -56,6 +57,7 @@ def __label_frequency(
 def __distance(label: str, v1: str, v2: str, hierarchies: dict = None) -> float:
     """
     Compute the distance of two labels in a plain hierarchy
+
     :param label: label name
     :param v1: first label value
     :param v2: second label value
@@ -76,6 +78,7 @@ def __normalize(u: object, scores: list, max_dist: int, alphas: list) -> list:
     :param u: node
     :param scores: datastructure containing the computed scores for u
     :param alphas: list of damping factor
+
     :return: scores updated
     """
     for alpha in alphas:
@@ -99,6 +102,7 @@ def hyper_conformity(
 ) -> dict:
     """
     Compute the Attribute-Profile Conformity for the considered graph
+
     :param h:
     :param alphas: list of damping factors
     :param labels: list of node categorical labels
@@ -106,11 +110,13 @@ def hyper_conformity(
     :param profile_size:
     :param hierarchies: label hierarchies
     :param tid:
+
     :return: conformity value for each node in [-1, 1]
 
     -- Example --
     >> g = nx.karate_club_graph()
     >> pc = profile_conformity(g, 1, ['club'])
+
     """
 
     full_res = []

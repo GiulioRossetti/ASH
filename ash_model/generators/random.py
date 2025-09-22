@@ -12,6 +12,7 @@ def random_hypergraph(
     :param size_distr: A dictionary where keys are hyperedge sizes and values are their probabilities.
     :param seed: Optional seed for random number generation.
     :return: An ASH object representing the generated hypergraph.
+
     """
     if seed is not None:
         random.seed(seed)
@@ -63,6 +64,7 @@ def random_ash(
     :param node_attrs: Optional dictionary of attribute-to-values
     :param seed: Optional seed for random number generation.
     :return: An ASH object representing the generated hypergraph.
+
     """
     if seed is not None:
         random.seed(seed)

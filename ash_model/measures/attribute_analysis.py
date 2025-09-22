@@ -12,7 +12,9 @@ def __entropy(labels, base=None):
 
     :param labels:
     :param base:
+
     :return:
+
     """
 
     n_labels = len(labels)
@@ -43,7 +45,9 @@ def __purity(labels):
     this returns a dictionary mapping the most common value to its purity
 
     :param labels:
+
     :return:
+
     """
 
     res = {}  # attr -> purity
@@ -62,7 +66,10 @@ def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
     :param h: The ASH object
     :param hyperedge_id: The hyperedge id
     :param tid: The temporal id
-    :return: A dictionary with attribute names as keys and their purity as values"""
+
+    :return: A dictionary with attribute names as keys and their purity as values
+
+    """
 
     nodes = h.get_hyperedge_nodes(hyperedge_id)
 
@@ -93,7 +100,9 @@ def hyperedge_profile_entropy(h: ASH, hyperedge_id: str, tid: int) -> dict:
     :param h: The ASH object
     :param hyperedge_id: The hyperedge id
     :param tid: The temporal id
+
     :return: A dictionary with attribute names as keys and their entropy as values
+
     """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
 
@@ -129,7 +138,9 @@ def star_profile_entropy(
     :param node_id: Specify the node for which we want to calculate the star profile entropy
     :param tid: Specify the temporal id
     :param method: Specify the method to be used in calculating the star profile entropy. Options are 'aggregate' or 'collapse'.
+
     :return: A dictionary with the entropy of each attribute
+
     """
     star = h.star(node_id, start=tid)
 
@@ -176,7 +187,9 @@ def star_profile_homogeneity(
     :param node_id: node id
     :param tid: temporal id
     :param method: Specify the method to be used in calculating the star profile homogeneity. Options are 'aggregate' or 'collapse'.
+
     :return: A dictionary with the homogeneity of each attribute
+
     """
     star = h.star(node_id, start=tid)
 
@@ -215,7 +228,9 @@ def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object
     :param h: ASH instance
     :param tid: the temporal id
     :param hyperedge_size: Specify the size of the hyperedges
+
     :return: A dictionary with attribute names as keys and a dictionary of average degrees for each attribute value
+
     """
     attributes = h.list_node_attributes(tid=tid, categorical=True)
 
@@ -248,7 +263,9 @@ def attribute_consistency(h: ASH, node: int = None) -> dict:
 
     :param h: ASH instance
     :param node: Specify the node for which we want to calculate the consistency
+
     :return: A dict containing, for each node, for each attribute, the consistency value
+
     """
 
     res = defaultdict(dict)

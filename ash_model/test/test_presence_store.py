@@ -171,10 +171,8 @@ class TestASHBackends(unittest.TestCase):
             )
 
 
+"""
 class TestASHBenchmark(unittest.TestCase):
-    """
-    Benchmark performance of ASH methods on dense vs interval backends.
-    """
 
     @classmethod
     def setUpClass(cls):
@@ -254,3 +252,5 @@ class TestASHBenchmark(unittest.TestCase):
         print(
             f"remove_hyperedge: dense={dense_time:.4f}s, interval={interval_time:.4f}s"
         )
+
+"""

@@ -22,6 +22,7 @@ def clique_projection(
     :param end: The end time of the projection (optional).
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graph.
+
     :return: A NetworkX Graph object representing the clique projection of the ASH.
     """
 
@@ -58,6 +59,7 @@ def bipartite_projection(
     :param end: The end time of the projection (optional).
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graph.
+
     :return: A NetworkX Graph object representing the bipartite projection of the ASH.
     """
 
@@ -94,6 +96,7 @@ def line_graph_projection(
     :param end: The end time of the projection (optional).
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graph.
+
     :return: A NetworkX Graph object representing the line graph projection of the ASH.
     """
 
@@ -163,6 +166,7 @@ def clique_projection_by_time(h: ASH, keep_attrs: bool = False) -> Dict[int, nx.
     :param h: The ASH object to be projected.
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graphs.
+
     :return: A dictionary where keys are time steps and values are NetworkX Graph objects
              representing the clique projection of the ASH at that time step.
     """
@@ -186,6 +190,7 @@ def bipartite_projection_by_time(
     :param h: The ASH object to be projected.
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graphs.
+
     :return: A dictionary where keys are time steps and values are NetworkX Graph objects
              representing the bipartite projection of the ASH at that time step.
     """
@@ -210,6 +215,7 @@ def line_graph_projection_by_time(
     :param s: The size of the edge overlap.
     :param keep_attrs: If True, the attributes of the nodes in the ASH will
                         be preserved in the resulting NetworkX graphs.
+
     :return: A dictionary where keys are time steps and values are NetworkX Graph objects
              representing the line graph projection of the ASH at that time step.
     """
@@ -229,6 +235,7 @@ def dual_hypergraph_projection_by_time(h: ASH) -> Dict[int, tuple]:
     Each entry in the dictionary contains the dual ASH and a node-to-edge mapping dictionary.
 
     :param h: The ASH object to be transformed into dual hypergraphs.
+
     :return: A dictionary where keys are time steps and values are tuples containing
              the dual ASH and a node-to-edge mapping dictionary.
     """

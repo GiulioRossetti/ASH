@@ -108,6 +108,7 @@ def random_walks(
     :param start: Lower temporal bound
     :param end: Upper temporal bound
     :param threads: Parallel threads for random walk computation
+
     :returns: Array of walks (each walk is a list of original node/edge IDs)
     """
     T_csr, n2idx = random_walk_probabilities(h, start, end, edge=edge)
@@ -159,6 +160,7 @@ def time_respecting_random_walks(
     :param p: Return parameter
     :param q: In-out parameter
     :param threads: Parallel threads
+
     :returns: Mapping (start_edge, end_edge) -> list of walks (temporal edge sequences)
     """
     # Build temporal DAG

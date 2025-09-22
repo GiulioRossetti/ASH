@@ -40,12 +40,14 @@ def _truncated_pareto(
 ) -> np.ndarray:
     """
     Generates a truncated Pareto distribution.
+
     :param alpha: Shape parameter of the Pareto distribution.
     :param size: Number of samples to generate.
     :param xmin: Minimum value of the distribution.
     :param xmax: Maximum value of the distribution.
     :param rng: Optional random number generator.
     :return: An array of samples from the truncated Pareto distribution.
+
     """
     if xmin <= 0:
         raise ValueError("xmin must be positive.")
@@ -70,8 +72,10 @@ def _truncated_pareto(
 def _sample_to_prob_distr(sample):
     """
     Converts a sample to a probability distribution.
+
     :param sample: A list of samples.
     :return: A list of probabilities normalized to sum to 1.
+
     """
     total = sum(sample)
     if total == 0:
@@ -86,6 +90,7 @@ def ba_with_homophily(
 ):
     """
     Generates a Barabasi-Albert hypergraph with homophily-driven connections.
+
     :param num_nodes: Total number of nodes in the hypergraph.
     :param m: Number of edges to attach from a new node to existing nodes.
     :param homophily_rate: Probability of connecting to nodes with the same attribute.
@@ -96,6 +101,7 @@ def ba_with_homophily(
 
     :return: An ASH object representing the generated hypergraph.
     :raises ValueError: If homophily_rate or minority_size is not in the range [0, 1].
+
     """
     if not (0 <= homophily_rate <= 1):
         raise ValueError("Homophily rate must be between 0 and 1.")
