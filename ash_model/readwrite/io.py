@@ -29,6 +29,7 @@ def __write_profile_to_csv(
     :param path:
     :param delimiter:
     :param append:
+
     :return:
     """
 
@@ -53,6 +54,7 @@ def write_profiles_to_csv(h: ASH, path: str, delimiter: str = ",") -> None:
     :param h:
     :param path:
     :param delimiter:
+
     :return:
     """
 
@@ -74,6 +76,7 @@ def read_profiles_from_csv(path: str, delimiter: str = ",") -> dict:
 
     :param path:
     :param delimiter:
+
     :return:
     """
     res = {}
@@ -111,6 +114,7 @@ def __write_profile_to_json(
     :param path:
     :param compress:
     :param append:
+
     :return:
     """
 
@@ -136,6 +140,7 @@ def write_profiles_to_jsonl(a: ASH, path: str, compress: bool = False) -> None:
     :param a:
     :param path:
     :param compress:
+
     :return:
     """
     for node in a.nodes():
@@ -151,6 +156,7 @@ def read_profiles_from_jsonl(path: str, compress: bool = False) -> dict:
 
     :param path: Path to the JSONL file.
     :param compress: If True, the file is assumed to be compressed using gzip.
+
     :return: Dictionary of node profiles.
     """
     if compress:
@@ -181,6 +187,7 @@ def write_sh_to_csv(h: ASH, path: str) -> None:
 
     :param h: ASH object to write.
     :param path: Path to the CSV file.
+
     :return: None
     """
     with open(path, "w") as o:
@@ -201,6 +208,7 @@ def read_sh_from_csv(path: str) -> ASH:
     Warning: there is no guarantee that the order of hyperedges will be preserved.
 
     :param path: Path to the CSV file.
+
     :return:
     """
     a = ASH()
@@ -222,6 +230,7 @@ def write_ash_to_json(h: ASH, path: str, compress: bool = False) -> None:
     :param h: ASH object to write.
     :param path: Path to the JSON file.
     :param compress: If True, the file will be compressed using gzip.
+
     :return: None
     """
     js_dmp = json.dumps(h.to_dict(), indent=2)
@@ -241,6 +250,7 @@ def read_ash_from_json(path: str, compress: bool = False) -> ASH:
 
     :param path: Path to the JSON file.
     :param compress: If True, the file is assumed to be compressed using gzip.
+
     :return: ASH object
     """
     h = ASH()
@@ -339,9 +349,13 @@ def __from_hif(data: dict) -> ASH:
     Convert HIF data dictionary to ASH object.
 
     :param data: Dictionary containing HIF data
+
     :return: ASH object
     """
     h = ASH()
+
+    if data.get("network-type") != "undirected":
+        raise NotImplementedError("Only undirected hypernetworks are supported.")
 
     # Process nodes and their attributes
     if "nodes" in data:
@@ -349,18 +363,40 @@ def __from_hif(data: dict) -> ASH:
             node_id = node_data["node"]
             attrs = node_data.get("attrs", {})
 
-            # Process each attribute (except _presence which is handled separately)
-            for attr_name, spans in attrs.items():
-                if attr_name == "_presence":
-                    continue  # Skip presence, it's handled by hyperedge creation
+            # Choose a reference time for static attributes:
+            # prefer the start of the first presence interval, else 0
+            t0 = 0
+            presence_intervals = attrs.get("_presence", [])
+            if isinstance(presence_intervals, list) and len(presence_intervals) > 0:
+                first = presence_intervals[0]
+                if isinstance(first, (list, tuple)) and len(first) == 2:
+                    try:
+                        t0 = int(first[0])
+                    except Exception:
+                        t0 = 0
+                elif isinstance(first, (int,)):
+                    t0 = int(first)
 
-                # spans is a list of (start, end, value) tuples
-                for start, end, value in spans:
-                    for t in range(start, end + 1):
-                        # Set node attribute for each timestamp
-                        if not hasattr(h, "_node_attrs"):
-                            h._node_attrs = defaultdict(lambda: defaultdict(dict))
-                        h._node_attrs[node_id][t][attr_name] = value
+            # Process each attribute (except _presence which is handled separately)
+            for attr_name, spec in attrs.items():
+                if attr_name == "_presence":
+                    continue  # Skip presence; node presence is implied by attrs/edges
+
+                # Case 1: temporal attribute encoded as list of (start, end, value)
+                if isinstance(spec, list) and all(
+                    isinstance(x, (list, tuple)) and len(x) == 3 for x in spec
+                ):
+                    for start, end, value in spec:
+                        # for each t in the closed interval [start, end]
+                        for t in range(int(start), int(end) + 1):
+                            if not hasattr(h, "_node_attrs"):
+                                h._node_attrs = defaultdict(lambda: defaultdict(dict))
+                            h._node_attrs[node_id][t][attr_name] = value
+                else:
+                    # Case 2: static attribute -> assign at a single time instant t0
+                    if not hasattr(h, "_node_attrs"):
+                        h._node_attrs = defaultdict(lambda: defaultdict(dict))
+                    h._node_attrs[node_id][t0][attr_name] = spec
 
     # Process hyperedges
     if "edges" in data:
@@ -368,8 +404,28 @@ def __from_hif(data: dict) -> ASH:
             edge_id = edge_data["edge"]
             attrs = edge_data.get("attrs", {})
 
-            # Get presence intervals
-            presence_intervals = attrs.get("_presence", [])
+            # Get presence specification and normalize to list of (start,end)
+            presence_spec = attrs.get("_presence", None)
+            presence_intervals: List[Tuple[int, int]] = []
+            if presence_spec is None or (
+                isinstance(presence_spec, list) and len(presence_spec) == 0
+            ):
+                # No presence provided -> treat as static at t=0
+                presence_intervals = [(0, 0)]
+            elif isinstance(presence_spec, list):
+                # Allow either list of intervals or list of instants
+                if all(
+                    isinstance(x, (list, tuple)) and len(x) == 2 for x in presence_spec
+                ):
+                    presence_intervals = [(int(s), int(e)) for s, e in presence_spec]  # type: ignore[misc]
+                elif all(isinstance(x, (int,)) for x in presence_spec):
+                    presence_intervals = [(int(t), int(t)) for t in presence_spec]  # type: ignore[misc]
+                else:
+                    # Fallback: treat as static at t=0
+                    presence_intervals = [(0, 0)]
+            else:
+                # Unexpected type -> default to static at t=0
+                presence_intervals = [(0, 0)]
 
             # Get other attributes (excluding _presence)
             edge_attrs = {k: v for k, v in attrs.items() if k != "_presence"}
@@ -400,6 +456,7 @@ def write_hif(
     :param h: ASH object to write.
     :param path: Path to the HIF file.
     :param compress: If True, the file will be compressed using gzip.
+
     :return: None
     """
     hif = __to_hif(h, metadata)
@@ -419,6 +476,7 @@ def read_hif(path: str, compress: bool = False) -> ASH:
 
     :param path: Path to the HIF file.
     :param compress: If True, the file is assumed to be compressed using gzip.
+
     :return: ASH object
     """
     if compress:

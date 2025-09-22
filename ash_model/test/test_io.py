@@ -181,13 +181,14 @@ class IOTestCase(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             read_ash_from_json("no_such_file.json")
 
-    def test_hif(self):
+    def test_hif_ash(self):
         import fastjsonschema
         import json
-        import requests
 
-        url = "https://raw.githubusercontent.com/pszufe/HIF-standard/main/schemas/hif_schema.json"
-        schema = requests.get(url).json()
+        base = os.path.join(os.path.dirname(__file__), "hif_data")
+        schema_path = os.path.join(base, "hif_schema.json")
+        with open(schema_path) as f:
+            schema = json.load(f)
         validator = fastjsonschema.compile(schema)
 
         # write
@@ -255,6 +256,15 @@ class IOTestCase(unittest.TestCase):
 
         finally:
             os.remove(tf.name)
+
+    def test_hif_static(self):
+        base = os.path.join(os.path.dirname(__file__), "hif_data")
+        data_path = os.path.join(base, "email-enron.hif")
+        h = read_hif(data_path)
+        self.assertIsInstance(h, ASH)
+        self.assertListEqual(h.temporal_snapshots_ids(), [0])
+        self.assertGreaterEqual(h.number_of_nodes(), 143)
+        self.assertGreaterEqual(h.number_of_hyperedges(), 1436)
 
 
 if __name__ == "__main__":
