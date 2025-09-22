@@ -34,6 +34,7 @@ def all_simple_paths(
     :param start:        Lower time bound for hyperedges (inclusive).
     :param end:          Upper time bound for hyperedges (inclusive).
     :param cutoff:       Maximum path length (number of nodes) to explore.
+
     :return:             Iterator over valid paths, each as a list of hyperedge IDs.
     """
     # Build the s-overlap line graph
@@ -74,6 +75,7 @@ def shortest_s_path(
     :param start:        Start time bound (inclusive).
     :param end:          End time bound (inclusive).
     :param cutoff:       Maximum path length.
+
     :return:             List of shortest paths, each as list of IDs.
     """
     paths = list(all_simple_paths(h, s, hyperedge_a, hyperedge_b, start, end, cutoff))
@@ -104,6 +106,7 @@ def all_shortest_s_paths(
     :param start:        Start time bound (inclusive).
     :param end:          End time bound (inclusive).
     :param cutoff:       Maximum path length.
+
     :return:             Dict mapping (u,v) to list of shortest paths.
     """
     result: Dict[Tuple[str, str], List[List[str]]] = defaultdict(list)
@@ -153,6 +156,7 @@ def all_shortest_s_path_lengths(
     :param start:        Start time bound (inclusive).
     :param end:          End time bound (inclusive).
     :param cutoff:       Maximum path length.
+
     :return:             Nested dict of distances (number of edges).
     """
     result: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -201,6 +205,7 @@ def all_shortest_s_walks(
     :param hyperedge_a:  Source hyperedge ID (optional).
     :param start:        Start time bound.
     :param end:          End time bound.
+
     :return:             Single path (list) if two endpoints specified, or dict of
                          {target: path} if one endpoint, or nested dict if neither.
     """
@@ -223,6 +228,7 @@ def all_shortest_s_walk_lengths(
     :param hyperedge_a:  Source hyperedge ID (optional).
     :param start:        Start time bound.
     :param end:          End time bound.
+
     :return:             Nested dict mapping hyperedge to target to length.
     """
     walks = all_shortest_s_walks(h, s, hyperedge_a, start, end)
@@ -250,24 +256,44 @@ def shortest_s_walk(
 
     If edge=True, operates on s-line-graph; otherwise uses dual hypergraph node graph.
 
-    :param h:     ASH instance.
-    :param s:     Minimum overlap size.
-    :param fr:    Starting hyperedge ID (node or edge depending).
-    :param to:    Ending hyperedge ID.
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param fr: Starting hyperedge ID (node or edge depending).
+    :param to: Ending hyperedge ID.
     :param start: Start time bound.
-    :param end:   End time bound.
-    :param weight:Use edge weight attribute 'w' if True.
-    :param edge:  If False, compute on dual hypergraph.
-    :return:      Single path list if both fr and to set, else dict mapping.
+    :param end: End time bound.
+    :param weight: Use edge weight attribute 'w' if True.
+    :param edge: If False, compute on dual hypergraph.
+
+    :return: Single path list if both fr and to set, else dict mapping.
     """
     # Build appropriate graph
     if edge:
         g = h.s_line_graph(s, start, end)
-        if fr and fr not in g or to and to not in g:
-            return []
+
+        # Guards for explicit endpoints
+        if (fr is not None and fr not in g) or (to is not None and to not in g):
+            return [] if (fr is not None and to is not None) else {}
+
+        # Case 1: specific source and target -> single path as list
+        if fr is not None and to is not None:
+            return nx.shortest_path(
+                g, source=fr, target=to, weight="w" if weight else None
+            )
+
+        # Case 2: specific source only -> dict {target: path}
+        if fr is not None:
+            if weight:
+                return nx.single_source_dijkstra_path(g, fr, weight="w")
+            return nx.single_source_shortest_path(g, fr)
+
+        # Case 3: no endpoints -> dict {source: {target: path}}
         if weight:
-            return nx.shortest_path(g, source=fr, target=to, weight="w")
-        return nx.shortest_path(g, source=fr, target=to)
+            pairs_iter = nx.all_pairs_dijkstra_path(g, weight="w")
+        else:
+            pairs_iter = nx.all_pairs_shortest_path(g)
+        # Materialize iterator (NetworkX >=3.3 returns iterator for all-pairs)
+        return {src: tgt_paths for src, tgt_paths in pairs_iter}
     else:
         # Dual graph handling
         h1, node_to_eid = h.dual_hypergraph(start=start, end=end)
@@ -296,11 +322,12 @@ def closed_s_walk(
     Find all simple cycles (basis) in the s-line-graph containing a given node.
 
     :param h:            ASH instance.
-    :param s:            Minimum overlap size.
-    :param hyperedge_a:  Node ID in s-line-graph to find cycles through.
-    :param start:        Start time bound.
-    :param end:          End time bound.
-    :return:             List of cycles, each as list of hyperedge IDs.
+    :param s: Minimum overlap size.
+    :param hyperedge_a: Node ID in s-line-graph to find cycles through.
+    :param start: Start time bound.
+    :param end: End time bound.
+
+    :return: List of cycles, each as list of hyperedge IDs.
     """
     g = h.s_line_graph(s, start, end)
     if hyperedge_a not in g:
@@ -322,15 +349,16 @@ def s_distance(
     Compute shortest-path distances in s-line-graph or dual hypergraph.
     If edge=True, uses s-line-graph; otherwise uses dual hypergraph.
 
-    :param h:    ASH instance.
-    :param s:    Minimum overlap size.
-    :param fr:   Source ID.
-    :param to:   Target ID.
-    :param start:Start time bound.
-    :param end:  End time bound.
-    :param weight:Use edge weight attribute 'w' if True.
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param fr: Source ID.
+    :param to: Target ID.
+    :param start: Start time bound.
+    :param end: End time bound.
+    :param weight: Use edge weight attribute 'w' if True.
     :param edge: If False, use dual hypergraph distances.
-    :return:     Single distance, nested dict of distances, or None if unreachable.
+
+    :return: Single distance, nested dict of distances, or None if unreachable.
     """
     if edge:
         G = h.s_line_graph(s, start, end)
@@ -416,13 +444,14 @@ def average_s_distance(
     """
     Compute the average shortest-path length in the s-line-graph.
 
-    :param h:    ASH instance.
-    :param s:    Minimum overlap size.
-    :param start:Start time bound.
-    :param end:  End time bound.
-    :param weight:Use edge weight attribute 'w' if True (unused here).
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param start: Start time bound.
+    :param end: End time bound.
+    :param weight: Use edge weight attribute 'w' if True (unused here).
     :param edge: (Unused) Included for API consistency.
-    :return:     Average distance across all connected pairs.
+
+    :return: Average distance across all connected pairs.
     """
     if not edge:
         h, _ = h.dual_hypergraph(start=start, end=end)
@@ -446,14 +475,15 @@ def has_s_walk(
     """
     Determine if an s-overlap walk exists between two hyperedges.
 
-    :param h:    ASH instance.
-    :param s:    Minimum overlap size.
-    :param fr:   Source hyperedge ID.
-    :param to:   Target hyperedge ID.
-    :param start:Start time bound.
-    :param end:  End time bound.
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param fr: Source hyperedge ID.
+    :param to: Target hyperedge ID.
+    :param start: Start time bound.
+    :param end: End time bound.
     :param edge: If False, evaluate on dual hypergraph.
-    :return:     True if a path exists, False otherwise.
+
+    :return: True if a path exists, False otherwise.
     """
     if edge:
         g = h.s_line_graph(s, start, end)
@@ -478,13 +508,14 @@ def s_diameter(
     """
     Compute the diameter (longest shortest-path) of the s-line-graph.
 
-    :param h:      ASH instance.
-    :param s:      Minimum overlap size.
-    :param start:  Start time bound.
-    :param end:    End time bound.
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param start: Start time bound.
+    :param end: End time bound.
     :param weight: Use weighted distances if True.
-    :param edge:   If False, compute on dual hypergraph.
-    :return:       Integer diameter of the graph (0 if empty).
+    :param edge: If False, compute on dual hypergraph.
+
+    :return: Integer diameter of the graph (0 if empty).
     """
     if not edge:
         h, _ = h.dual_hypergraph(start=start, end=end)
@@ -507,12 +538,13 @@ def s_components(
     """
     Yield connected components of the s-line-graph or its dual.
 
-    :param h:    ASH instance.
-    :param s:    Minimum overlap size.
-    :param start:Start time bound.
-    :param end:  End time bound.
+    :param h: ASH instance.
+    :param s: Minimum overlap size.
+    :param start: Start time bound.
+    :param end: End time bound.
     :param edge: If False, yields on dual hypergraph components.
-    :return:     Iterator of sets of hyperedge IDs per component.
+
+    :return: Iterator of sets of hyperedge IDs per component.
     """
     if edge:
         g = h.s_line_graph(s, start, end)
@@ -526,15 +558,16 @@ def s_components(
 
 
 def is_s_path(h: ASH, walk: List[str]) -> bool:
-    """
-    Validate that a hyperedge sequence is a simple s-path:
-    1. No hyperedge repeats.
-    2. No node in the original hypergraph appears in more than one step beyond
-       adjacent pairs (ensures path simplicity in nodes).
+    """Validate that a hyperedge sequence is a simple s-path.
 
-    :param h:    ASH instance.
-    :param walk: List of hyperedge IDs forming the candidate path.
-    :return:     True if valid s-path, False otherwise.
+    A simple s-path here means:
+
+    * No hyperedge appears more than once in the sequence.
+    * No node participates in overlaps between more than two hyperedges (prevents reuse of the same node in non-consecutive steps).
+
+    :param h: ASH instance
+    :param walk: List of hyperedge IDs forming the candidate path
+    :return: True if valid s-path, False otherwise
     """
     # Check for repeated hyperedges
     if any(count > 1 for count in Counter(walk).values()):
