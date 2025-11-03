@@ -1,6 +1,20 @@
 import unittest
 
-from ash_model.paths import *
+from ash_model import ASH
+from ash_model.paths import (
+    average_s_distance,
+    all_shortest_s_path_lengths,
+    all_shortest_s_paths,
+    all_simple_paths,
+    closed_s_walk,
+    has_s_walk,
+    is_s_path,
+    s_components,
+    s_diameter,
+    s_distance,
+    shortest_s_path,
+    shortest_s_walk,
+)
 
 
 class SWalksCase(unittest.TestCase):

@@ -1,6 +1,17 @@
 import unittest
 
-from ash_model.measures import *
+from ash_model import ASH
+from ash_model.measures import (
+    s_betweenness_centrality,
+    s_closeness_centrality,
+    s_eccentricity,
+    s_eigenvector_centrality,
+    s_harmonic_centrality,
+    s_information_centrality,
+    s_katz,
+    s_load_centrality,
+    s_second_order_centrality,
+)
 
 
 class SCentralitiesCase(unittest.TestCase):

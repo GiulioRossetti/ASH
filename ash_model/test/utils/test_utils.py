@@ -1,31 +1,27 @@
 import unittest
+from typing import Any
+
+import networkx as nx
+import numpy as np
+from scipy import sparse
 
 import ash_model.utils as ut
-
-from ash_model.utils import (
-    clique_projection,
-    bipartite_projection,
-    line_graph_projection,
-    dual_hypergraph_projection,
-    clique_projection_by_time,
-    bipartite_projection_by_time,
-    line_graph_projection_by_time,
-    dual_hypergraph_projection_by_time,
-    aggregate_node_profile,
-    hyperedge_aggregate_node_profile,
-)
 from ash_model import ASH, NProfile
-from scipy import sparse
-import numpy as np
+from ash_model.utils import (
+    aggregate_node_profile,
+    bipartite_projection,
+    bipartite_projection_by_time,
+    clique_projection,
+    clique_projection_by_time,
+    dual_hypergraph_projection,
+    dual_hypergraph_projection_by_time,
+    hyperedge_aggregate_node_profile,
+    line_graph_projection,
+    line_graph_projection_by_time,
+)
 
 
-import unittest
-import networkx as nx
-
-from ash_model import ASH
-
-
-def get_hypergraph():
+def get_hypergraph() -> ASH:
     a = ASH()
     a.add_hyperedge([1, 2, 3], 0)
     a.add_hyperedge([15, 25], 0)
@@ -40,7 +36,6 @@ def get_hypergraph():
 class MatricesTestCase(unittest.TestCase):
 
     def setUp(self):
-
         self.h = get_hypergraph()
 
     def test_incidence(self):
@@ -149,6 +144,45 @@ class MatricesTestCase(unittest.TestCase):
                                     connected = True
                                     break
                             self.assertFalse(connected)
+
+
+class MatricesReturnMappingTestCase(unittest.TestCase):
+    def setUp(self):
+        self.h = get_hypergraph()
+
+    def test_incidence_with_mapping(self):
+        M, node_map, he_map = ut.incidence_matrix(self.h, return_mapping=True)
+        self.assertIsInstance(M, sparse.csr_matrix)
+        self.assertIsInstance(node_map, dict)
+        self.assertIsInstance(he_map, dict)
+        # shapes consistent with maps
+        self.assertEqual(M.shape, (len(node_map), len(he_map)))
+        # maps cover all nodes/hyperedges
+        self.assertCountEqual(node_map.keys(), self.h.nodes())
+        self.assertCountEqual(he_map.keys(), self.h.hyperedges())
+
+    def test_incidence_by_time_with_mapping(self):
+        mats, node_map, he_map = ut.incidence_matrix_by_time(
+            self.h, return_mapping=True
+        )
+        self.assertSetEqual(set(mats.keys()), set(self.h.temporal_snapshots_ids()))
+        for t, M in mats.items():
+            self.assertIsInstance(M, sparse.csr_matrix)
+            self.assertEqual(M.shape, (len(node_map), len(he_map)))
+
+    def test_adjacency_with_mapping(self):
+        A, node_map, he_map = ut.adjacency_matrix(self.h, return_mapping=True)
+        self.assertIsInstance(A, sparse.csr_matrix)
+        self.assertEqual(A.shape, (len(node_map), len(node_map)))
+        # he_map is returned for symmetry with incidence; must map all hyperedges
+        self.assertCountEqual(he_map.keys(), self.h.hyperedges())
+
+    def test_adjacency_by_time_with_mapping(self):
+        ams, node_map = ut.adjacency_matrix_by_time(self.h, return_mapping=True)
+        self.assertSetEqual(set(ams.keys()), set(self.h.temporal_snapshots_ids()))
+        for t, A in ams.items():
+            self.assertIsInstance(A, sparse.csr_matrix)
+            self.assertEqual(A.shape, (len(node_map), len(node_map)))
 
 
 class TestCliqueProjection(unittest.TestCase):
@@ -439,7 +473,6 @@ class TestFromNetworkxBipartiteList(unittest.TestCase):
         glist = [g, g.copy(), g.copy()]
 
         h2 = ut.from_networkx_bipartite_list(glist, keep_attrs=False)
-        print(h2.hyperedges(as_ids=False))
         self.assertListEqual(sorted(h2.nodes()), sorted(h.nodes()))
         self.assertCountEqual(sorted(h2.hyperedges()), sorted(h.hyperedges()))
 
@@ -456,7 +489,7 @@ class TestFromNetworkxBipartiteList(unittest.TestCase):
 
 class ProfileAggrTestCase(unittest.TestCase):
     @staticmethod
-    def get_hypergraph():
+    def get_hypergraph() -> ASH:
         a = ASH()
         a.add_hyperedge([1, 2, 3], 0)
         a.add_hyperedge([1, 4], 0)

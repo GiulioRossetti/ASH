@@ -70,6 +70,25 @@ class AttributeAnalysisCase(unittest.TestCase):
         # keys should be exactly these two
         self.assertListEqual(sorted(purity.keys()), ["gender", "party"])
 
+    def test_hyperedge_profile_purity_single_class_and_entropy_zero(self):
+        a = self.get_hypergraph()
+        # at tid=0 the hyperedge [1,2,3] has party all 'L'
+        he = next(
+            h
+            for h in a.hyperedges(start=0)
+            if set(a.get_hyperedge_nodes(h)) == {1, 2, 3}
+        )
+        purity = hyperedge_profile_purity(a, he, 0)
+        self.assertEqual(purity["party"], {"L": 1.0})
+        # gender has two 'F' and one 'M' => purity 2/3
+        self.assertEqual(purity["gender"], {"F": 2 / 3})
+
+        ent = hyperedge_profile_entropy(a, he, tid=0)
+        # single class => entropy 0
+        self.assertAlmostEqual(ent["party"], 0.0)
+        # gender has 2 classes
+        self.assertGreater(ent["gender"], 0.0)
+
     def test_hyperedge_profile_entropy(self):
         a = self.get_hypergraph()
         hes = list(a.hyperedges(start=1))
@@ -93,6 +112,17 @@ class AttributeAnalysisCase(unittest.TestCase):
 
         self.assertAlmostEqual(res["gender"], 0.918, places=3)
 
+    def test_star_profile_entropy_aggregate_and_invalid(self):
+        a = self.get_hypergraph()
+        # aggregate method path
+        res = star_profile_entropy(a, node_id=1, tid=0, method="aggregate")
+        # still returns dict with categorical attrs
+        self.assertIn("party", res)
+        self.assertIn("gender", res)
+        # invalid method raises
+        with self.assertRaises(ValueError):
+            star_profile_entropy(a, node_id=1, tid=0, method="unknown")
+
     def test_star_profile_homogeneity(self):
         a = self.get_hypergraph()
         # collapse method at tid=0, node=1: 3 hyperedges.  attributes: gender(1)='M', party(1)='L'
@@ -101,6 +131,14 @@ class AttributeAnalysisCase(unittest.TestCase):
         self.assertAlmostEqual(res["party"], 2 / 3)
         # gender: 1 of the 3 neighbors have the same gender 'M', 2 has 'F' ⇒ homogeneity= 1/3
         self.assertAlmostEqual(res["gender"], 1 / 3)
+
+    def test_star_profile_homogeneity_aggregate_and_invalid(self):
+        a = self.get_hypergraph()
+        res = star_profile_homogeneity(a, node_id=1, tid=0, method="aggregate")
+        self.assertIn("party", res)
+        self.assertIn("gender", res)
+        with self.assertRaises(ValueError):
+            star_profile_homogeneity(a, node_id=1, tid=0, method="bad")
 
     def test_average_group_degree(self):
         a = self.get_hypergraph()
@@ -114,6 +152,13 @@ class AttributeAnalysisCase(unittest.TestCase):
         # gender F: nodes 2,3 => 2,2 ⇒ 2.0
         self.assertAlmostEqual(out["gender"]["M"], 2.5)
         self.assertAlmostEqual(out["gender"]["F"], 2.0)
+
+    def test_average_group_degree_hyperedge_size_filter(self):
+        a = self.get_hypergraph()
+        # consider only hyperedges of size exactly 3 at tid=0
+        out = average_group_degree(a, tid=0, hyperedge_size=3)
+        self.assertAlmostEqual(out["party"]["L"], 1.0)  # nodes 1,2,3 each deg=1
+        self.assertAlmostEqual(out["party"]["R"], 0.0)  # node 4 has deg=0
 
     def test_attribute_consistency(self):
         a = self.get_hypergraph()
@@ -130,3 +175,21 @@ class AttributeAnalysisCase(unittest.TestCase):
         # Node 4 (R→R, M→M) ⇒ both 1
         self.assertAlmostEqual(cons[4]["party"], 1.0)
         self.assertAlmostEqual(cons[4]["gender"], 1.0)
+
+    def test_attribute_consistency_node_param_and_zero(self):
+        a = self.get_hypergraph()
+        # add node 0 with stable attributes across times
+        a.add_node(
+            0, start=0, end=1, attr_dict=NProfile(node_id=0, party="X", gender="M")
+        )
+        only0 = attribute_consistency(a, node=0)
+        self.assertSetEqual(set(only0.keys()), {"party", "gender"})
+        self.assertAlmostEqual(only0["party"], 1.0)
+        self.assertAlmostEqual(only0["gender"], 1.0)
+        # specifying node limits output to that node
+        only1 = attribute_consistency(a, node=1)
+        self.assertSetEqual(set(only1.keys()), {"party", "gender"})
+
+
+if __name__ == "__main__":
+    unittest.main()
