@@ -13,35 +13,39 @@ from ash_model.paths.randwalks import (
 
 class RandomWalksTestCase(unittest.TestCase):
     def setUp(self):
-        # Build a tiny hypergraph with one 3‐node edge and one 2‐node edge
+        # Build a tiny hypergraph with one 3-node edge and one 2-node edge
         self.h = ASH()
         self.h.add_hyperedge([1, 2, 3], start=0)  # e1
         self.h.add_hyperedge([2, 4], start=0)  # e2
 
     def test_random_walk_probabilities_exact(self):
-        # For hyperedge [1,2,3]: weight per pair = 2
-        # For hyperedge [2,4]: weight per pair = 1
-        # Node order: [1,2,3,4]
+        # With s=1 (default), nodes are connected if they co-occur in at least 1 hyperedge.
+        # The weight is the number of co-occurrences (not len(edge)-1).
+        # For hyperedge [1,2,3]: each pair co-occurs 1 time
+        # For hyperedge [2,4]: pair (2,4) co-occurs 1 time
         T, mapping = random_walk_probabilities(self.h)
-        # must be csr
         self.assertIsInstance(T, sparse.csr_matrix)
-        # mapping correctness
-        self.assertEqual(mapping, {1: 0, 2: 1, 3: 2, 4: 3})
         dense = T.toarray()
-        # Manually build expected raw counts:
-        #   from 1: only edge e1 → neighbors 2,3 each get +2 ⇒ total 4 → p=2/4=0.5
-        #   from 2: in e1 neighbors 1,3 (+2 each), in e2 neighbor 4 (+1) ⇒ totals [1:2,3:2,4:1], sum=5
-        #              p(2→1)=2/5, p(2→3)=2/5, p(2→4)=1/5
-        #   from 3: only e1 → neighbors 1,2 each +2 ⇒ sum=4 → p=0.5 each
-        #   from 4: only e2 → neighbor 2 gets +1 ⇒ sum=1 → p(4→2)=1
-        expected = np.array(
-            [
-                [0.0, 0.5, 0.5, 0.0],
-                [2 / 5, 0.0, 2 / 5, 1 / 5],
-                [0.5, 0.5, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-            ]
-        )
+        # Build expected using mapping order dynamically
+        idx_of = mapping  # node -> row/col index
+        n = len(idx_of)
+        expected = np.zeros((n, n), dtype=float)
+        # from 1: neighbors 2,3 with 1 co-occurrence each
+        expected[idx_of[1], idx_of[2]] += 1
+        expected[idx_of[1], idx_of[3]] += 1
+        # from 2: neighbors 1,3 (1 each) and 4 (1)
+        expected[idx_of[2], idx_of[1]] += 1
+        expected[idx_of[2], idx_of[3]] += 1
+        expected[idx_of[2], idx_of[4]] += 1
+        # from 3: neighbors 1,2 (1 each)
+        expected[idx_of[3], idx_of[1]] += 1
+        expected[idx_of[3], idx_of[2]] += 1
+        # from 4: neighbor 2 (1)
+        expected[idx_of[4], idx_of[2]] += 1
+        # row-normalize
+        row_sums = expected.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1.0
+        expected = expected / row_sums
         np.testing.assert_allclose(dense, expected, rtol=1e-6)
 
     def test_random_walks_shape_and_ids(self):
@@ -75,19 +79,208 @@ class RandomWalksTestCase(unittest.TestCase):
         self.assertTrue(set(walks.flatten()).issubset({1, 2, 3, 4}))
 
     def test_time_respecting_random_walks_with_explicit_edges(self):
-
         walks = time_respecting_random_walks(
             self.h,
             s=1,
-            hyperedge_from="e1",
-            hyperedge_to=None,
+            start_from="e1",
+            stop_at=None,
             num_walks=2,
             walk_length=2,
             p=1.0,
             q=1.0,
+            edge=True,
             threads=-1,
         )
 
         # one key (from to)
         self.assertEqual(len(walks), 1)
         self.assertListEqual(sorted(walks.keys()), [("e1", "e2")])
+
+    def test_tr_rw_terminate_at_sink_edge_mode_empty(self):
+        # Build a graph with a single hyperedge at t=5 only, so no overlaps and no forward chain
+        h = ASH()
+        h.add_hyperedge([10, 11], start=5)  # e1 at t=5
+        res = time_respecting_random_walks(
+            h,
+            s=1,
+            start_from="e1",
+            num_walks=1,
+            walk_length=3,
+            edge=True,
+            terminate_at_sink=True,
+            start=5,
+            end=5,
+        )
+        self.assertIsInstance(res, dict)
+        self.assertEqual(res, {})  # no path produced
+
+    def test_tr_rw_stop_at_node_mode(self):
+        # single 2-node hyperedge at t=0 ensures deterministic step from 1 to 2
+        h = ASH()
+        h.add_hyperedge([1, 2], start=0)
+        walks = time_respecting_random_walks(
+            h,
+            s=1,
+            start_from=1,
+            stop_at=2,  # stop should trigger after first step
+            num_walks=1,
+            walk_length=5,
+            edge=False,
+            start=0,
+            end=0,
+        )
+        self.assertIsInstance(walks, np.ndarray)
+        # one walk with exactly one step to node 2
+        self.assertGreaterEqual(walks.shape[0], 1)
+        self.assertGreaterEqual(walks.shape[1], 1)
+        for w in walks:
+            self.assertEqual(str(w[-1]), "2")
+
+    def test_tr_rw_start_from_none_node_mode(self):
+        # two hyperedges at t=0 so that sources exist; let the function pick its own start nodes
+        h = ASH()
+        h.add_hyperedge([1, 2], start=0)
+        h.add_hyperedge([2, 3], start=0)
+        walks = time_respecting_random_walks(
+            h,
+            s=1,
+            start_from=None,
+            num_walks=1,
+            walk_length=2,
+            edge=False,
+            start=0,
+            end=0,
+        )
+        self.assertIsInstance(walks, np.ndarray)
+        # At least one short walk should be produced
+        self.assertGreaterEqual(len(walks), 1)
+        for w in walks:
+            self.assertTrue(len(w) >= 1)
+            self.assertTrue({str(x) for x in w}.issubset({"1", "2", "3"}))
+
+    def test_tr_rw_waiting_node_mode(self):
+        # No intra-neighbors at t=0 for node 1, but at t=1 it gains neighbor 2
+        h = ASH()
+        h.add_hyperedge([1], start=0)  # singleton: no intra neighbors
+        h.add_hyperedge([1, 2], start=1)
+        walks = time_respecting_random_walks(
+            h,
+            s=1,
+            start_from=1,
+            num_walks=1,
+            walk_length=1,
+            edge=False,
+            start=0,
+            end=1,
+        )
+        self.assertIsInstance(walks, np.ndarray)
+        self.assertGreaterEqual(walks.shape[0], 1)
+        for w in walks:
+            self.assertEqual(len(w), 1)
+            self.assertEqual(str(w[0]), "2")
+
+    def test_tr_rw_waiting_edge_mode_self_loop_path(self):
+        # Hyperedge persists across times without any overlaps ⇒ only waiting edges
+        h = ASH()
+        h.add_hyperedge([7], start=0)  # e1 at t=0
+        h.add_hyperedge([7], start=1)  # e1 at t=1
+        res = time_respecting_random_walks(
+            h,
+            s=1,
+            start_from="e1",
+            num_walks=1,
+            walk_length=3,
+            edge=True,
+            start=0,
+            end=1,
+        )
+        # Expect a waiting path only: key ('e1','e1') with one TemporalEdge of weight 0.0 at t=1
+        self.assertIn(("e1", "e1"), res)
+        path_list = res[("e1", "e1")]
+        self.assertGreaterEqual(len(path_list), 1)
+        first_path = path_list[0]
+        self.assertGreaterEqual(len(first_path), 1)
+        self.assertEqual(first_path[0].fr, "e1")
+        self.assertEqual(first_path[0].to, "e1")
+        self.assertEqual(first_path[0].weight, 0.0)
+        self.assertEqual(first_path[0].tid, 1)
+
+    def test_random_walks_with_s_parameter(self):
+        # Test that s parameter filters connections based on co-occurrence threshold
+        h = ASH()
+        # Add hyperedges where some pairs co-occur multiple times
+        h.add_hyperedge([1, 2, 3], start=0)  # 1-2, 1-3, 2-3 co-occur once
+        h.add_hyperedge([1, 2, 4], start=0)  # 1-2 co-occurs twice now, 1-4, 2-4 once
+        h.add_hyperedge(
+            [1, 2, 5], start=0
+        )  # 1-2 co-occurs three times now, 1-5, 2-5 once
+
+        # With s=1 (default), all pairs with at least 1 co-occurrence are connected
+        T_s1, mapping_s1 = random_walk_probabilities(h, s=1)
+        dense_s1 = T_s1.toarray()
+        idx = mapping_s1
+        # Node 1 should have transitions to 2,3,4,5
+        self.assertGreater(dense_s1[idx[1], idx[2]], 0)  # 1->2
+        self.assertGreater(dense_s1[idx[1], idx[3]], 0)  # 1->3
+        self.assertGreater(dense_s1[idx[1], idx[4]], 0)  # 1->4
+        self.assertGreater(dense_s1[idx[1], idx[5]], 0)  # 1->5
+
+        # With s=2, only pairs that co-occur at least twice are connected
+        T_s2, mapping_s2 = random_walk_probabilities(h, s=2)
+        dense_s2 = T_s2.toarray()
+        idx2 = mapping_s2
+        # Only 1-2 and 2-1 should have transitions (they co-occur 3 times)
+        self.assertGreater(dense_s2[idx2[1], idx2[2]], 0)  # 1->2
+        self.assertGreater(dense_s2[idx2[2], idx2[1]], 0)  # 2->1
+        # But 1 should NOT connect to 3,4,5 (they co-occur only once each)
+        self.assertEqual(dense_s2[idx2[1], idx2[3]], 0)  # 1->3
+        self.assertEqual(dense_s2[idx2[1], idx2[4]], 0)  # 1->4
+        self.assertEqual(dense_s2[idx2[1], idx2[5]], 0)  # 1->5
+
+        # With s=3, only pairs that co-occur at least 3 times are connected
+        T_s3, mapping_s3 = random_walk_probabilities(h, s=3)
+        dense_s3 = T_s3.toarray()
+        idx3 = mapping_s3
+        # Only 1-2 and 2-1 (co-occur exactly 3 times)
+        self.assertGreater(dense_s3[idx3[1], idx3[2]], 0)  # 1->2
+        self.assertGreater(dense_s3[idx3[2], idx3[1]], 0)  # 2->1
+
+        # With s=4, no pairs qualify (max co-occurrence is 3)
+        T_s4, mapping_s4 = random_walk_probabilities(h, s=4)
+        dense_s4 = T_s4.toarray()
+        # Matrix should be all zeros
+        self.assertEqual(dense_s4.sum(), 0)
+
+    def test_random_walks_edge_mode_with_s_parameter(self):
+        # Test s parameter on hyperedge line graph
+        h = ASH()
+        h.add_hyperedge([1, 2], start=0)  # e1
+        h.add_hyperedge([2, 3], start=0)  # e2: shares node 2 with e1
+        h.add_hyperedge([1, 2, 3], start=0)  # e3: shares 1,2 with e1 and 2,3 with e2
+
+        # With s=1, hyperedges connected if they share at least 1 node
+        T_s1, mapping_s1 = random_walk_probabilities(h, s=1, edge=True)
+        dense_s1 = T_s1.toarray()
+        # All hyperedges should be connected (they all share at least 1 node)
+        self.assertGreater(dense_s1.sum(), 0)
+
+        # With s=2, hyperedges must share at least 2 nodes
+        T_s2, mapping_s2 = random_walk_probabilities(h, s=2, edge=True)
+        dense_s2 = T_s2.toarray()
+        idx2 = mapping_s2
+        # e1 and e3 share nodes [1,2] (2 nodes) - should be connected
+        # e2 and e3 share nodes [2,3] (2 nodes) - should be connected
+        # e1 and e2 share only node 2 (1 node) - should NOT be connected with s=2
+        e1_id = h.get_hyperedge_id([1, 2])
+        e2_id = h.get_hyperedge_id([2, 3])
+        e3_id = h.get_hyperedge_id([1, 2, 3])
+
+        # e1-e3 should be connected
+        if e1_id in idx2 and e3_id in idx2:
+            self.assertGreater(dense_s2[idx2[e1_id], idx2[e3_id]], 0)
+        # e2-e3 should be connected
+        if e2_id in idx2 and e3_id in idx2:
+            self.assertGreater(dense_s2[idx2[e2_id], idx2[e3_id]], 0)
+        # e1-e2 should NOT be connected (only 1 shared node)
+        if e1_id in idx2 and e2_id in idx2:
+            self.assertEqual(dense_s2[idx2[e1_id], idx2[e2_id]], 0)

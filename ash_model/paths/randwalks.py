@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
-from collections import namedtuple
 
 import numpy as np
 from scipy import sparse
@@ -7,10 +6,7 @@ import networkx as nx
 import csrgraph as cg
 
 from ash_model import ASH
-from ash_model.paths import temporal_s_dag
-
-TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
-TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
+from ash_model.paths import temporal_s_dag, TemporalEdge
 
 
 def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
@@ -32,35 +28,54 @@ def _map_to_indices(items: List[Any]) -> Tuple[Dict[Any, int], Dict[int, Any]]:
 
 
 def _build_node_transition_matrix(
-    h: ASH, start: Optional[int], end: Optional[int]
+    h: ASH, s: int, start: Optional[int], end: Optional[int]
 ) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
     """
     Construct transition probability matrix between nodes in hyperedges.
+
+    :param h: ASH hypergraph object
+    :param s: Minimum s-incidence threshold (nodes must co-occur in at least s hyperedges)
+    :param start: Lower temporal bound
+    :param end: Upper temporal bound
     """
     nodes = list(h.nodes(start=start, end=end))
     n2idx, _ = _map_to_indices(nodes)
     n = len(nodes)
-    T = np.zeros((n, n), dtype=float)
+
+    # Track co-occurrence counts between node pairs
+    cooccurrence_counts: Dict[Tuple[Any, Any], int] = {}
 
     for edge in h.hyperedges(start=start, end=end, as_ids=False):
         vertices = list(edge)
-        weight = len(vertices) - 1
         for u in vertices:
             for v in vertices:
                 if u != v:
-                    T[n2idx[u], n2idx[v]] += weight
+                    pair = (u, v)
+                    cooccurrence_counts[pair] = cooccurrence_counts.get(pair, 0) + 1
+
+    # Build transition matrix only for pairs with >= s co-occurrences
+    T = np.zeros((n, n), dtype=float)
+    for (u, v), count in cooccurrence_counts.items():
+        if count >= s:
+            # Weight by number of co-occurrences
+            T[n2idx[u], n2idx[v]] += count
 
     T = _normalize_rows(T)
     return sparse.csr_matrix(T), n2idx
 
 
 def _build_edge_transition_matrix(
-    h: ASH, start: Optional[int], end: Optional[int]
+    h: ASH, s: int, start: Optional[int], end: Optional[int]
 ) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
     """
     Construct transition probability matrix on the line graph of hyperedges.
+
+    :param h: ASH hypergraph object
+    :param s: Minimum size of node intersection between hyperedges
+    :param start: Lower temporal bound
+    :param end: Upper temporal bound
     """
-    G = h.s_line_graph(start=start, end=end)
+    G = h.s_line_graph(s=s, start=start, end=end)
     nodes = sorted(G.nodes())
     n2idx, _ = _map_to_indices(nodes)
 
@@ -71,16 +86,23 @@ def _build_edge_transition_matrix(
 
 def random_walk_probabilities(
     h: ASH,
+    s: int = 1,
     start: Optional[int] = None,
     end: Optional[int] = None,
     edge: bool = False,
 ) -> Tuple[sparse.csr_matrix, Dict[Any, int]]:
     """
     Compute CSR transition matrix and index mapping for nodes or hyperedges.
+
+    :param h: ASH hypergraph object
+    :param s: Minimum s-incidence threshold (for nodes: co-occurrence count; for edges: intersection size)
+    :param start: Lower temporal bound
+    :param end: Upper temporal bound
+    :param edge: If True, compute for hyperedge line graph
     """
     if edge:
-        return _build_edge_transition_matrix(h, start, end)
-    return _build_node_transition_matrix(h, start, end)
+        return _build_edge_transition_matrix(h, s, start, end)
+    return _build_node_transition_matrix(h, s, start, end)
 
 
 def random_walks(
@@ -90,6 +112,7 @@ def random_walks(
     walk_length: int = 10,
     p: float = 1.0,
     q: float = 1.0,
+    s: int = 1,
     edge: bool = False,
     start: Optional[int] = None,
     end: Optional[int] = None,
@@ -102,16 +125,30 @@ def random_walks(
     :param start_from: Node or list of nodes to start walks from
     :param num_walks: Number of walks per start node
     :param walk_length: Length of each walk
-    :param p: Return parameter
-    :param q: In-out parameter
+    :param p: Return parameter (higher values make walk less likely to return to previous node)
+    :param q: In-out parameter (higher values make walk more local, lower values encourage exploration)
+    :param s: Minimum s-incidence threshold. For node walks: nodes must co-occur in at least s hyperedges to be connected. For edge walks: hyperedges must share at least s nodes to be connected.
     :param edge: If True, walk on hyperedge line graph
     :param start: Lower temporal bound
     :param end: Upper temporal bound
     :param threads: Parallel threads for random walk computation
 
     :returns: Array of walks (each walk is a list of original node/edge IDs)
+
+    Examples
+    --------
+    .. code-block:: python
+
+        # Node-based random walks with s=1 (any co-occurrence)
+        walks = random_walks(h, num_walks=100, walk_length=10, s=1)
+
+        # Node-based random walks with s=2 (nodes must co-occur in at least 2 hyperedges)
+        walks = random_walks(h, num_walks=100, walk_length=10, s=2)
+
+        # Hyperedge-based random walks with s=2 (hyperedges must share at least 2 nodes)
+        walks = random_walks(h, num_walks=100, walk_length=10, s=2, edge=True)
     """
-    T_csr, n2idx = random_walk_probabilities(h, start, end, edge=edge)
+    T_csr, n2idx = random_walk_probabilities(h, s, start, end, edge=edge)
     idx2n = {idx: node for node, idx in n2idx.items()}
     G = cg.csrgraph(T_csr, threads=threads)
 
@@ -136,108 +173,187 @@ def random_walks(
 def time_respecting_random_walks(
     h: ASH,
     s: int,
-    hyperedge_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
-    hyperedge_to: Optional[Union[int, str]] = None,
+    start_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
+    stop_at: Optional[Union[int, str]] = None,
     start: Optional[int] = None,
     end: Optional[int] = None,
     num_walks: int = 100,
     walk_length: int = 10,
     p: float = 1.0,
     q: float = 1.0,
+    edge: bool = False,
     threads: int = -1,
-) -> Dict[Tuple[str, str], List[List[TemporalEdge]]]:
+    terminate_at_sink: bool = False,
+) -> Union[np.ndarray, Dict[Tuple[str, str], List[List[TemporalEdge]]]]:
     """
-    Perform biased, time-respecting random s-walks on a temporal hypergraph.
+    Generate biased, time-respecting random walks on the temporal hypergraph (nodes or hyperedges).
+
+    Semantics:
+    - A "step" is only an intra-timestamp transition between two different items (nodes if edge=False, hyperedges if edge=True).
+    - Forward-in-time edges (x_t -> x_{t+1}) are used solely to "wait" when no intra-timestamp neighbor is available; waiting does not consume steps.
+    - No teleport: transitions only follow DAG edges constructed by temporal_s_dag.
+    - Sink handling:
+        * terminate_at_sink=False (default): the walker waits forward in time on the same item until intra-timestamp neighbors appear or the timeline ends.
+        * terminate_at_sink=True: the walk stops upon reaching a sink (no waiting).
+    - Output:
+        * edge=True: returns a mapping (start_edge, end_edge) -> list of walks; waiting is represented as TemporalEdge self-loops with weight 0.0 on successive timestamps and does not count as steps.
+        * edge=False: returns an array of base node ID sequences; waiting periods are not included in the sequence; length is bounded by walk_length.
 
     :param h: ASH hypergraph object
     :param s: Minimum s-incidence threshold
-    :param hyperedge_from: Hyperedge ID(s) to start walks from
-    :param hyperedge_to: Hyperedge ID to stop walks at (optional)
+    :param start_from: Node or edge (or list) to start walks from
+    :param stop_at: Node or edge to stop walks at (optional)
     :param start: Lower temporal bound
     :param end: Upper temporal bound
-    :param num_walks: Number of walks per start edge
-    :param walk_length: Maximum steps per walk
+    :param num_walks: Number of walks per start node/edge
+    :param walk_length: Length of each walk
     :param p: Return parameter
     :param q: In-out parameter
-    :param threads: Parallel threads
+    :param edge: If True, walk on hyperedge line graph
+    :param threads: Parallel threads for random walk computation
 
-    :returns: Mapping (start_edge, end_edge) -> list of walks (temporal edge sequences)
+    :returns: If edge=False, ndarray of node ID sequences (base IDs without timestamps). If edge=True, mapping (start_edge, end_edge) -> list of walks (TemporalEdge lists).
     """
-    # Build temporal DAG
+    # Build temporal DAG (node or edge based)
     DAG, sources, _ = temporal_s_dag(
-        h, s, hyperedge_from, hyperedge_to, start=start, end=end
+        h, s, start_from, stop_at, start=start, end=end, edge=edge
     )
 
-    # Index mapping
-    nodes = list(DAG.nodes())
-    n2idx, idx2n = _map_to_indices(nodes)
-
-    # CSR adjacency
-    rows, cols, data = [], [], []
+    # Build neighbor maps: intra-timestamp transitions and forward-in-time edges
+    # Consider only timestamped nodes ("<id>_<tid>")
+    nodes = [n for n in DAG.nodes() if isinstance(n, str) and "_" in n]
+    # Intra-time neighbors with weights
+    intra_neighbors: Dict[str, List[Tuple[str, float]]] = {}
+    forward_next: Dict[str, str] = {}
     for u, v, attrs in DAG.edges(data=True):
-        rows.append(n2idx[u])
-        cols.append(n2idx[v])
-        data.append(attrs.get("weight", 1.0))
-    T_csr = sparse.csr_matrix((data, (rows, cols)), shape=(len(nodes), len(nodes)))
+        if "_" not in u or "_" not in v:
+            continue
+        ub, ut = u.rsplit("_", 1)
+        vb, vt = v.rsplit("_", 1)
+        if ut == vt and ub != vb:
+            intra_neighbors.setdefault(u, []).append(
+                (v, float(attrs.get("weight", 1.0)))
+            )
+        elif ub == vb:
+            # forward in time
+            # keep only the immediate next if multiple (should be unique)
+            forward_next[u] = v
 
-    G = cg.csrgraph(T_csr, threads=threads)
+    # Helper to choose a neighbor by weights
+    def pick_weighted(neis: List[Tuple[str, float]]) -> Optional[str]:
+        if not neis:
+            return None
+        vs, ws = zip(*neis)
+        ws = np.array(ws, dtype=float)
+        s = ws.sum()
+        if s <= 0:
+            ws = np.ones_like(ws) / len(ws)
+        else:
+            ws = ws / s
+        idx = np.random.choice(len(vs), p=ws)
+        return vs[idx]
 
-    # Determine start indices
-    if hyperedge_from is None:
-        start_indices = [n2idx[n] for n in sources]
-    else:
-        if not isinstance(hyperedge_from, list):
-            hyperedge_from = [hyperedge_from]
-        start_indices = [
-            idx
-            for n, idx in n2idx.items()
-            if n.split("_")[0] in map(str, hyperedge_from)
+    # Determine start nodes (timestamped)
+    if start_from is None:
+        start_nodes = [
+            n
+            for n in sources
+            if n in intra_neighbors or n in forward_next or n in nodes
         ]
+    else:
+        if not isinstance(start_from, list):
+            start_from = [start_from]
+        bases = set(str(sf) for sf in start_from)
+        start_nodes = [n for n in nodes if n.split("_")[0] in bases]
 
-    raw_walks = G.random_walks(
-        walklen=walk_length,
-        epochs=num_walks,
-        start_nodes=start_indices,
-        return_weight=1.0 / p,
-        neighbor_weight=1.0 / q,
-    )
+    if edge:
+        from collections import defaultdict
 
-    # Aggregate walks by (start_edge, end_edge)
-    from collections import defaultdict
+        res: Dict[Tuple[str, str], List[List[TemporalEdge]]] = defaultdict(list)
+        # For each start node, generate num_walks walks
+        for s_node in start_nodes:
+            for _ in range(num_walks):
+                path: List[TemporalEdge] = []
+                cur = s_node
+                steps = 0
+                # Walk until reaching required number of item transitions
+                while steps < walk_length:
+                    neis = intra_neighbors.get(cur, [])
+                    if not neis:
+                        if terminate_at_sink:
+                            break
+                        # advance in time until a neighbor exists or timeline ends
+                        moved = False
+                        seen = set()
+                        tmp = cur
+                        while tmp in forward_next and tmp not in seen:
+                            seen.add(tmp)
+                            nxt_tmp = forward_next[tmp]
+                            # append self-loop at next time to represent waiting (does not consume a step)
+                            base, _t = tmp.split("_")
+                            _b2, t2 = nxt_tmp.split("_")
+                            # sanity: _b2 should equal base
+                            path.append(TemporalEdge(base, base, 0.0, int(t2)))
+                            tmp = nxt_tmp
+                            if intra_neighbors.get(tmp):
+                                cur = tmp
+                                moved = True
+                                break
+                        if not moved:
+                            break
+                        continue
+                    nxt = pick_weighted(neis)
+                    if nxt is None:
+                        break
+                    # Append step (inter-item, same tid)
+                    fr, ft = cur.split("_")
+                    to, tt = nxt.split("_")
+                    w = next((w for v, w in neis if v == nxt), 1.0)
+                    path.append(TemporalEdge(fr, to, float(w), int(tt)))
+                    steps += 1
+                    cur = nxt
+                    if stop_at and (to == str(stop_at) or nxt == str(stop_at)):
+                        break
+                if path:
+                    key = (path[0].fr, path[-1].to)
+                    res[key].append(path)
+        return dict(res)
+    else:
+        walks: List[List[Union[int, str]]] = []
+        for s_node in start_nodes:
+            for _ in range(num_walks):
+                seq: List[Union[int, str]] = []
+                cur = s_node
+                steps = 0
+                while steps < walk_length:
+                    neis = intra_neighbors.get(cur, [])
+                    if not neis:
+                        if terminate_at_sink:
+                            break
+                        moved = False
+                        seen = set()
+                        tmp = cur
+                        while tmp in forward_next and tmp not in seen:
+                            seen.add(tmp)
+                            tmp = forward_next[tmp]
+                            if intra_neighbors.get(tmp):
+                                cur = tmp
+                                moved = True
+                                break
+                        if not moved:
+                            break
+                        continue
+                    nxt = pick_weighted(neis)
+                    if nxt is None:
+                        break
+                    base = nxt.split("_")[0]
+                    seq.append(base)
+                    steps += 1
+                    cur = nxt
+                    if stop_at is not None and str(base) == str(stop_at):
+                        break
+                if seq:
+                    walks.append(seq)
+    return np.array(walks, dtype=object)
 
-    res: Dict[Tuple[str, str], List[List[TemporalEdge]]] = defaultdict(list)
-    for seq in raw_walks:
-        path: List[TemporalEdge] = []
-        prev: Optional[int] = None
-        for idx in seq:
-            if prev is None:
-                prev = idx
-                continue
-            u_node = idx2n[prev]
-            v_node = idx2n[idx]
-            try:
-                fr, ft = u_node.split("_")
-                to, tt = v_node.split("_")
-            except ValueError:
-                """
-                report = ""
-                report += f"u_node: {u_node}\n"
-                report += f"v_node: {v_node}\n"
-                report += f"prev: {prev}\n"
-                report += f"idx: {idx}\n"
-                report += f"seq: {seq}\n"
-                report += f"nodes: {DAG.nodes()}\n"
-                raise ValueError(f"Unexpected node format in DAG: {report}")
-                """
-                continue
-
-            weight = DAG[u_node][v_node].get("weight", 1.0)
-            path.append(TemporalEdge(fr, to, weight, int(tt)))
-            prev = idx
-            if hyperedge_to and to == str(hyperedge_to):
-                break
-        if path:
-            key = (path[0].fr, path[-1].to)
-            res[key].append(path)
-
-    return dict(res)
+    # Unreachable old code removed (custom walker above handles both modes)

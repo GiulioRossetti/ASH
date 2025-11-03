@@ -1,6 +1,12 @@
 import unittest
 
-from ash_model.paths import *
+from ash_model import ASH
+from ash_model.paths import (
+    all_time_respecting_s_walks,
+    annotate_walks,
+    temporal_s_dag,
+    time_respecting_s_walks,
+)
 
 
 class TimeRespectingWalksCase(unittest.TestCase):
@@ -29,30 +35,34 @@ class TimeRespectingWalksCase(unittest.TestCase):
 
     def test_temporal_dag(self):
         a = self.get_hypergraph()
-        dg, sources, targets = temporal_s_dag(a, s=2, hyperedge_from="e1")
+        dg, sources, targets = temporal_s_dag(a, s=2, start_from="e1", edge=True)
 
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 5)
 
         dg, sources, targets = temporal_s_dag(
-            a, s=1, hyperedge_from="e1", start=0, end=1
+            a, s=1, start_from="e1", start=0, end=1, edge=True
         )
         self.assertEqual(len(sources), 2)
         self.assertEqual(len(targets), 2)
 
     def test_time_respecting_s_walks(self):
         a = self.get_hypergraph()
-        pts = time_respecting_s_walks(a, 1, "e1", "e5")
+        pts = time_respecting_s_walks(a, 1, start_from="e1", stop_at="e5")
 
         for p in pts:
             self.assertIsInstance(p, tuple)
 
         self.assertEqual(
-            len(time_respecting_s_walks(a, 1, "e1", "e5", start=4, end=4)), 1
+            len(
+                time_respecting_s_walks(
+                    a, 1, start_from="e1", stop_at="e5", start=4, end=4
+                )
+            ),
+            1,
         )
 
-        pts = time_respecting_s_walks(a, 1, "e1", "e5", sample=0.5)
-
+        pts = time_respecting_s_walks(a, 1, start_from="e1", stop_at="e5", sample=0.5)
         for p in pts:
             self.assertIsInstance(p, tuple)
 
