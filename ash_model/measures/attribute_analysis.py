@@ -69,6 +69,24 @@ def hyperedge_profile_purity(h: ASH, hyperedge_id: str, tid: int) -> dict:
 
     :return: A dictionary with attribute names as keys and their purity as values
 
+    Examples
+    --------
+    Build a small temporal ASH from 10 Barabási–Albert graphs, annotate nodes with a categorical color,
+    then compute the purity on one hyperedge at tid=0.
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> he0 = next(iter(h.hyperedges(start=tid, end=tid)))
+    >>> hyperedge_profile_purity(h, he0, tid)
+    {'color': {'blue': 1.0}}
+
     """
 
     nodes = h.get_hyperedge_nodes(hyperedge_id)
@@ -102,6 +120,23 @@ def hyperedge_profile_entropy(h: ASH, hyperedge_id: str, tid: int) -> dict:
     :param tid: The temporal id
 
     :return: A dictionary with attribute names as keys and their entropy as values
+
+    Examples
+    --------
+    Using the same dataset as above, the entropy for the selected hyperedge at tid=0:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> he0 = next(iter(h.hyperedges(start=tid, end=tid)))
+    >>> hyperedge_profile_entropy(h, he0, tid)
+    {'color': 0}
 
     """
     nodes = h.get_hyperedge_nodes(hyperedge_id)
@@ -140,6 +175,23 @@ def star_profile_entropy(
     :param method: Specify the method to be used in calculating the star profile entropy. Options are 'aggregate' or 'collapse'.
 
     :return: A dictionary with the entropy of each attribute
+
+    Examples
+    --------
+    Compute the star-profile entropy for a node (aggregate method) on tid=0 with the dataset above:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> node0 = next(iter(h.nodes(start=tid, end=tid)))
+    >>> star_profile_entropy(h, node0, tid, method='aggregate')
+    {'color': np.float64(0.7706290693639405)}
 
     """
     star = h.star(node_id, start=tid)
@@ -190,6 +242,23 @@ def star_profile_homogeneity(
 
     :return: A dictionary with the homogeneity of each attribute
 
+    Examples
+    --------
+    Compute the star-profile homogeneity for a node (aggregate method) on tid=0 with the dataset above:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> node0 = next(iter(h.nodes(start=tid, end=tid)))
+    >>> star_profile_homogeneity(h, node0, tid, method='aggregate')
+    {'color': 0.7741935483870968}
+
     """
     star = h.star(node_id, start=tid)
 
@@ -231,6 +300,21 @@ def average_group_degree(h: ASH, tid: int, hyperedge_size: int = None) -> object
 
     :return: A dictionary with attribute names as keys and a dictionary of average degrees for each attribute value
 
+    Examples
+    --------
+    Average degree by color at tid=0 with the dataset above:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> average_group_degree(h, tid=0)
+    {'color': {'red': 4.854166666666667, 'blue': 5.0}}
+
     """
     attributes = h.list_node_attributes(tid=tid, categorical=True)
 
@@ -266,11 +350,27 @@ def attribute_consistency(h: ASH, node: int = None) -> dict:
 
     :return: A dict containing, for each node, for each attribute, the consistency value
 
+    Examples
+    --------
+    Consistency for a specific node over time (avoid node=0 which is falsy in current implementation):
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> attribute_consistency(h, node=1)
+    {'color': np.float64(0.1187091007693073)}
+
+    Note: passing node=0 currently behaves as if no node was specified because 0 evaluates to False.
     """
 
     res = defaultdict(dict)
     attributes = h.list_node_attributes(categorical=True)
-    if node:
+    if node is not None:
         nodes = [node]
     else:
         nodes = h.nodes()
@@ -285,6 +385,6 @@ def attribute_consistency(h: ASH, node: int = None) -> dict:
 
             consist = 1 - __entropy(labels, base=len(attributes[attr_name]))
             res[n][attr_name] = consist
-    if node:
+    if node is not None:
         return res[node]
     return res

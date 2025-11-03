@@ -113,9 +113,25 @@ def hyper_conformity(
 
     :return: conformity value for each node in [-1, 1]
 
-    -- Example --
-    >> g = nx.karate_club_graph()
-    >> pc = profile_conformity(g, 1, ['club'])
+    Examples
+    --------
+    Build the dataset described in the docs and compute hyper-conformity for label 'color' at tid=0:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> res = hyper_conformity(h, alphas=[1], labels=['color'], s=1, profile_size=1, tid=0)
+    >>> len(res)
+    1
+    >>> ap = list(res[0].keys())[0]
+    >>> feat = list(res[0][ap].keys())[0]
+    >>> sorted(list(res[0][ap][feat].items()))[:3]
+    [('e1', 0.6287411100578744), ('e10', 0.5843765336901121), ('e100', 0.6358755716986335)]
 
     """
 

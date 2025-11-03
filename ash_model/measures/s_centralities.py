@@ -48,6 +48,20 @@ def s_betweenness_centrality(
     :param weight: if True, use edge weights for the betweenness centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their betweenness centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_betweenness_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 0.0), ('e10', 0.021109461571662495), ('e100', 0.0035032472389105243)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
@@ -79,6 +93,20 @@ def s_closeness_centrality(
     :param edges: if True, compute for hyperedges; if False, compute for nodes
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their closeness centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_closeness_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 0.4563758389261745), ('e10', 0.5483870967741935), ('e100', 0.40556660039761433)]
     """
 
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -106,6 +134,20 @@ def s_eccentricity(
     :param edges: if True, compute for hyperedges; if False, compute for nodes
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their eccentricity values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_eccentricity(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 4), ('e10', 3), ('e100', 4)]
     """
 
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
@@ -136,6 +178,20 @@ def s_harmonic_centrality(
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True)
         to their harmonic centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_harmonic_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 105.58333333333324), ('e10', 127.66666666666663), ('e100', 89.99999999999993)]
 
     """
 
@@ -178,6 +234,20 @@ def s_katz(
     :param weight: if True, use edge weights for the Katz centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their Katz centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_katz(h, 1, start=0, end=0).items()))[:3]
+    >>> [(k, float(v)) for k,v in head3]
+    [('e1', 0.015921892363685495), ('e10', -0.01107345978999999), ('e100', 0.03526804656510612)]
 
     """
 
@@ -223,6 +293,20 @@ def s_load_centrality(
     :param weight: if True, use edge weights for the load centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their load centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_load_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 0.0), ('e10', 0.017716537175626074), ('e100', 0.004101958933395599)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
@@ -266,6 +350,20 @@ def s_eigenvector_centrality(
     :param tol: tolerance for convergence in the eigenvector centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their eigenvector centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_eigenvector_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> [(k, float(v)) for k,v in head3]
+    [('e1', 0.12621433668406887), ('e10', 0.1777592407633311), ('e100', 0.010063200782658498)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
@@ -300,6 +398,20 @@ def s_information_centrality(
     :param weight: if True, use edge weights for the information centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their information centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_information_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 0.036151507093556814), ('e10', 0.04152134988072226), ('e100', 0.024272445362294077)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
@@ -333,6 +445,20 @@ def s_second_order_centrality(
     :param edges: if True, compute for hyperedges; if False, compute for nodes
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their second-order centrality values
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> head3 = sorted(list(s_second_order_centrality(h, 1, start=0, end=0).items()))[:3]
+    >>> head3
+    [('e1', 373.1451853808109), ('e10', 226.34942005127067), ('e100', 687.213714885934)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 

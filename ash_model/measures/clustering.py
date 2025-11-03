@@ -25,6 +25,21 @@ def s_local_clustering_coefficient(
     :param end:          optional end time (inclusive)
 
     :return:             local clustering coefficient in [0,1]
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> he0 = next(iter(h.hyperedges(start=tid, end=tid)))
+    >>> round(s_local_clustering_coefficient(h, 1, he0, start=tid, end=tid), 12)
+    0.801169590643
     """
     # Build the s-overlap line graph once
     lg = h.s_line_graph(s, start, end)
@@ -58,6 +73,19 @@ def average_s_local_clustering_coefficient(
     :param end:   optional end time (inclusive)
 
     :return:      average local clustering coefficient in [0,1], or 0 if no nodes
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> round(average_s_local_clustering_coefficient(h, 1, start=0, end=0), 12)
+    0.581891366366
     """
     lg = h.s_line_graph(s, start, end)
     n = lg.number_of_nodes()
@@ -83,6 +111,19 @@ def s_intersections(
     :param end:   optional end time (inclusive)
 
     :return:      number of intersections of size >= s
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> s_intersections(h, 1, start=0, end=0)
+    2091
     """
     return h.s_line_graph(s, start, end).number_of_edges()
 
@@ -103,6 +144,19 @@ def inclusiveness(
     :param end:    optional end time (inclusive)
 
     :return:       a float in [0,1], or 0.0 if there are no hyperedges
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> inclusiveness(h, start=0, end=0)
+    0.0
     """
     node_sets = [set(he) for he in h.hyperedges(start, end, as_ids=False)]
     total = len(node_sets)
