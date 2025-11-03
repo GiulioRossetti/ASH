@@ -207,7 +207,7 @@ class TestASHBenchmark(unittest.TestCase):
         t1 = time.perf_counter()
         interval_time = t1 - t0
 
-        print(f"add_hyperedge: dense={dense_time:.4f}s, interval={interval_time:.4f}s")
+    # print(f"add_hyperedge: dense={dense_time:.4f}s, interval={interval_time:.4f}s")
 
     def test_hyperedge_presence(self):
         # Ensure hyperedges built first
@@ -228,9 +228,9 @@ class TestASHBenchmark(unittest.TestCase):
         t1 = time.perf_counter()
         interval_time = t1 - t0
 
-        print(
-            f"hyperedge_presence: dense={dense_time:.4f}s, interval={interval_time:.4f}s"
-        )
+    # print(
+    #     f"hyperedge_presence: dense={dense_time:.4f}s, interval={interval_time:.4f}s"
+    # )
 
     def test_remove_hyperedges(self):
         # Benchmark removal of half the hyperedges
@@ -249,8 +249,8 @@ class TestASHBenchmark(unittest.TestCase):
         t1 = time.perf_counter()
         interval_time = t1 - t0
 
-        print(
-            f"remove_hyperedge: dense={dense_time:.4f}s, interval={interval_time:.4f}s"
-        )
+    # print(
+    #     f"remove_hyperedge: dense={dense_time:.4f}s, interval={interval_time:.4f}s"
+    # )
 
 """
