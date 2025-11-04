@@ -8,13 +8,13 @@ from collections import defaultdict
 
 def rwhs(
     h: ASH,
+    s: int,
     tid: int,
     start_from: Union[int, str, List[Union[int, str]], None] = None,
     num_walks: int = 100,
     walk_length: int = 10,
     p: float = 1.0,
     q: float = 1.0,
-    s: int = 1,
     edge: bool = False,
     method: str = "meet",
     threads: int = -1,
@@ -23,15 +23,15 @@ def rwhs(
     Compute Random Walk Hypergraph Similarity (RWHS) scores for nodes in a hypergraph.
 
     :param h: ASH instance.
+    :param s: Minimum s-incidence threshold. For node walks: nodes must co-occur in at least s hyperedges.
+              For edge walks: hyperedges must share at least s nodes.
     :param tid: Temporal snapshot id.
-    :param start_from: Node(s) or node id(s) from which to start the random walks. If
-                          None, random walks will start from all nodes.
+    :param start_from: Node(s) or hyperedge id(s) from which to start the random walks. If
+                          None, random walks will start from all nodes (or all hyperedges if edge=True).
     :param num_walks: Number of random walks to perform.
     :param walk_length: Length of each random walk.
     :param p: Return parameter for the random walk.
     :param q: In-out parameter for the random walk.
-    :param s: Minimum s-incidence threshold. For node walks: nodes must co-occur in at least s hyperedges.
-              For edge walks: hyperedges must share at least s nodes.
     :param edge: If True, perform random walks on the hyperedge line graph.
     :param method: Method to compute RWHS scores. Supported methods are 'meet' and 'jump'.
     :param threads: Number of threads to use for parallel computation. Default is -1 (use all available threads).
@@ -95,8 +95,8 @@ def temporal_rwhs(
     h: ASH,
     s: int,
     tid: int,
-    hyperedge_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
-    hyperedge_to: Optional[Union[int, str]] = None,
+    start_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
+    end_at: Optional[Union[int, str]] = None,
     num_walks: int = 100,
     walk_length: int = 10,
     p: float = 1.0,
@@ -110,9 +110,9 @@ def temporal_rwhs(
     :param h: ASH instance.
     :param s: Order of the hypergraph (minimum s-incidence threshold).
     :param tid: Temporal snapshot id.
-    :param hyperedge_from: Hyperedge(s) or hyperedge id(s) from which to start the random walks. If
+    :param start_from: Hyperedge(s) or hyperedge id(s) from which to start the random walks. If
                           None, random walks will start from all hyperedges.
-    :param hyperedge_to: Hyperedge or hyperedge id to which to end the random walks. If None, random walks
+    :param end_at: Hyperedge or hyperedge id to which to end the random walks. If None, random walks
                          will end at all hyperedges.
     :param num_walks: Number of random walks to perform.
     :param walk_length: Length of each random walk.
@@ -127,8 +127,8 @@ def temporal_rwhs(
     walks = time_respecting_random_walks(
         h,
         s,
-        hyperedge_from,
-        hyperedge_to,
+        start_from,
+        end_at,
         start=tid,
         end=tid,
         num_walks=num_walks,
