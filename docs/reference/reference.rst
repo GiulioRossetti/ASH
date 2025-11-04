@@ -31,6 +31,16 @@ This section includes various measures that can be computed on ASH models.
   measures_hyper_conformity
   measures_hyper_segregation
   measures_s_centralities
+
+
+MultiEgo
+~~~~~~~~
+
+This module provides functions for multi-ego network analysis, including core identification, similarity measures, and fracture analysis.
+
+.. toctree::
+  :maxdepth: 1
+
   multiego
 
 

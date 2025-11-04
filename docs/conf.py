@@ -14,8 +14,6 @@ import os
 import sys
 from pathlib import Path
 
-import sphinx_rtd_theme
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 try:
@@ -23,17 +21,15 @@ try:
 except ImportError:
     __version__ = "0.2.0"
 
-html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = "furo"
 
 version = __version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
 html_theme_options = {
-    "collapse_navigation": False,
-    "display_version": False,
-    "navigation_depth": 3,
+    "light_logo": "ash.png",
+    "dark_logo": "ash.png",
 }
 
 # -- Project information -----------------------------------------------------
@@ -105,12 +101,12 @@ exclude_patterns = [
 
 # Intersphinx mapping per link esterni
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", {}),
-    "numpy": ("https://numpy.org/doc/stable/", {}),
-    "networkx": ("https://networkx.org/documentation/stable/", {}),
-    "matplotlib": ("https://matplotlib.org/stable/", {}),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", {}),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", {}),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
 }
 
 # Opzioni per ordina membri (mantiene ordine sorgente)
@@ -126,7 +122,7 @@ autodoc_inherit_docstrings = True
 #
 # html_theme = 'alabaster'
 
-html_logo = "ash.png"
+# Logo is configured in html_theme_options for Furo theme
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
