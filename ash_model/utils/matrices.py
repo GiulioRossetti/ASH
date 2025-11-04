@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from scipy import sparse
 
 from ash_model import ASH
@@ -59,7 +59,10 @@ def _build_incidence_matrix(
 
 
 def incidence_matrix(
-    h: ASH, start: int = None, end: int = None, return_mapping: bool = False
+    h: ASH,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    return_mapping: bool = False,
 ) -> Union[sparse.csr_matrix, Tuple[sparse.csr_matrix, Dict[int, int], Dict[str, int]]]:
     """
     Returns the incidence matrix of the ASH object.
@@ -115,7 +118,10 @@ def incidence_matrix_by_time(h: ASH, return_mapping: bool = False) -> Union[
 
 
 def adjacency_matrix(
-    h: ASH, start: int = None, end: int = None, return_mapping: bool = False
+    h: ASH,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    return_mapping: bool = False,
 ) -> Union[sparse.csr_matrix, Tuple[sparse.csr_matrix, Dict[int, int]]]:
     """
     Returns the adjacency matrix of the ASH object.

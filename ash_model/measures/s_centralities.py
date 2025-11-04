@@ -1,10 +1,16 @@
+from typing import Optional
+
 import networkx as nx
 
 from ash_model import ASH
 
 
 def __s_linegraph(
-    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH,
+    s: int,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edges: bool = True,
 ) -> nx.Graph:
     """
 
@@ -28,8 +34,8 @@ def __s_linegraph(
 def s_betweenness_centrality(
     h: ASH,
     s: int,
-    start: int = None,
-    end: int = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
     edges: bool = True,
     normalized: bool = True,
     weight: bool = False,
@@ -79,7 +85,11 @@ def s_betweenness_centrality(
 
 
 def s_closeness_centrality(
-    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH,
+    s: int,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edges: bool = True,
 ) -> dict:
     """
     Returns the closeness centrality of the nodes in the line graph of the hypergraph.
@@ -120,7 +130,11 @@ def s_closeness_centrality(
 
 
 def s_eccentricity(
-    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH,
+    s: int,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edges: bool = True,
 ) -> dict:
     """
     Returns the eccentricity of the nodes in the line graph of the hypergraph.
@@ -161,7 +175,11 @@ def s_eccentricity(
 
 
 def s_harmonic_centrality(
-    h: ASH, s: int, start: int = None, end: int = None, edges: bool = True
+    h: ASH,
+    s: int,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edges: bool = True,
 ) -> dict:
     """
     Returns the harmonic centrality of the nodes in the line graph of the hypergraph.
@@ -208,13 +226,14 @@ def s_harmonic_centrality(
 def s_katz(
     h: ASH,
     s: int,
-    start: int = None,
-    end: int = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
     edges: bool = True,
-    normalized: bool = True,
     alpha: float = 0.1,
     beta: float = 1.0,
-    weight: bool = False,
+    max_iter: int = 1000,
+    tol: float = 1e-06,
+    normalized: bool = True,
 ) -> dict:
     """
     Returns the Katz centrality of the nodes in the line graph of the hypergraph.
@@ -231,7 +250,8 @@ def s_katz(
     :param normalized: if True, normalize the Katz centrality values
     :param alpha: attenuation factor for the Katz centrality
     :param beta: scaling factor for the Katz centrality
-    :param weight: if True, use edge weights for the Katz centrality calculation
+    :param max_iter: maximum number of iterations for the Katz centrality calculation
+    :param tol: tolerance for the Katz centrality calculation
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their Katz centrality values
 
@@ -248,18 +268,12 @@ def s_katz(
     >>> head3 = sorted(list(s_katz(h, 1, start=0, end=0).items()))[:3]
     >>> [(k, float(v)) for k,v in head3]
     [('e1', 0.015921892363685495), ('e10', -0.01107345978999999), ('e100', 0.03526804656510612)]
-
     """
 
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
-    if weight:
-        weight = "w"
-    else:
-        weight = None
-
-    res = nx.katz_centrality_numpy(
-        lg, normalized=normalized, alpha=alpha, beta=beta, weight=weight
+    res = nx.katz_centrality(
+        lg, alpha=alpha, beta=beta, max_iter=max_iter, tol=tol, normalized=normalized
     )
     if node_to_eid is None:
         return res
@@ -271,11 +285,10 @@ def s_katz(
 def s_load_centrality(
     h: ASH,
     s: int,
-    start: int = None,
-    end: int = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
     edges: bool = True,
-    normalized: bool = True,
-    weight: bool = False,
+    weight=None,
 ) -> dict:
     """
     Returns the load centrality of the nodes in the line graph of the hypergraph.
@@ -289,8 +302,7 @@ def s_load_centrality(
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
-    :param normalized: if True, normalize the load centrality values
-    :param weight: if True, use edge weights for the load centrality calculation
+    :param weight: edge attribute to use as weight
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their load centrality values
 
@@ -310,12 +322,7 @@ def s_load_centrality(
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
 
-    if weight:
-        weight = "w"
-    else:
-        weight = None
-
-    res = nx.load_centrality(lg, normalized=normalized, weight=weight)
+    res = nx.load_centrality(lg, weight=weight)
     if node_to_eid is None:
         return res
     else:
@@ -326,12 +333,12 @@ def s_load_centrality(
 def s_eigenvector_centrality(
     h: ASH,
     s: int,
-    start: int = None,
-    end: int = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
     edges: bool = True,
-    weight: bool = False,
-    max_iter: int = 50,
-    tol: float = 0,
+    max_iter: int = 100,
+    tol: float = 1e-06,
+    weight=None,
 ) -> dict:
     """
     Returns the eigenvector centrality of the nodes in the line graph of the hypergraph.
@@ -345,9 +352,9 @@ def s_eigenvector_centrality(
     :param start: start time of the interval
     :param end: end time of the interval
     :param edges: if True, compute for hyperedges; if False, compute for nodes
-    :param weight: if True, use edge weights for the eigenvector centrality calculation
     :param max_iter: maximum number of iterations for the eigenvector centrality calculation
     :param tol: tolerance for convergence in the eigenvector centrality calculation
+    :param weight: edge attribute to use as weight
 
     :return: a dictionary mapping node IDs (or edge IDs if `edges` is True) to their eigenvector centrality values
 
@@ -366,11 +373,6 @@ def s_eigenvector_centrality(
     [('e1', 0.12621433668406887), ('e10', 0.1777592407633311), ('e100', 0.010063200782658498)]
     """
     lg, node_to_eid = __s_linegraph(h, s, start, end, edges)
-
-    if weight:
-        weight = "w"
-    else:
-        weight = None
 
     res = nx.eigenvector_centrality_numpy(lg, weight=weight, max_iter=max_iter, tol=tol)
     if node_to_eid is None:

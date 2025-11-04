@@ -1,6 +1,6 @@
 import copy
 from itertools import combinations
-from typing import Dict
+from typing import Dict, Optional
 from collections import defaultdict
 
 import networkx as nx
@@ -9,7 +9,10 @@ from ash_model import ASH, NProfile
 
 
 def clique_projection(
-    h: ASH, start: int = None, end: int = None, keep_attrs: bool = False
+    h: ASH,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    keep_attrs: bool = False,
 ) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the clique projection of the
@@ -45,8 +48,22 @@ def clique_projection(
     return res
 
 
+"""
+Hypergraph projection functions.
+"""
+
+from typing import Dict, Optional
+
+import networkx as nx
+
+from ash_model import ASH
+
+
 def bipartite_projection(
-    h: ASH, start: int = None, end: int = None, keep_attrs: bool = False
+    h: ASH,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    keep_attrs: bool = False,
 ) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the bipartite projection of the
@@ -83,7 +100,11 @@ def bipartite_projection(
 
 
 def line_graph_projection(
-    h: ASH, s: int = 1, start: int = None, end: int = None, keep_attrs: bool = False
+    h: ASH,
+    s: int = 1,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    keep_attrs: bool = False,
 ) -> nx.Graph:
     """
     Returns a NetworkX Graph object that is the line graph projection of the
@@ -127,7 +148,9 @@ def line_graph_projection(
     return g
 
 
-def dual_hypergraph_projection(h: ASH, start: int = None, end: int = None) -> tuple:
+def dual_hypergraph_projection(
+    h: ASH, start: Optional[int] = None, end: Optional[int] = None
+) -> tuple:
     """
     The dual_hypergraph function takes a hypergraph and returns the dual of that hypergraph.
     The dual of a hypergraph is a hypergraph where each hyperedge becomes a node, and each
