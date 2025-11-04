@@ -4,7 +4,8 @@ import pytest
 import numpy as np
 import warnings
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for testing
+
+matplotlib.use("Agg")  # Non-interactive backend for testing
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -16,11 +17,12 @@ def _configure_test_session():
     """
     try:
         import matplotlib
+
         matplotlib.use("Agg", force=True)
     except Exception:
         # Non bloccare la suite se matplotlib non è presente
         pass
-    
+
     # Sopprimi warning noti: legend senza artists nelle figure di test
     warnings.filterwarnings(
         "ignore",
@@ -39,10 +41,10 @@ def rng() -> np.random.Generator:
 def ash_factory():
     """Factory per creare istanze ASH con backend opzionale."""
     from ash_model import ASH
-    
+
     def _make(backend: str | None = None) -> ASH:
         return ASH() if backend is None else ASH(backend=backend)
-    
+
     return _make
 
 
@@ -77,6 +79,7 @@ def small_temporal_hg(ash_factory):
 def matplotlib_agg():
     """Ensure matplotlib uses non-interactive backend for tests."""
     import matplotlib.pyplot as plt
+
     yield
     # Cleanup
-    plt.close('all')
+    plt.close("all")
