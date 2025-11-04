@@ -31,6 +31,7 @@ This section includes various measures that can be computed on ASH models.
   measures_hyper_conformity
   measures_hyper_segregation
   measures_s_centralities
+  multiego
 
 
 Generators
