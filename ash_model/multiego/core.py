@@ -7,7 +7,10 @@ from ..classes import ASH
 
 
 def get_multiego(
-    h: ASH, U: Set[int], start: int, end: Optional[int] = None
+    h: ASH,
+    U: Set[int],
+    start: Optional[int] = None,
+    end: Optional[int] = None,
 ) -> List[Set[int]]:
     """
     Extract the Multi-Ego Network for a set of ego nodes U within a time window.
@@ -17,8 +20,8 @@ def get_multiego(
 
     :param h:     an ASH instance
     :param U:     set of ego nodes (root nodes)
-    :param start: start time of the query window
-    :param end:   end time of the query window (inclusive). If None, only start time is considered.
+    :param start: start time of the query window (optional). If None, considers all time periods.
+    :param end:   end time of the query window (inclusive, optional). If None, only start time is considered (if start is provided), otherwise all time periods.
 
     :return: list of hyperedges (as sets of node IDs) forming the Multi-Ego Network
 
@@ -27,6 +30,7 @@ def get_multiego(
     >>> h = ASH()
     >>> # ... add hyperedges ...
     >>> U = {1, 2}  # Two ego nodes
+    >>> multiego = get_multiego(h, U)  # All time periods
     >>> multiego = get_multiego(h, U, start=0)  # Single snapshot
     >>> multiego = get_multiego(h, U, start=0, end=5)  # Time window [0,5]
     >>> print(f"Multi-Ego Network contains {len(multiego)} hyperedges")
@@ -54,7 +58,11 @@ def get_multiego(
 
 
 def get_fractured_multiego(
-    h: ASH, U: Set[int], start: int, end: Optional[int] = None, alpha: float = 0.5
+    h: ASH,
+    U: Set[int],
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    alpha: float = 0.5,
 ) -> List[Set[int]]:
     """
     Extract the Fractured Multi-Ego Network for a set of ego nodes U within a time window.
@@ -64,8 +72,8 @@ def get_fractured_multiego(
 
     :param h:     an ASH instance
     :param U:     set of ego nodes (root nodes)
-    :param start: start time of the query window
-    :param end:   end time of the query window (inclusive). If None, only start time is considered.
+    :param start: start time of the query window (optional). If None, considers all time periods.
+    :param end:   end time of the query window (inclusive, optional). If None, only start time is considered (if start is provided), otherwise all time periods.
     :param alpha: fraction threshold (0 < alpha <= 1). A hyperedge is included if it contains at least alpha*|U| nodes from U.
 
     :return: list of hyperedges (as sets of node IDs) forming the Fractured Multi-Ego Network
@@ -76,6 +84,7 @@ def get_fractured_multiego(
     >>> # ... add hyperedges ...
     >>> U = {1, 2, 3, 4}  # Four ego nodes
     >>> # Include hyperedges with at least 50% of U (2 nodes)
+    >>> multiego = get_fractured_multiego(h, U, alpha=0.5)  # All time periods
     >>> multiego = get_fractured_multiego(h, U, start=0, alpha=0.5)
     >>> multiego = get_fractured_multiego(h, U, start=0, end=5, alpha=0.75)
     """
@@ -106,7 +115,11 @@ def get_fractured_multiego(
 
 
 def get_core_multiego(
-    h: ASH, U: Set[int], start: int, end: Optional[int] = None, beta: float = 0.5
+    h: ASH,
+    U: Set[int],
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    beta: float = 0.5,
 ) -> List[Set[int]]:
     """
     Extract the Core Multi-Ego Network for a set of ego nodes U within a time window.
@@ -116,8 +129,8 @@ def get_core_multiego(
 
     :param h:     an ASH instance
     :param U:     set of ego nodes (root nodes)
-    :param start: start time of the query window
-    :param end:   end time of the query window (inclusive). If None, only start time is considered.
+    :param start: start time of the query window (optional). If None, considers all time periods.
+    :param end:   end time of the query window (inclusive, optional). If None, only start time is considered (if start is provided), otherwise all time periods.
     :param beta:  fraction threshold (0 < beta <= 1). A hyperedge is included if nodes from U represent at least beta*|hyperedge| of its nodes.
 
     :return: list of hyperedges (as sets of node IDs) forming the Core Multi-Ego Network
@@ -128,6 +141,7 @@ def get_core_multiego(
     >>> # ... add hyperedges ...
     >>> U = {1, 2, 3}  # Three ego nodes
     >>> # Include hyperedges where U nodes are at least 60% of the hyperedge
+    >>> multiego = get_core_multiego(h, U, beta=0.6)  # All time periods
     >>> multiego = get_core_multiego(h, U, start=0, beta=0.6)
     >>> multiego = get_core_multiego(h, U, start=0, end=5, beta=0.5)
     """
