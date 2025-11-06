@@ -30,8 +30,8 @@ def temporal_s_dag(
     """
     Build a time-respecting DAG over [start, end] for either hyperedges (edge=True) or nodes (edge=False).
     Nodes are labeled as "<id>_<tid>".
-    Intra-timestamp edges connect different items active at the same timestamp when s-incidence (edges) or co-membership (nodes) is satisfied.
-    Forward-in-time edges x_t -> x_{t+1} exist only if the same item is active at both timestamps and are intended for waiting; consumers should not count them as steps.
+    Edges connect items from different timestamps following chronological order, ensuring time-respecting properties.
+    Only forward-in-time edges are created: from timestamp t to timestamps t' where t' > t.
 
     :param h: The source hypergraph.
     :param s: Minimum s-incidence threshold.
@@ -41,7 +41,7 @@ def temporal_s_dag(
     :param end: Last snapshot ID to include. Defaults to latest.
     :param edge: If True, operate on hyperedges. If False, operate on nodes.
     :returns: (DAG, sources, targets) with labels "<id>_<tid>".
-    :raises ValueError: If the [start, end] interval is not a valid subset of the graph's snapshot IDs.
+    :raises ValueError: If the [start, end] interval is not a valid subset of the hypergraph's snapshot IDs.
     """
     ids = h.temporal_snapshots_ids()
     if len(ids) == 0:
@@ -71,115 +71,98 @@ def temporal_s_dag(
         seeds = [str(start_from)]
 
     DG = nx.DiGraph()
-    active = {s_id: None for s_id in seeds} if seeds else {}
     sources, targets = {}, {}
 
+    # First pass: build all edges and collect reachable items
+    all_edges = []
+    item_at_time = defaultdict(set)  # Track which items exist at which times
+
     for i, tid in enumerate(ids):
-        # Precompute neighbors per time for node-mode to avoid repeated scans
-        node_neighbors: dict[str, dict[str, int]] = {}
-        if not edge:
-            node_neighbors = defaultdict(lambda: defaultdict(int))
+        # Track items present at this timestamp
+        if edge:
             for he in h.hyperedges(start=tid, end=tid):
-                he_nodes = list(h.get_hyperedge_nodes(he))
-                # count co-memberships for all pairs within this hyperedge
-                for ii in range(len(he_nodes)):
-                    u = str(he_nodes[ii])
-                    for j in range(len(he_nodes)):
-                        if ii == j:
-                            continue
-                        v = str(he_nodes[j])
-                        node_neighbors[u][v] += 1
+                item_at_time[tid].add(str(he))
+        else:
+            for n in h.nodes(start=tid, end=tid):
+                item_at_time[tid].add(str(n))
 
-        to_remove: List[str] = []
-        to_add: List[str] = []
+        # Build connections to all future timestamps
+        for future_idx in range(i + 1, len(ids)):
+            future_tid = ids[future_idx]
 
-        for an in list(active) if active else [None]:
-            # If no explicit seeds, we start from all items present at current tid
-            if an is None:
-                # derive all possible current items
-                if edge:
-                    current_items = [str(he) for he in h.hyperedges(start=tid, end=tid)]
-                else:
-                    current_items = [str(n) for n in h.nodes(start=tid, end=tid)]
-                # mark these as (implicit) sources for this tid
-                for item in current_items:
-                    sources[f"{item}_{tid}"] = None
-                # consider them as 'an' for neighbor expansion below
-                iter_items = current_items
-            else:
-                iter_items = [str(an)]
-
-            for an_item in iter_items:
-                base_id = str(an_item).split("_")[0]
-                # Build neighbor set depending on mode
-                if edge:
-                    if not h.has_hyperedge(base_id, tid):
-                        continue
-                    raw_neighbors = h.get_s_incident(base_id, s=s, start=tid, end=tid)
-                    neighbors = {
-                        f"{n_id}_{tid}": w
-                        for n_id, w in raw_neighbors
-                        if n_id != base_id
-                    }
-                else:
-                    # For nodes, rely on precomputed node_neighbors at this tid; if base_id is not active,
-                    # counts will be empty and no edges will be added.
-                    counts = node_neighbors.get(str(base_id), {})
-                    neighbors = {
-                        f"{v}_{tid}": c
-                        for v, c in counts.items()
-                        if c >= s and v != base_id
-                    }
-
-                # Update targets set for neighbor transitions
-                if stop_at is not None:
-                    key = f"{stop_at}_{tid}"
-                    if key in neighbors:
-                        targets[key] = None
-                else:
-                    for k in neighbors:
-                        targets[k] = None
-
-                # If no neighbors and not the original seed, remove from active
-                if not neighbors and seeds and an_item not in seeds:
-                    to_remove.append(an_item)
-
-                # Add edges: ensure source is labeled with CURRENT tid to keep same-time transitions
-                for n_label, w in neighbors.items():
-                    an_node = f"{base_id}_{tid}"
-                    # Mark as source only if it originates from a seed when seeds are provided
-                    if seeds and base_id in seeds:
-                        sources[an_node] = None
-                    DG.add_edge(an_node, n_label, weight=w)
-                    to_add.append(n_label)
-
-        for n_label in to_add:
-            active[n_label] = None
-        for rm in to_remove:
-            active.pop(rm, None)
-
-        # Add forward-in-time edges (stay on the same entity if still active at next timestamp)
-        if i < len(ids) - 1:
-            next_tid = ids[i + 1]
             if edge:
-                current_items = [str(he) for he in h.hyperedges(start=tid, end=tid)]
-                next_items = set(
-                    str(he) for he in h.hyperedges(start=next_tid, end=next_tid)
-                )
-                for item in current_items:
-                    if item in next_items:
-                        DG.add_edge(f"{item}_{tid}", f"{item}_{next_tid}", weight=1.0)
-                        # Only mark forward targets along the seed chain
-                        if item in seeds:
-                            targets[f"{item}_{next_tid}"] = None
+                # For edge mode: find s-incident hyperedges at future timestamp
+                for he in h.hyperedges(start=tid, end=tid):
+                    he_id = str(he)
+                    raw_neighbors = h.get_s_incident(
+                        he_id, s=s, start=future_tid, end=future_tid
+                    )
+                    for n_id, w in raw_neighbors:
+                        if n_id != he_id:
+                            all_edges.append(
+                                (f"{he_id}_{tid}", f"{n_id}_{future_tid}", w)
+                            )
             else:
-                current_items = [str(n) for n in h.nodes(start=tid, end=tid)]
-                next_items = set(str(n) for n in h.nodes(start=next_tid, end=next_tid))
-                for item in current_items:
-                    if item in next_items:
-                        DG.add_edge(f"{item}_{tid}", f"{item}_{next_tid}", weight=1.0)
-                        if item in seeds:
-                            targets[f"{item}_{next_tid}"] = None
+                # For node mode: find co-members at future timestamp
+                node_neighbors_future: dict[str, dict[str, int]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                for he in h.hyperedges(start=future_tid, end=future_tid):
+                    he_nodes = list(h.get_hyperedge_nodes(he))
+                    for ii in range(len(he_nodes)):
+                        u = str(he_nodes[ii])
+                        for j in range(len(he_nodes)):
+                            if ii == j:
+                                continue
+                            v = str(he_nodes[j])
+                            node_neighbors_future[u][v] += 1
+
+                # Process nodes active at current tid
+                for n in h.nodes(start=tid, end=tid):
+                    n_id = str(n)
+                    counts = node_neighbors_future.get(n_id, {})
+                    for v, c in counts.items():
+                        if c >= s and v != n_id:
+                            all_edges.append((f"{n_id}_{tid}", f"{v}_{future_tid}", c))
+
+    # Add all edges to graph
+    for u, v, w in all_edges:
+        DG.add_edge(u, v, weight=w)
+
+    # Determine sources based on start_from
+    if seeds:
+        # If seeds specified, sources are only at timestamps where seed items have outgoing edges
+        for seed_id in seeds:
+            for tid in ids:
+                node_label = f"{seed_id}_{tid}"
+                # Check if this seed exists at this time and has outgoing edges
+                if (
+                    seed_id in item_at_time[tid]
+                    and DG.has_node(node_label)
+                    and DG.out_degree[node_label] > 0
+                ):
+                    sources[node_label] = None
+    else:
+        # If no seeds, sources are all items at the first timestamp with outgoing edges
+        first_tid = ids[0]
+        for item_id in item_at_time[first_tid]:
+            node_label = f"{item_id}_{first_tid}"
+            if DG.has_node(node_label) and DG.out_degree[node_label] > 0:
+                sources[node_label] = None
+
+    # Determine targets
+    if stop_at is not None:
+        # Only nodes matching stop_at are targets
+        stop_id = str(stop_at)
+        for tid in ids:
+            node_label = f"{stop_id}_{tid}"
+            if DG.has_node(node_label) and DG.in_degree[node_label] > 0:
+                targets[node_label] = None
+    else:
+        # All reachable nodes (except sources) are potential targets
+        for node in DG.nodes():
+            if node not in sources and DG.in_degree[node] > 0:
+                targets[node] = None
 
     excluded_ids = set(str(s).split("_")[0] for s in seeds) if seeds else set()
     final_targets = [t for t in targets if t.split("_")[0] not in excluded_ids]
@@ -223,21 +206,26 @@ def time_respecting_s_walks(
         for path_nodes in nx.all_simple_paths(DAG, src, dst):
             seq = []
             for u, v in zip(path_nodes, path_nodes[1:]):
-                t_to = v.split("_")[-1]
+                t_from = int(u.split("_")[-1])
+                t_to = int(v.split("_")[-1])
                 w = DAG[u][v]["weight"]
-                seq.append(TemporalEdge(u.split("_")[0], v.split("_")[0], w, int(t_to)))
-            if len(seq) <= 1:
-                paths.append(seq)
-            else:
+                seq.append(TemporalEdge(u.split("_")[0], v.split("_")[0], w, t_to))
+
+            # Validate time-respecting property: each step must happen at a strictly later time
+            if len(seq) > 0:
                 valid = True
-                first = seq[0]
-                for nxt in seq[1:]:
-                    if (nxt.fr == first.to and nxt.to == first.fr) or (
-                        nxt.tid == first.tid
-                    ):
+                prev_edge = seq[0]
+                for edge in seq[1:]:
+                    # Each edge must occur at a strictly later timestamp
+                    if edge.tid <= prev_edge.tid:
                         valid = False
                         break
-                    first = nxt
+                    # Also reject immediate back-and-forth between same pair of nodes
+                    if edge.fr == prev_edge.to and edge.to == prev_edge.fr:
+                        valid = False
+                        break
+                    prev_edge = edge
+
                 if valid:
                     paths.append(seq)
 

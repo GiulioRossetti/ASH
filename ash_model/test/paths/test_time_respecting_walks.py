@@ -37,14 +37,18 @@ class TimeRespectingWalksCase(unittest.TestCase):
         a = self.get_hypergraph()
         dg, sources, targets = temporal_s_dag(a, s=2, start_from="e1", edge=True)
 
-        self.assertEqual(len(sources), 2)
-        self.assertEqual(len(targets), 5)
+        # e1 can start time-respecting walks from t0, t1, and t2 (has s-incident neighbors in future)
+        self.assertEqual(len(sources), 3)
+        # Can reach e3 and e4 at t2 and t3, plus e5 at t3 and t4
+        self.assertEqual(len(targets), 6)
 
         dg, sources, targets = temporal_s_dag(
             a, s=1, start_from="e1", start=0, end=1, edge=True
         )
-        self.assertEqual(len(sources), 2)
-        self.assertEqual(len(targets), 2)
+        # In time window [0,1], e1 can only start from t0 (reaching e2 at t1)
+        self.assertEqual(len(sources), 1)
+        # Only e2_1 is reachable
+        self.assertEqual(len(targets), 1)
 
     def test_time_respecting_s_walks(self):
         a = self.get_hypergraph()
@@ -53,13 +57,15 @@ class TimeRespectingWalksCase(unittest.TestCase):
         for p in pts:
             self.assertIsInstance(p, tuple)
 
+        # When start=4 and end=4, there's only one timestamp, so no future timestamps
+        # exist for time-respecting walks. This correctly returns 0 walks.
         self.assertEqual(
             len(
                 time_respecting_s_walks(
                     a, 1, start_from="e1", stop_at="e5", start=4, end=4
                 )
             ),
-            1,
+            0,
         )
 
         pts = time_respecting_s_walks(a, 1, start_from="e1", stop_at="e5", sample=0.5)
