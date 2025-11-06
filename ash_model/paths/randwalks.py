@@ -183,21 +183,18 @@ def time_respecting_random_walks(
     q: float = 1.0,
     edge: bool = False,
     threads: int = -1,
-    terminate_at_sink: bool = False,
 ) -> Union[np.ndarray, Dict[Tuple[str, str], List[List[TemporalEdge]]]]:
     """
-    Generate biased, time-respecting random walks on the temporal hypergraph (nodes or hyperedges).
+    Generate biased, time-respecting random walks on the temporal hypergraph.
+
+    This function builds a time-respecting transition matrix and uses it to guide
+    random walks that respect temporal ordering. The approach uses the temporal DAG
+    structure where all edges are forward-in-time transitions (t -> t' where t' > t).
 
     Semantics:
-    - A "step" is only an intra-timestamp transition between two different items (nodes if edge=False, hyperedges if edge=True).
-    - Forward-in-time edges (x_t -> x_{t+1}) are used solely to "wait" when no intra-timestamp neighbor is available; waiting does not consume steps.
-    - No teleport: transitions only follow DAG edges constructed by temporal_s_dag.
-    - Sink handling:
-        * terminate_at_sink=False (default): the walker waits forward in time on the same item until intra-timestamp neighbors appear or the timeline ends.
-        * terminate_at_sink=True: the walk stops upon reaching a sink (no waiting).
-    - Output:
-        * edge=True: returns a mapping (start_edge, end_edge) -> list of walks; waiting is represented as TemporalEdge self-loops with weight 0.0 on successive timestamps and does not count as steps.
-        * edge=False: returns an array of base node ID sequences; waiting periods are not included in the sequence; length is bounded by walk_length.
+    - All transitions are forward-in-time, respecting strict temporal ordering
+    - Each step moves to a strictly later timestamp
+    - Walks terminate when no forward neighbors exist (reached a temporal sink)
 
     :param h: ASH hypergraph object
     :param s: Minimum s-incidence threshold
@@ -206,38 +203,44 @@ def time_respecting_random_walks(
     :param start: Lower temporal bound
     :param end: Upper temporal bound
     :param num_walks: Number of walks per start node/edge
-    :param walk_length: Length of each walk
-    :param p: Return parameter
-    :param q: In-out parameter
-    :param edge: If True, walk on hyperedge line graph
-    :param threads: Parallel threads for random walk computation
+    :param walk_length: Length of each walk (number of transitions)
+    :param p: Return parameter (higher values discourage returning to previous node)
+    :param q: In-out parameter (higher values favor local exploration)
+    :param edge: If True, walk on hyperedge line graph and return TemporalEdge dict
+    :param threads: Parallel threads for random walk computation (currently unused in custom logic)
 
-    :returns: If edge=False, ndarray of node ID sequences (base IDs without timestamps). If edge=True, mapping (start_edge, end_edge) -> list of walks (TemporalEdge lists).
+    :returns: If edge=False, ndarray of node ID sequences. If edge=True, dict mapping (start, end) to lists of TemporalEdge walks.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        # Time-respecting node walks
+        walks = time_respecting_random_walks(h, s=1, num_walks=100, walk_length=10)
+
+        # Time-respecting hyperedge walks
+        walks_dict = time_respecting_random_walks(h, s=2, num_walks=100, walk_length=10, edge=True)
+
+        # Start from specific nodes
+        walks = time_respecting_random_walks(h, s=1, start_from=[1, 2], num_walks=50)
     """
-    # Build temporal DAG (node or edge based)
+    # Build temporal DAG
     DAG, sources, _ = temporal_s_dag(
         h, s, start_from, stop_at, start=start, end=end, edge=edge
     )
 
-    # Build neighbor maps: intra-timestamp transitions and forward-in-time edges
-    # Consider only timestamped nodes ("<id>_<tid>")
+    # Build neighbor maps: all edges are now forward-in-time (time-respecting)
+    # There are NO same-timestamp transitions in the corrected implementation
     nodes = [n for n in DAG.nodes() if isinstance(n, str) and "_" in n]
-    # Intra-time neighbors with weights
-    intra_neighbors: Dict[str, List[Tuple[str, float]]] = {}
-    forward_next: Dict[str, str] = {}
+    neighbors: Dict[str, List[Tuple[str, float]]] = {}
+
     for u, v, attrs in DAG.edges(data=True):
-        if "_" not in u or "_" not in v:
+        if "_" not in str(u) or "_" not in str(v):
             continue
-        ub, ut = u.rsplit("_", 1)
-        vb, vt = v.rsplit("_", 1)
-        if ut == vt and ub != vb:
-            intra_neighbors.setdefault(u, []).append(
-                (v, float(attrs.get("weight", 1.0)))
-            )
-        elif ub == vb:
-            # forward in time
-            # keep only the immediate next if multiple (should be unique)
-            forward_next[u] = v
+        # All edges are forward-in-time transitions (t -> t' where t' > t)
+        neighbors.setdefault(str(u), []).append(
+            (str(v), float(attrs.get("weight", 1.0)))
+        )
 
     # Helper to choose a neighbor by weights
     def pick_weighted(neis: List[Tuple[str, float]]) -> Optional[str]:
@@ -245,21 +248,17 @@ def time_respecting_random_walks(
             return None
         vs, ws = zip(*neis)
         ws = np.array(ws, dtype=float)
-        s = ws.sum()
-        if s <= 0:
+        s_sum = ws.sum()
+        if s_sum <= 0:
             ws = np.ones_like(ws) / len(ws)
         else:
-            ws = ws / s
+            ws = ws / s_sum
         idx = np.random.choice(len(vs), p=ws)
         return vs[idx]
 
-    # Determine start nodes (timestamped)
+    # Determine start nodes
     if start_from is None:
-        start_nodes = [
-            n
-            for n in sources
-            if n in intra_neighbors or n in forward_next or n in nodes
-        ]
+        start_nodes = [n for n in sources if n in neighbors or n in nodes]
     else:
         if not isinstance(start_from, list):
             start_from = [start_from]
@@ -270,90 +269,67 @@ def time_respecting_random_walks(
         from collections import defaultdict
 
         res: Dict[Tuple[str, str], List[List[TemporalEdge]]] = defaultdict(list)
-        # For each start node, generate num_walks walks
+
         for s_node in start_nodes:
             for _ in range(num_walks):
                 path: List[TemporalEdge] = []
                 cur = s_node
                 steps = 0
-                # Walk until reaching required number of item transitions
+
                 while steps < walk_length:
-                    neis = intra_neighbors.get(cur, [])
+                    neis = neighbors.get(cur, [])
                     if not neis:
-                        if terminate_at_sink:
-                            break
-                        # advance in time until a neighbor exists or timeline ends
-                        moved = False
-                        seen = set()
-                        tmp = cur
-                        while tmp in forward_next and tmp not in seen:
-                            seen.add(tmp)
-                            nxt_tmp = forward_next[tmp]
-                            # append self-loop at next time to represent waiting (does not consume a step)
-                            base, _t = tmp.split("_")
-                            _b2, t2 = nxt_tmp.split("_")
-                            # sanity: _b2 should equal base
-                            path.append(TemporalEdge(base, base, 0.0, int(t2)))
-                            tmp = nxt_tmp
-                            if intra_neighbors.get(tmp):
-                                cur = tmp
-                                moved = True
-                                break
-                        if not moved:
-                            break
-                        continue
+                        # No outgoing edges - walk reached a temporal sink
+                        break
+
                     nxt = pick_weighted(neis)
                     if nxt is None:
                         break
-                    # Append step (inter-item, same tid)
+
+                    # Append step (time-respecting: cur_t -> nxt_t' where t' > t)
                     fr, ft = cur.split("_")
                     to, tt = nxt.split("_")
                     w = next((w for v, w in neis if v == nxt), 1.0)
                     path.append(TemporalEdge(fr, to, float(w), int(tt)))
                     steps += 1
                     cur = nxt
+
                     if stop_at and (to == str(stop_at) or nxt == str(stop_at)):
                         break
+
                 if path:
                     key = (path[0].fr, path[-1].to)
                     res[key].append(path)
+
         return dict(res)
     else:
         walks: List[List[Union[int, str]]] = []
+
         for s_node in start_nodes:
             for _ in range(num_walks):
                 seq: List[Union[int, str]] = []
                 cur = s_node
                 steps = 0
+
                 while steps < walk_length:
-                    neis = intra_neighbors.get(cur, [])
+                    neis = neighbors.get(cur, [])
                     if not neis:
-                        if terminate_at_sink:
-                            break
-                        moved = False
-                        seen = set()
-                        tmp = cur
-                        while tmp in forward_next and tmp not in seen:
-                            seen.add(tmp)
-                            tmp = forward_next[tmp]
-                            if intra_neighbors.get(tmp):
-                                cur = tmp
-                                moved = True
-                                break
-                        if not moved:
-                            break
-                        continue
+                        # No outgoing edges - walk reached a temporal sink
+                        break
+
                     nxt = pick_weighted(neis)
                     if nxt is None:
                         break
+
                     base = nxt.split("_")[0]
                     seq.append(base)
                     steps += 1
                     cur = nxt
+
                     if stop_at is not None and str(base) == str(stop_at):
                         break
+
                 if seq:
                     walks.append(seq)
-    return np.array(walks, dtype=object)
 
-    # Unreachable old code removed (custom walker above handles both modes)
+        return np.array(walks, dtype=object)

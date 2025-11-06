@@ -101,7 +101,7 @@ class RandomWalksTestCase(unittest.TestCase):
         self.assertGreaterEqual(len(walks), 1)
         self.assertIn("e1", list(walks.keys())[0][0])  # Starts from e1
 
-    def test_tr_rw_terminate_at_sink_edge_mode_empty(self):
+    def test_tr_rw_edge_mode_empty(self):
         # Build a graph with a single hyperedge at t=5 only, so no overlaps and no forward chain
         h = ASH()
         h.add_hyperedge([10, 11], start=5)  # e1 at t=5
@@ -112,7 +112,6 @@ class RandomWalksTestCase(unittest.TestCase):
             num_walks=1,
             walk_length=3,
             edge=True,
-            terminate_at_sink=True,
             start=5,
             end=5,
         )
