@@ -12,42 +12,46 @@
 #
 import os
 import sys
+from pathlib import Path
 
-import sphinx_rtd_theme
+# Ensure pandoc is in PATH for nbsphinx
+try:
+    import pypandoc
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    pandoc_dir = str(Path(pypandoc.get_pandoc_path()).parent)
+    if pandoc_dir not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = f"{pandoc_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+except ImportError:
+    pass  # pypandoc not available, assume system pandoc
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 try:
     from ash_model import __version__
 except ImportError:
-    __version__ = u'0.1.0'
+    __version__ = "1.0.0"
 
-html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = "furo"
 
 version = __version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
 html_theme_options = {
-    "collapse_navigation": False,
-    "display_version": False,
-    "navigation_depth": 3,
+    "light_logo": "ash.png",
+    "dark_logo": "ash.png",
 }
 
 # -- Project information -----------------------------------------------------
 
 project = "ASH"
-copyright = "2024, Giulio Rossetti"
+copyright = "2025, Giulio Rossetti"
 author = "Giulio Rossetti, Andrea Failla, Salvatore Citraro"
 
 autodoc_mock_imports = [
-     "numpy",
-    "halp.undirected_hypergraph",
-    "halp.utilities.undirected_matrices",
+    "numpy",
     "matplotlib.pyplot",
-    "ash_model"
     "math",
-    "halp",
     "matplotlib",
     "networkx",
     "seaborn",
@@ -55,6 +59,7 @@ autodoc_mock_imports = [
     "tqdm",
     "seaborn",
     "pandas",
+    "csrgraph",
 ]
 
 # -- General configuration ---------------------------------------------------
@@ -67,7 +72,30 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",  # supporto Google/NumPy style docstrings
+    "sphinx.ext.intersphinx",  # cross-link con altra doc
+    "nbsphinx",  # Jupyter notebook support
 ]
+
+# Make autosummary scan pages and create stubs automatically
+autosummary_generate = True  # Abilitato per generare tabelle riepilogo API
+autosummary_generate_overwrite = False
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_use_rtype = True
+napoleon_preprocess_types = True
+
+# Mostra i type hints nella signature e non duplicati nella descrizione
+autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "inherited-members": True,
+}
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -76,7 +104,68 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "**.ipynb_checkpoints",
+]
+
+# Intersphinx mapping per link esterni
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+}
+
+# Opzioni per ordina membri (mantiene ordine sorgente)
+autodoc_member_order = "bysource"
+
+# Evita warning se mancano __all__
+autodoc_inherit_docstrings = True
+
+# -- nbsphinx configuration --------------------------------------------------
+
+# Add the tutorial directory to the source paths
+import shutil
+
+tutorial_source = ROOT / "tutorial"
+tutorial_dest = Path(__file__).parent / "tutorial"
+
+# Create symlink or copy notebooks to docs/tutorial if they don't exist
+if not tutorial_dest.exists():
+    tutorial_dest.mkdir(exist_ok=True)
+
+# This is processed by Jinja2 and inserted before each notebook
+nbsphinx_prolog = r"""
+{% set docname = env.doc2path(env.docname, base=None) %}
+
+.. raw:: html
+
+    <div class="admonition note">
+      <p class="admonition-title">Note</p>
+      <p>This page was generated from
+        <a class="reference external" href="https://github.com/GiulioRossetti/ASH/blob/{{ env.config.release|e }}/{{ docname|e }}">{{ docname|e }}</a>.
+      </p>
+    </div>
+"""
+
+# Execute notebooks before conversion: 'always', 'never', 'auto' (default)
+nbsphinx_execute = (
+    "never"  # Don't execute notebooks during build (they should be pre-executed)
+)
+
+# Allow errors in notebook execution
+nbsphinx_allow_errors = True
+
+# Timeout for notebook execution (in seconds)
+nbsphinx_timeout = 180
+
+# Exclude output files and checkpoint folders
+nbsphinx_exclude_output_prompt = False
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -85,7 +174,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 # html_theme = 'alabaster'
 
-html_logo = 'ash.png'
+# Logo is configured in html_theme_options for Furo theme
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -95,4 +184,4 @@ html_logo = 'ash.png'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]

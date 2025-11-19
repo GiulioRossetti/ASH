@@ -1,160 +1,259 @@
+from __future__ import annotations
+
+from typing import Iterable, List, Optional, Sequence
+
 import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
+import numpy as np
 
-from ash_model.measures import *
+from ash_model.classes import ASH  # type: ignore
+
+__all__ = [
+    "plot_hyperedge_activity_series",
+    "plot_node_activity_series",
+    "plot_presence_timeline",
+    "plot_inter_event_time_distribution",
+    "plot_hyperedge_lifespan_distribution",
+    "plot_node_lifespan_distribution",
+]
 
 
-def __rolling_mean(it, window):
+# ---------------------------------------------------------------------------
+# Helper utilities (internal)
+# ---------------------------------------------------------------------------
+
+
+def _get_ax(kwargs):
+    if "ax" in kwargs and kwargs["ax"] is not None:
+        return kwargs["ax"]
+    return plt.gca()
+
+
+# ---------------------------------------------------------------------------
+# Public plotting helpers
+# ---------------------------------------------------------------------------
+
+
+def plot_hyperedge_activity_series(h: ASH, normalize: bool = False, **kwargs):
+    """Plot the number of active hyperedges at each temporal snapshot.
+
+    :param h: ASH instance.
+    :param normalize: If True divide activity by the maximum (y in [0,1]).
+    :param kwargs: Matplotlib customisation (``color``, ``ax`` …).
+    :return: Matplotlib Axes with the line plot.
     """
 
-    :param it:
-    :param window:
-    :return:
-    """
-    return pd.Series(it).rolling(window=window).mean()
-
-
-def plot_structure_dynamics(
-    h: ASH, func: Callable, func_params: dict = None, rolling: int = None, **kwargs
-) -> object:
-    """
-
-    :param h: ASH instance
-    :param func: function to be called at each timestamp
-    :param func_params: parameters of the above function in key-value pairs
-    :param rolling: size of the rolling window
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
-    """
-    if func_params is None:
-        func_params = {}
-
-    if "h" in func.__code__.co_varnames:  # e.g., inclusiveness
-        func_params.update({"h": h})
-
-    if "tid" in func.__code__.co_varnames:
-        y = [
-            func(**func_params, tid=tid) for tid in h.temporal_snapshots_ids()
-        ]  # e.g., inclusiveness
-
-    else:  # has 'start' and 'end', e.g. average_s_local_clustering_coefficient
-        y = [
-            func(**func_params, start=tid, end=tid)
-            for tid in h.temporal_snapshots_ids()
-        ]
-
-    if rolling:
-        y = __rolling_mean(y, window=rolling)
-
-    if "ax" not in kwargs:
-        ax = plt.gca()
-    else:
-        ax = kwargs["ax"]
-
-    ax.plot(y, **{k: v for k, v in kwargs.items() if k != "ax"})
-
+    ax = _get_ax(kwargs)
+    tids = h.temporal_snapshots_ids()
+    if not tids:
+        return ax
+    activity = [h.number_of_hyperedges(t) for t in tids]
+    if normalize and any(activity):
+        m = max(activity)
+        activity = [a / m for a in activity]
+    ax.plot(
+        tids,
+        activity,
+        marker="o",
+        linewidth=1,
+        ms=3,
+        **{k: v for k, v in kwargs.items() if k != "ax"},
+    )
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Activity" + (" (normalized)" if normalize else ""))
+    ax.set_title("Hyperedge activity over time")
     return ax
 
 
-def plot_attribute_dynamics(
+# ---------------------------------------------------------------------------
+# Backward-compat aliases (kept for older tests/examples)
+# ---------------------------------------------------------------------------
+
+
+def plot_node_activity_series(
     h: ASH,
-    attr_name: str,
-    func: Callable,
-    func_params: dict = None,
-    rolling: int = None,
-    **kwargs
-) -> object:
+    *,
+    normalize: bool = False,
+    **kwargs,
+):
+    """Plot the activity over time for selected nodes.
+
+    :param h: ASH instance.
+    :param normalize: If True divide node's activity by its maximum (y in [0,1]).
+    :param kwargs: Matplotlib customisation (``color``, ``ax`` …).
+    :return: Matplotlib Axes with the line plot.
     """
 
-    :param h: ASH instance
-    :param attr_name: attribute name
-    :param func: function to be called at each timestamp
-    :param func_params: parameters of the above function in key-value pairs
-    :param rolling: size of the rolling window
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
-    """
-    if func_params is None:
-        func_params = {}
+    ax = _get_ax(kwargs)
+    tids = h.temporal_snapshots_ids()
+    if not tids:
+        return ax
 
-    if "h" in func.__code__.co_varnames:  # e.g., inclusiveness
-        func_params.update({"h": h})
+    activity = [h.number_of_nodes(t) for t in tids]
+    if normalize and any(activity):
+        m = max(activity)
+        activity = [a / m for a in activity]
+    ax.plot(
+        tids,
+        activity,
+        marker="o",
+        linewidth=1,
+        ms=3,
+        **{k: v for k, v in kwargs.items() if k != "ax"},
+    )
 
-    res = defaultdict(list)
-
-    for tid in h.temporal_snapshots_ids():
-        res_t = func(**func_params, tid=tid)[attr_name]
-        if isinstance(res_t, dict):  # if result is by label
-            for label in res_t:
-                res[label].append(res_t[label])
-        else:  # if result is aggregated
-            res[attr_name].append(res_t)
-
-    if "ax" not in kwargs:
-        ax = plt.gca()
-    else:
-        ax = kwargs["ax"]
-
-    for name, y in res.items():
-        if rolling:
-            y = __rolling_mean(y, window=rolling)
-        ax.plot(y, label=name, **{k: v for k, v in kwargs.items() if k != "ax"})
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Activity" + (" (normalized)" if normalize else ""))
+    ax.set_title("Node activity over time")
     ax.legend()
     return ax
 
 
-# def plot_temporal_attribute_distribution(h, attr_name, **kwargs):
-#
-#    if 'ax' not in kwargs:
-#        ax = plt.gca()
-#    tids = h.temporal_snapshots_ids()
-#
-#    labels = h.node_attributes_to_attribute_values()[attr_name]
-#
-#    distr = {label: {t: 0 for t in tids} for label in labels}
-#
-#    for t in tids:
-#        nodes = h.get_node_set(tid=t)
-#        node_count = 0
-#        for node in nodes:
-#            prof = h.get_node_profile(node, t)
-#            attr = prof.get_attribute(attr_name)
-#            distr[attr][t] += 1
-#            node_count += 1
-#
-#        for label in labels:
-#            distr[label][t] = distr[label][t] / node_count
-#    data = pd.DataFrame(distr, columns=sorted(distr.keys())).transpose()
-#    sns.heatmap(data=data, ax=ax, **kwargs)
-#
-#    return ax
+def plot_presence_timeline(
+    h: ASH,
+    *,
+    hyperedges: Optional[Iterable[int]] = None,
+    nodes: Optional[Iterable[int]] = None,
+    **kwargs,
+):
+    """Plot a presence timeline (Gantt‑like) for given hyperedges or nodes.
 
+    One of ``hyperedges`` or ``nodes`` must be provided.  If both are
+    provided, ``hyperedges`` takes precedence.
 
-def plot_consistency(h, **kwargs):
-    """
-    Plot the kde of the distribution of the consistency values for all nodes in the ASH.
-    Given a node and an attribute, the node's consistency w.r.t. the attribute is the complementary of the entropy
-    computed on the set of the attribute's values the node holds in time.
-
-    :param h: ASH instance
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
+    :param h: ASH instance.
+    :param hyperedges: Iterable of hyperedge IDs to plot.
+    :param nodes: Iterable of node IDs to plot.
+    :param kwargs: Matplotlib customisation (``color``, ``ax`` …).
+    :return: Matplotlib Axes with the timeline plot.
     """
 
-    if "ax" not in kwargs:
-        ax = plt.gca()
+    ax = _get_ax(kwargs)
+    if hyperedges is not None:
+        items = list(hyperedges)
+        presences = [
+            (hid, h.hyperedge_presence(hid))
+            for hid in items
+            if h.hyperedge_presence(hid)
+        ]
+        item_type = "Hyperedge"
+    elif nodes is not None:
+        items = list(nodes)
+        presences = [
+            (nid, h.node_presence(nid)) for nid in items if h.node_presence(nid)
+        ]
+        item_type = "Node"
     else:
-        ax = kwargs["ax"]
+        raise ValueError("One of 'hyperedges' or 'nodes' must be provided.")
 
-    cons = consistency(h)
-    for attr_name in list(cons.values())[0]:
-        y = [v[attr_name] for v in cons.values()]
+    if not presences:
+        return ax
 
-        sns.kdeplot(
-            y, label=attr_name, ax=ax, **{k: v for k, v in kwargs.items() if k != "ax"}
+    for i, (item_id, times) in enumerate(presences):
+        ax.vlines(
+            times,
+            i + 0.5,
+            i + 1.5,
+            linewidth=4,
+            **{k: v for k, v in kwargs.items() if k != "ax"},
         )
-    ax.legend()
-    ax.set_xlim((-0.2, 1.2))
 
+    ax.set_yticks(np.arange(1, len(presences) + 1))
+    ax.set_yticklabels([str(item_id) for item_id, _ in presences])
+    ax.set_xlabel("Time")
+    ax.set_ylabel(item_type + " ID")
+    ax.set_title(f"{item_type} presence timeline")
+    return ax
+
+
+def plot_inter_event_time_distribution(h: ASH, **kwargs):
+    """Plot distribution of inter‑event times for hyperedge activations.
+
+    We define an activation as a ``+`` event produced by
+    ``ASH.stream_interactions``.  Inter‑event gaps are differences between
+    consecutive activation times (across all hyperedges).
+
+    :param h: ASH instance.
+    :param kwargs: Matplotlib bar customisation (``color``, ``ax`` …).
+    :return: Axes
+    """
+
+    ax = _get_ax(kwargs)
+    events = [t for (t, _hid, et) in h.stream_interactions() if et == "+"]
+    if len(events) < 2:
+        return ax
+    events = sorted(events)
+    diffs = np.diff(events)
+    unique, counts = np.unique(diffs, return_counts=True)
+    ax.bar(
+        unique,
+        counts,
+        width=0.8,
+        alpha=0.6,
+        **{k: v for k, v in kwargs.items() if k != "ax"},
+    )
+    ax.set_xlabel("Inter‑event time Δt")
+    ax.set_ylabel("Count")
+    ax.set_title("Inter‑event time distribution")
+    return ax
+
+
+def plot_hyperedge_lifespan_distribution(h: ASH, **kwargs):
+    """Histogram of hyperedge lifespans (duration in snapshots).
+
+    For each hyperedge we compute ``(last_presence - first_presence + 1)``.
+
+    :param h: ASH instance.
+    :param kwargs: Matplotlib customisation (``bins``, ``color``, ``ax`` …).
+    :return: Axes
+    """
+
+    ax = _get_ax(kwargs)
+    lifespans: List[int] = []
+    for hid in h.hyperedges() if hasattr(h, "hyperedges") else []:  # fallback safety
+        pres = h.hyperedge_presence(hid) if hasattr(h, "hyperedge_presence") else []
+        if pres:
+            lifespans.append(max(pres) - min(pres) + 1)
+    if not lifespans:
+        return ax
+    bins = kwargs.get("bins", min(30, len(set(lifespans))))
+    ax.hist(
+        lifespans,
+        bins=bins,
+        alpha=0.6,
+        **{k: v for k, v in kwargs.items() if k not in {"ax", "bins"}},
+    )
+    ax.set_xlabel("Lifespan (snapshots)")
+    ax.set_ylabel("#Hyperedges")
+    ax.set_title("Hyperedge lifespan distribution")
+    return ax
+
+
+def plot_node_lifespan_distribution(h: ASH, **kwargs):
+    """Histogram of node lifespans (duration in snapshots).
+
+    For each node we compute ``(last_presence - first_presence + 1)``.
+
+    :param h: ASH instance.
+    :param kwargs: Matplotlib customisation (``bins``, ``color``, ``ax`` …).
+    :return: Axes
+    """
+
+    ax = _get_ax(kwargs)
+    lifespans: List[int] = []
+    for nid in h.nodes() if hasattr(h, "nodes") else []:  # fallback safety
+        pres = h.node_presence(nid) if hasattr(h, "node_presence") else []
+        if pres:
+            lifespans.append(max(pres) - min(pres) + 1)
+    if not lifespans:
+        return ax
+    bins = kwargs.get("bins", min(30, len(set(lifespans))))
+    ax.hist(
+        lifespans,
+        bins=bins,
+        alpha=0.6,
+        **{k: v for k, v in kwargs.items() if k not in {"ax", "bins"}},
+    )
+    ax.set_xlabel("Lifespan (snapshots)")
+    ax.set_ylabel("#Nodes")
+    ax.set_title("Node lifespan distribution")
     return ax

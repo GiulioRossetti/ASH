@@ -5,15 +5,16 @@ from ash_model.measures import *
 
 def plot_s_degrees(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> object:
     """
-    The plot_s_degrees function plots the s-degree distribution of a hypergraph.
-    A line for each s will be plotted, from 1 to :smax: inclusive.
-    Matplotlib plotting parameters (e.g., color) can be passed as **kwargs.
+    Plot the s-degree distribution of a hypergraph.
+
+    A line for each s will be plotted, from 1 to smax inclusive.
+    Matplotlib plotting parameters (e.g., color) can be passed as kwargs.
 
     :param h: ASH instance
-    :param smax: Set the maximum value of s
-    :param loglog: Specify whether the plot should be loglog or not
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
+    :param smax: Maximum value of s
+    :param loglog: If True, plot in log-log scale
+    :param kwargs: Matplotlib keyword arguments (e.g., ax, color, linewidth)
+    :return: The matplotlib axes object
     """
 
     if "ax" not in kwargs:
@@ -21,12 +22,12 @@ def plot_s_degrees(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> 
     else:
         ax = kwargs["ax"]
 
-    nodes = h.get_node_set()
+    nodes = h.nodes()
     ss = np.arange(1, smax + 1, 1)
     degs = {s: {n: 0 for n in nodes} for s in ss}
     for n in nodes:
         for s in ss:
-            degs[s][n] = h.get_s_degree(n, s)
+            degs[s][n] = h.s_degree(n, s)
     for s in ss:
         deg = dict(sorted(degs[s].items(), key=lambda item: item[1], reverse=True))
 
@@ -51,15 +52,16 @@ def plot_hyperedge_size_distribution(
     h: ASH, max_size: int = None, min_size: int = None, **kwargs: object
 ) -> object:
     """
-    The plot_hyperedge_size_distribution function plots the distribution of hyperedge sizes in a hypergraph.
-    :min_size: and :max_size: can be used to filter out hyperedges.
-    Matplotlib plotting parameters (e.g., color) can be passed as **kwargs.
+    Plot the distribution of hyperedge sizes in a hypergraph.
+
+    min_size and max_size can be used to filter out hyperedges.
+    Matplotlib plotting parameters (e.g., color) can be passed as kwargs.
 
     :param h: ASH instance
-    :param max_size: Specify the maximum size of hyperedges to be plotted
-    :param min_size: Specify the minimum size of hyperedges to be plotted
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
+    :param max_size: Maximum size of hyperedges to be plotted (optional)
+    :param min_size: Minimum size of hyperedges to be plotted (optional)
+    :param kwargs: Matplotlib keyword arguments (e.g., ax, color, alpha)
+    :return: The matplotlib axes object
     """
 
     if "ax" not in kwargs:
@@ -80,24 +82,25 @@ def plot_hyperedge_size_distribution(
 
 def plot_degree_distribution(h: ASH, loglog: bool = True, **kwargs: object) -> object:
     """
-    The plot_degree_distribution function plots the degree distribution of an ASH.
+    Plot the degree distribution of an ASH hypergraph.
+
     The default is to draw a log-log plot.
-    Matplotlib plotting parameters (e.g., color) can be passed as **kwargs.
+    Matplotlib plotting parameters (e.g., color) can be passed as kwargs.
 
     :param h: ASH instance
-    :param loglog: Whether to plot the degree distribution in log-log scale
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
+    :param loglog: If True, plot in log-log scale
+    :param kwargs: Matplotlib keyword arguments (e.g., ax, color, alpha)
+    :return: The matplotlib axes object
     """
 
     if "ax" not in kwargs:
         ax = plt.gca()
     else:
         ax = kwargs["ax"]
-    nodes = h.get_node_set()
+    nodes = h.nodes()
     degs = {n: 0 for n in nodes}
     for n in nodes:
-        degs[n] = h.get_degree(n)
+        degs[n] = h.degree(n)
 
     deg = dict(sorted(degs.items(), key=lambda item: item[1], reverse=True))
     y = list(deg.values())
@@ -111,27 +114,28 @@ def plot_degree_distribution(h: ASH, loglog: bool = True, **kwargs: object) -> o
 
 def plot_s_ranks(h: ASH, smax: int, loglog: bool = True, **kwargs: object) -> object:
     """
-    The plot_s_ranks function plots the s-degree distribution of a hypergraph.
-    A line for each s will be plotted, from 1 to :smax: inclusive.
-    Matplotlib plotting parameters (e.g., color) can be passed as **kwargs.
+    Plot the s-degree rank distribution of a hypergraph.
+
+    A line for each s will be plotted, from 1 to smax inclusive.
+    Matplotlib plotting parameters (e.g., color) can be passed as kwargs.
 
     :param h: ASH instance
-    :param smax: Set the maximum value of s
-    :param loglog: Specify whether the plot should be loglog or not
-    :param kwargs: Pass matplotlib keyword arguments to the function
-    :return: The axes object
+    :param smax: Maximum value of s
+    :param loglog: If True, plot in log-log scale
+    :param kwargs: Matplotlib keyword arguments (e.g., ax, color, label)
+    :return: The matplotlib axes object
     """
     if "ax" not in kwargs:
         ax = plt.gca()
     else:
         ax = kwargs["ax"]
 
-    nodes = h.get_node_set()
+    nodes = h.nodes()
     ss = np.arange(1, smax + 1, 1)
     degs = {s: {n: 0 for n in nodes} for s in ss}
     for n in nodes:
         for s in ss:
-            degs[s][n] = h.get_s_degree(n, s)
+            degs[s][n] = h.s_degree(n, s)
 
     for s in ss:
         deg = dict(sorted(degs[s].items(), key=lambda item: item[1], reverse=True))

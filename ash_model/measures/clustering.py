@@ -1,125 +1,179 @@
 from math import comb
+from typing import Optional
 
-from ash_model.paths import *
+from ash_model.paths import ASH, is_s_path
 
 
 def s_local_clustering_coefficient(
-    h: ASH, s: int, hyperedge_id: str, start: int = None, end: int = None
+    h: ASH,
+    s: int,
+    hyperedge_id: str,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
 ) -> float:
     """
-    The s_local_clustering_coefficient function computes the local clustering coefficient of a hyperedge in a
-    hypergraph. The start and end parameters are optional arguments that can be used to specify which interval should
-    be considered when computing this metric. If no interval is specified then all time points will be used.
+    Compute the local clustering coefficient of a hyperedge within the s-overlap line graph of a hypergraph.
 
-    :param h: ASH instance
-    :param s: Specify the number of steps to take in the line graph
-    :param hyperedge_id: Specify the hyperedge for which to compute the local clustering coefficient
-    :param start: Specify the start of a time window
-    :param end: Specify the end of a time window
-    :return: The local clustering coefficient of the hyperedge with id `hyperedge_id`
+    The local clustering coefficient is defined as the ratio of the number of edges
+    actually present among the neighbors of the given node to the maximum possible
+    number of edges among those neighbors.
+
+    :param h:            an ASH instance
+    :param s:            minimum hyperedge overlap size for projection
+    :param hyperedge_id: identifier of the hyperedge in the line graph
+    :param start:        optional start time (inclusive)
+    :param end:          optional end time (inclusive)
+
+    :return:             local clustering coefficient in [0,1]
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> tid = 0
+    >>> he0 = next(iter(h.hyperedges(start=tid, end=tid)))
+    >>> round(s_local_clustering_coefficient(h, 1, he0, start=tid, end=tid), 12)
+    0.801169590643
     """
-
+    # Build the s-overlap line graph once
     lg = h.s_line_graph(s, start, end)
-    if not lg.has_node(hyperedge_id):
-        return 1
+    if hyperedge_id not in lg:
+        return 0.0
 
-    ego = nx.ego_graph(lg, hyperedge_id)
-    ego.remove_node(hyperedge_id)
+    # Neighbors in the line graph correspond to overlapping hyperedges
+    neighbors = list(lg.neighbors(hyperedge_id))
+    k = len(neighbors)
+    if k < 2:
+        return 0.0
 
-    if ego.number_of_nodes() == 0:
-        return 0
+    # Induced subgraph on those neighbors
+    subgraph = lg.subgraph(neighbors)
+    actual_edges = subgraph.number_of_edges()
+    possible_edges = comb(k, 2)
 
-    triangle = 0
-    components = nx.connected_components(ego)
-    for c in components:
-        res = [hyperedge_id]
-        res.extend(c)
-        if len(res) > 2 and is_s_path(h, res):
-            triangle += ego.number_of_edges()
-
-    denom = comb(2, ego.number_of_nodes())
-    if denom == 0:
-        return 0
-    LCC = triangle / denom
-    return LCC
+    return actual_edges / possible_edges
 
 
 def average_s_local_clustering_coefficient(
-    h: ASH, s: int, start: int = None, end: int = None
+    h: ASH, s: int, start: Optional[int] = None, end: Optional[int] = None
 ) -> float:
     """
-    The average_s_local_clustering_coefficient function computes the average of the s-local clustering coefficient
-    for all hyperedges.
+    Compute the average local clustering coefficient across all hyperedges
+    in the s-overlap line graph.
 
-    :param h: ASH instance
-    :param s: Specify the number of nodes that are to be considered for each hyperedge
-    :param start: Specify the start of the time window
-    :param end: Specify the end of the time window
-    :return: The average s-local clustering coefficient
+    :param h:     an ASH instance
+    :param s:     minimum hyperedge overlap size for projection
+    :param start: optional start time (inclusive)
+    :param end:   optional end time (inclusive)
 
+    :return:      average local clustering coefficient in [0,1], or 0 if no nodes
 
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> round(average_s_local_clustering_coefficient(h, 1, start=0, end=0), 12)
+    0.581891366366
     """
+    lg = h.s_line_graph(s, start, end)
+    n = lg.number_of_nodes()
+    if n == 0:
+        return 0.0
 
-    LCCs = []
-    count = 0
-    for n in h.hyperedge_id_iterator(start, end):
-        count += 1
-        LCCs.append(s_local_clustering_coefficient(h, s, n, start, end))
-
-    if count > 0:
-        return sum(LCCs) / count
-
-    return 0
+    total = 0.0
+    for node in lg.nodes:
+        total += s_local_clustering_coefficient(h, s, node, start, end)
+    return total / n
 
 
-def s_intersections(h: ASH, s: int, tid: int = None) -> int:
+def s_intersections(
+    h: ASH, s: int, start: Optional[int] = None, end: Optional[int] = None
+) -> int:
     """
-    The s_intersections function counts the number of intersections of at least size s
-    between hyperedges. Parameter tid optionally specifies the temporal snapshot to analyze.
+    Count the number of s-overlap intersections (edges) in the hypergraph's
+    s-overlap line graph.
 
-    :param h: ASH instance
-    :param s: Specify the minimum size of the intersection
-    :param tid: Specify the current time step
-    :return: The number of s-intersections in the hypergraph
+    :param h:     an ASH instance
+    :param s:     minimum hyperedge overlap size
+    :param start: optional start time (inclusive)
+    :param end:   optional end time (inclusive)
+
+    :return:      number of intersections of size >= s
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> s_intersections(h, 1, start=0, end=0)
+    2091
     """
-
-    intersections = 0
-    hedge_nodesets = []
-
-    for hyperedge_id in h.get_hyperedge_id_set(tid=tid):
-        nodes = h.get_hyperedge_nodes(hyperedge_id)
-        hedge_nodesets.append(set(nodes))
-
-    for he1 in hedge_nodesets:
-        for he2 in hedge_nodesets:
-            if len(he1.intersection(he2)) >= s and he1 != he2:
-                intersections += 1
-
-    return intersections // 2
+    return h.s_line_graph(s, start, end).number_of_edges()
 
 
-def inclusiveness(h: ASH, tid: int = None) -> float:
+def inclusiveness(
+    h: ASH, start: Optional[int] = None, end: Optional[int] = None
+) -> float:
     """
-    The inclusiveness function is a measure of the number of non-external hyperedges in an ASH.
-    It is defined as the ratio between the number of non-external hyperedges and
-    the hypergraph size. The higher this value, the more inclusive (or less exclusive)
-    the ASH is.
+    Computes the inclusiveness of the hypergraph over [start, end], defined as:
 
-    :param h: ASH instance
-    :param tid: Specify the temporal snapshot id
-    :return: The ratio between the number of non-external hyperedges and the hypergraph size
+        (# of non-facet hyperedges) / (total # of hyperedges)
 
+    A *facet* hyperedge is one that is *not* a subset of any other hyperedge.
+    Non-facet hyperedges are those that *are* contained in at least one strictly larger hyperedge.
+
+    :param h:      an ASH instance
+    :param start:  optional start time (inclusive)
+    :param end:    optional end time (inclusive)
+
+    :return:       a float in [0,1], or 0.0 if there are no hyperedges
+
+    Examples
+    --------
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> inclusiveness(h, start=0, end=0)
+    0.0
     """
+    node_sets = [set(he) for he in h.hyperedges(start, end, as_ids=False)]
+    total = len(node_sets)
+    if total == 0:
+        return 0.0
 
-    he_nodesets = [
-        set(h.get_hyperedge_nodes(he)) for he in h.get_hyperedge_id_set(tid=tid)
-    ]
+    # Sort indices by descending set size to speed up subset checks
+    idxs = sorted(range(total), key=lambda i: len(node_sets[i]), reverse=True)
+    is_non_facet = [False] * total
 
-    non_facets = set()
-    for nset in he_nodesets:
-        for nset2 in he_nodesets:
-            if nset.issubset(nset2) and nset != nset2:
-                non_facets.add(he_nodesets.index(nset))
+    for i in range(total):
+        for j in idxs:
+            if i == j:
+                continue
+            if not is_non_facet[i] and node_sets[i].issubset(node_sets[j]):
+                is_non_facet[i] = True
+                break
 
-    # 1 - (toplexes/hyperedges)
-    return len(non_facets) / len(he_nodesets)
+    non_facet_count = sum(is_non_facet)
+    return non_facet_count / total

@@ -1,29 +1,25 @@
-================
-Visual Analytics
-================
+Visualization
+=============
 
-.. automodule:: ash_model.viz
-    :members:
+The ``ash_model.viz`` module provides functions for visualizing hypergraph properties,
+both for static snapshots and temporal evolution.
 
-------
-Static
-------
+Static Plots
+------------
 
-.. autosummary::
-    :toctree: viz/
+Functions for visualizing static hypergraph properties.
 
-    plot_s_degrees
-    plot_hyperedge_size_distribution
-    plot_degree_distribution
-    plot_s_ranks
+.. automodule:: ash_model.viz.static
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
--------
-Dynamic
--------
+Temporal Plots
+--------------
 
-.. autosummary::
-    :toctree: viz/
+Functions for visualizing temporal dynamics and evolution of hypergraphs.
 
-    plot_structure_dynamics
-    plot_attribute_dynamics
-    plot_consistency
+.. automodule:: ash_model.viz.temporal
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,2 +1,2 @@
-from .temporal import *
 from .static import *
+from .temporal import *

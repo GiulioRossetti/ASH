@@ -14,7 +14,7 @@ The potential audience for ``Ash`` includes mathematicians, physicists, biologis
 Goals
 -----
 
-``Ash`` is built upon the halp_ python hypergraph library and is intended to provide:
+``Ash`` is a python temporal hypergraph library providing:
 
 - tools for the study dynamic social, biological, and infrastructure hypernetworks,
 - a rapid development environment for collaborative, multidisciplinary, projects.

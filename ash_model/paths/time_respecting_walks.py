@@ -1,39 +1,54 @@
 import copy
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Tuple, Optional, List, Union
+
 import networkx as nx
 import numpy as np
-from collections import defaultdict, namedtuple
+
 from ash_model import ASH
 
-TemporalEdge = namedtuple("TemporalEdge", "fr to weight tid")
-TemporalEdge.__new__.__defaults__ = (None,) * len(TemporalEdge._fields)
+
+# A temporal edge in an s-walk: from-hyperedge id, to-hyperedge id, weight, and timestamp.
+@dataclass(frozen=True)
+class TemporalEdge:
+    fr: str
+    to: str
+    weight: float
+    tid: int
 
 
 def temporal_s_dag(
     h: ASH,
     s: int,
-    hyperedge_from: str,
-    hyperedge_to: str = None,
-    start: int = None,
-    end: int = None,
-) -> nx.DiGraph:
+    start_from: Optional[Union[int, str, List[Union[int, str]]]] = None,
+    stop_at: Optional[Union[int, str]] = None,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    edge: bool = False,
+) -> Tuple[nx.DiGraph, List[str], List[str]]:
     """
+    Build a time-respecting DAG over [start, end] for either hyperedges (edge=True) or nodes (edge=False).
+    Nodes are labeled as "<id>_<tid>".
+    Edges connect items from different timestamps following chronological order, ensuring time-respecting properties.
+    Only forward-in-time edges are created: from timestamp t to timestamps t' where t' > t.
 
-    :param h:
-    :param s:
-    :param hyperedge_from:
-    :param hyperedge_to:
-    :param start:
-    :param end:
-    :return:
+    :param h: The source hypergraph.
+    :param s: Minimum s-incidence threshold.
+    :param start_from: Node or hyperedge id(s) to start from. If None, starts from all items present at the first snapshot in range.
+    :param stop_at: Node or hyperedge id to stop at (optional).
+    :param start: First snapshot ID to include. Defaults to earliest.
+    :param end: Last snapshot ID to include. Defaults to latest.
+    :param edge: If True, operate on hyperedges. If False, operate on nodes.
+    :returns: (DAG, sources, targets) with labels "<id>_<tid>".
+    :raises ValueError: If the [start, end] interval is not a valid subset of the hypergraph's snapshot IDs.
     """
     ids = h.temporal_snapshots_ids()
     if len(ids) == 0:
         return nx.DiGraph(), [], []
 
-    # correcting missing values
     if end is None:
         end = ids[-1]
-
     if start is None:
         start = ids[0]
 
@@ -43,325 +58,318 @@ def temporal_s_dag(
             f"{[min(ids), max(ids)]}."
         )
 
-    # adjusting temporal window
-    start = list([i >= start for i in ids]).index(True)
-    end = end if end == ids[-1] else list([i >= end for i in ids]).index(True)
-    ids = ids[start : end + 1]
+    start_idx = next(i for i, t in enumerate(ids) if t >= start)
+    end_idx = max(i for i, t in enumerate(ids) if t <= end)
+    ids = ids[start_idx : end_idx + 1]
 
-    # creating empty DAG
+    # Normalize seeds to list[str]
+    if start_from is None:
+        seeds: List[str] = []
+    elif isinstance(start_from, (list, tuple, set)):
+        seeds = [str(x) for x in start_from]
+    else:
+        seeds = [str(start_from)]
+
     DG = nx.DiGraph()
-    DG.add_node(hyperedge_from)
-    active = {hyperedge_from: None}
     sources, targets = {}, {}
 
-    for tid in ids:
-        to_remove = []
-        to_add = []
+    # First pass: build all edges and collect reachable items
+    all_edges = []
+    item_at_time = defaultdict(set)  # Track which items exist at which times
 
-        for an in active:
-            if not h.has_hyperedge_id(str(an).split("_")[0], tid=tid):
-                continue
+    for i, tid in enumerate(ids):
+        # Track items present at this timestamp
+        if edge:
+            for he in h.hyperedges(start=tid, end=tid):
+                item_at_time[tid].add(str(he))
+        else:
+            for n in h.nodes(start=tid, end=tid):
+                item_at_time[tid].add(str(n))
 
-            neighbors = {
-                f"{n[0]}_{tid}": n[1]
-                for n in h.get_s_incident(
-                    str(an).split("_")[0], s=s, start=tid, end=tid
-                )
-            }
+        # Build connections to all future timestamps
+        for future_idx in range(i + 1, len(ids)):
+            future_tid = ids[future_idx]
 
-            if hyperedge_to is not None:
-                if f"{hyperedge_to}_{tid}" in neighbors:
-                    targets[f"{hyperedge_to}_{tid}"] = None
+            if edge:
+                # For edge mode: find s-incident hyperedges at future timestamp
+                for he in h.hyperedges(start=tid, end=tid):
+                    he_id = str(he)
+                    raw_neighbors = h.get_s_incident(
+                        he_id, s=s, start=future_tid, end=future_tid
+                    )
+                    for n_id, w in raw_neighbors:
+                        if n_id != he_id:
+                            all_edges.append(
+                                (f"{he_id}_{tid}", f"{n_id}_{future_tid}", w)
+                            )
             else:
-                for k in neighbors:
-                    targets[k] = None
+                # For node mode: find co-members at future timestamp
+                node_neighbors_future: dict[str, dict[str, int]] = defaultdict(
+                    lambda: defaultdict(int)
+                )
+                for he in h.hyperedges(start=future_tid, end=future_tid):
+                    he_nodes = list(h.get_hyperedge_nodes(he))
+                    for ii in range(len(he_nodes)):
+                        u = str(he_nodes[ii])
+                        for j in range(len(he_nodes)):
+                            if ii == j:
+                                continue
+                            v = str(he_nodes[j])
+                            node_neighbors_future[u][v] += 1
 
-            if len(neighbors) == 0 and an != hyperedge_from:
-                to_remove.append(an)
+                # Process nodes active at current tid
+                for n in h.nodes(start=tid, end=tid):
+                    n_id = str(n)
+                    counts = node_neighbors_future.get(n_id, {})
+                    for v, c in counts.items():
+                        if c >= s and v != n_id:
+                            all_edges.append((f"{n_id}_{tid}", f"{v}_{future_tid}", c))
 
-            for n in neighbors:
-                if "_" not in an:
-                    an = f"{an}_{tid}"
-                    sources[an] = None
+    # Add all edges to graph
+    for u, v, w in all_edges:
+        DG.add_edge(u, v, weight=w)
 
-                DG.add_edge(an, n, weight=neighbors[n])
-                to_add.append(n)
+    # Determine sources based on start_from
+    if seeds:
+        # If seeds specified, sources are only at timestamps where seed items have outgoing edges
+        for seed_id in seeds:
+            for tid in ids:
+                node_label = f"{seed_id}_{tid}"
+                # Check if this seed exists at this time and has outgoing edges
+                if (
+                    seed_id in item_at_time[tid]
+                    and DG.has_node(node_label)
+                    and DG.out_degree[node_label] > 0
+                ):
+                    sources[node_label] = None
+    else:
+        # If no seeds, sources are all items at the first timestamp with outgoing edges
+        first_tid = ids[0]
+        for item_id in item_at_time[first_tid]:
+            node_label = f"{item_id}_{first_tid}"
+            if DG.has_node(node_label) and DG.out_degree[node_label] > 0:
+                sources[node_label] = None
 
-        for n in to_add:
-            active[n] = None
+    # Determine targets
+    if stop_at is not None:
+        # Only nodes matching stop_at are targets
+        stop_id = str(stop_at)
+        for tid in ids:
+            node_label = f"{stop_id}_{tid}"
+            if DG.has_node(node_label) and DG.in_degree[node_label] > 0:
+                targets[node_label] = None
+    else:
+        # All reachable nodes (except sources) are potential targets
+        for node in DG.nodes():
+            if node not in sources and DG.in_degree[node] > 0:
+                targets[node] = None
 
-        for rm in to_remove:
-            del active[rm]
-
-    targets = [t for t in targets if t.split("_")[0] != hyperedge_from]
-
-    return DG, list(sources), list(targets)
+    excluded_ids = set(str(s).split("_")[0] for s in seeds) if seeds else set()
+    final_targets = [t for t in targets if t.split("_")[0] not in excluded_ids]
+    return DG, list(sources), final_targets
 
 
 def time_respecting_s_walks(
     h: ASH,
     s: int,
-    hyperedge_from: str,
-    hyperedge_to: str = None,
+    start_from: Union[str, List[str]],
+    stop_at: Optional[str] = None,
     start: int = None,
     end: int = None,
     sample: float = 1,
 ) -> dict:
     """
-    The time_respecting_s_walks function takes as input a ASH, a positive integer s, and two hyperedges.
-    It returns the temporal s-paths that are time-respecting with respect to the given hyperedges.
-    The returned value is a dictionary whose keys are pairs of nodes (from_node, to_node) and values are lists of temporal paths.
+    Enumerate all time-respecting s-walks between a given source and optionally a target hyperedge.
 
-    :param h: ASH instance
-    :param s: minimum intersection between two hyperedges to be included in the path
-    :param hyperedge_from:str: Specify the source hyperedge
-    :param hyperedge_to:str=None: Specify the hyperedge to which we want to find all time-respecting paths
-    :param start:int=None: Specify the start time of the temporal network
-    :param end:int=None: Specify the end time of the hyperedge
-    :param sample:float=1:
-    :param :
-    :return: A dictionary of the form {(hyperedge_from, hyperedge_to): [list of paths]}
-    :doc-author: Trelent
-    """
-    """
+    :param h: The source hypergraph.
+    :param s: Minimum number of shared nodes for s-incidence.
+    :param start_from: ID o lista di iperarchi da cui partire.
+    :param stop_at: Se fornito, considera solo cammini che terminano a questo iperarco.
+    :param start: First snapshot to include.
+    :param end: Last snapshot to include.
+    :param sample: Fraction of source-target pairs to sample (0 < sample <= 1).
 
-    :param h:
-    :param s:
-    :param hyperedge_from:
-    :param hyperedge_to:
-    :param start:
-    :param end:
-    :param sample:
-    :return:
+    :returns: Mapping (start_edge, end_edge) -> list of walks (TemporalEdge lists).
     """
-
     DAG, sources, targets = temporal_s_dag(
-        h, s, hyperedge_from, hyperedge_to, start=start, end=end
+        h, s, start_from=start_from, stop_at=stop_at, start=start, end=end, edge=True
     )
 
     pairs = [(x, y) for x in sources for y in targets]
-
     if sample < 1:
         to_sample = int(len(pairs) * sample)
-        pairs_idx = np.random.choice(len(pairs), size=to_sample, replace=False)
-        pairs = np.array(pairs)[pairs_idx]
+        idxs = np.random.choice(len(pairs), size=to_sample, replace=False)
+        pairs = [pairs[i] for i in idxs]
 
     paths = []
-    for pair in pairs:
-        path = list(nx.all_simple_paths(DAG, pair[0], pair[1]))
+    for src, dst in pairs:
+        for path_nodes in nx.all_simple_paths(DAG, src, dst):
+            seq = []
+            for u, v in zip(path_nodes, path_nodes[1:]):
+                t_from = int(u.split("_")[-1])
+                t_to = int(v.split("_")[-1])
+                w = DAG[u][v]["weight"]
+                seq.append(TemporalEdge(u.split("_")[0], v.split("_")[0], w, t_to))
 
-        for p in path:
-            pt = []
-            for first, second in zip(p, p[1:]):
-                hyperedge_from = first.split("_")
-                if len(hyperedge_from) == 2:
-                    hyperedge_from = hyperedge_from[0]
-                else:
-                    hyperedge_from = "_".join(hyperedge_from[0:-1])
+            # Validate time-respecting property: each step must happen at a strictly later time
+            if len(seq) > 0:
+                valid = True
+                prev_edge = seq[0]
+                for edge in seq[1:]:
+                    # Each edge must occur at a strictly later timestamp
+                    if edge.tid <= prev_edge.tid:
+                        valid = False
+                        break
+                    # Also reject immediate back-and-forth between same pair of nodes
+                    if edge.fr == prev_edge.to and edge.to == prev_edge.fr:
+                        valid = False
+                        break
+                    prev_edge = edge
 
-                hyperedge_to = second.split("_")
-                if len(hyperedge_to) == 2:
-                    t = hyperedge_to[1]
-                    hyperedge_to = hyperedge_to[0]
-                else:
-                    t = hyperedge_to[-1]
-                    hyperedge_to = "_".join(hyperedge_to[0:-1])
+                if valid:
+                    paths.append(seq)
 
-                pt.append(
-                    TemporalEdge(
-                        hyperedge_from,
-                        hyperedge_to,
-                        DAG[first][second]["weight"],
-                        int(t),
-                    )
-                )
-            # check ping pong
-
-            flag = True
-            if len(pt) > 1:
-                s = pt[0]
-                for l in pt[1:]:
-                    if l[0] == s[1] and l[1] == s[0] or l[2] == s[2]:
-                        flag = False
-                        continue
-                    s = l
-
-            if flag:
-                paths.append(pt)
-
-    pa = list(dict.fromkeys([tuple(x) for x in paths]))
-
+    unique = list({tuple(w): w for w in paths}.values())
     res = defaultdict(list)
-    for p in pa:
-        k = (p[0][0], p[-1][1])
-        res[k].append(p)
+    for w in unique:
+        key = (w[0].fr, w[-1].to)
+        res[key].append(w)
 
     return res
 
 
 def all_time_respecting_s_walks(
-    h: ASH, s: int, start: int = None, end: int = None, sample: float = 1
+    h: ASH,
+    s: int,
+    start: int = None,
+    end: int = None,
+    sample: float = 1,
 ) -> dict:
     """
+    Compute time-respecting s-walks originating from every hyperedge in the graph.
 
-    :param h:
-    :param s:
-    :param start:
-    :param end:
-    :param sample:
-    :return:
+    :param h: The hypergraph.
+    :param s: Minimum s-incidence threshold.
+    :param start: Earliest snapshot to include.
+    :param end: Latest snapshot to include.
+    :param sample: Fraction of source-target samples per origin.
+
+    :returns: Mapping (origin_edge, destination_edge) -> list of walks.
     """
     res = {}
-    for he in h.hyperedge_id_iterator():
-        paths = time_respecting_s_walks(
+    for he in h.hyperedges(start=start, end=end):
+        subpaths = time_respecting_s_walks(
             h,
-            s=s,
-            hyperedge_from=he,
-            hyperedge_to=None,
+            s,
+            start_from=he,
+            stop_at=None,
             start=start,
             end=end,
             sample=sample,
         )
-        if len(paths) > 0:
-            for k, path in paths.items():
-                v = k[-1]
-                res[(he, v)] = path
-
+        for key, walks in subpaths.items():
+            if walks:
+                res[(he, key[1])] = walks
     return res
 
 
 def annotate_walks(paths: list) -> dict:
     """
+    Annotate a list of s-walks with standard path metrics.
 
-    :param h:
-    :param paths:
-    :return:
+    :param paths: The walks to classify.
+
+    :returns: Dictionary of metric names to lists of walks.
     """
-    annotated = {
-        "shortest": [],
-        "fastest": [],
-        "shortest_fastest": [],
-        "shortest_heaviest": [],
-        "fastest_shortest": [],
-        "fastest_heaviest": [],
-        "foremost": [],
-        "heaviest": [],
-        "heaviest_fastest": [],
-        "heaviest_shortest": [],
+    metrics = []
+    for p in paths:
+        length = len(p)
+        duration = p[-1].tid - p[0].tid
+        weight = sum(e.weight for e in p)
+        reach = p[-1].tid
+        metrics.append(
+            {
+                "path": p,
+                "length": length,
+                "duration": duration,
+                "weight": weight,
+                "reach": reach,
+            }
+        )
+    shortest = min(metrics, key=lambda m: m["length"])["length"]
+    fastest = min(metrics, key=lambda m: m["duration"])["duration"]
+    heaviest = max(metrics, key=lambda m: m["weight"])["weight"]
+    foremost = min(metrics, key=lambda m: m["reach"])["reach"]
+
+    def by(key, op, val):
+        return [m["path"] for m in metrics if op(m[key], val)]
+
+    return {
+        "shortest": by("length", lambda x, y: x == y, shortest),
+        "fastest": by("duration", lambda x, y: x == y, fastest),
+        "heaviest": by("weight", lambda x, y: x == y, heaviest),
+        "foremost": by("reach", lambda x, y: x == y, foremost),
+        "shortest_fastest": by(
+            "duration",
+            lambda x, y: x == y,
+            min(m["duration"] for m in metrics if m["length"] == shortest),
+        ),
+        "shortest_heaviest": by(
+            "weight",
+            lambda x, y: x == y,
+            max(m["weight"] for m in metrics if m["length"] == shortest),
+        ),
+        "fastest_shortest": by(
+            "length",
+            lambda x, y: x == y,
+            min(m["length"] for m in metrics if m["duration"] == fastest),
+        ),
+        "fastest_heaviest": by(
+            "weight",
+            lambda x, y: x == y,
+            max(m["weight"] for m in metrics if m["duration"] == fastest),
+        ),
+        "heaviest_fastest": by(
+            "duration",
+            lambda x, y: x == y,
+            max(m["duration"] for m in metrics if m["weight"] == heaviest),
+        ),
+        "heaviest_shortest": by(
+            "length",
+            lambda x, y: x == y,
+            max(m["length"] for m in metrics if m["weight"] == heaviest),
+        ),
     }
-
-    min_to_reach = None
-    shortest = None
-    fastest = None
-    p_weight = None
-
-    for path in paths:
-        length = walk_length(path)
-        duration = walk_duration(path)
-        weight = walk_weight(path)
-        reach = path[-1][-1]
-
-        if p_weight is None or weight > p_weight:
-            p_weight = weight
-            annotated["heaviest"] = [copy.copy(path)]
-        else:
-            annotated["heaviest"].append(copy.copy(path))
-
-        if shortest is None or length < shortest:
-            shortest = length
-            annotated["shortest"] = [copy.copy(path)]
-        elif length == shortest:
-            annotated["shortest"].append(copy.copy(path))
-
-        if fastest is None or duration < fastest:
-            fastest = duration
-            annotated["fastest"] = [copy.copy(path)]
-        elif duration == fastest:
-            annotated["fastest"].append(copy.copy(path))
-
-        if min_to_reach is None or reach < min_to_reach:
-            min_to_reach = reach
-            annotated["foremost"] = [copy.copy(path)]
-        elif reach == min_to_reach:
-            annotated["foremost"].append(copy.copy(path))
-
-    fastest_shortest = {
-        tuple(path): walk_duration(path) for path in annotated["shortest"]
-    }
-    minval = min(fastest_shortest.values())
-    fastest_shortest = list(
-        [x for x in fastest_shortest if fastest_shortest[x] == minval]
-    )
-
-    fastest_heaviest = {
-        tuple(path): walk_duration(path) for path in annotated["heaviest"]
-    }
-    minval = min(fastest_heaviest.values())
-    fastest_heaviest = list(
-        [x for x in fastest_heaviest if fastest_heaviest[x] == minval]
-    )
-
-    shortest_fastest = {tuple(path): walk_length(path) for path in annotated["fastest"]}
-    minval = min(shortest_fastest.values())
-    shortest_fastest = list(
-        [x for x in shortest_fastest if shortest_fastest[x] == minval]
-    )
-
-    shortest_heaviest = {
-        tuple(path): walk_weight(path) for path in annotated["heaviest"]
-    }
-    minval = min(shortest_heaviest.values())
-    shortest_heaviest = list(
-        [x for x in shortest_heaviest if shortest_heaviest[x] == minval]
-    )
-
-    heaviest_shortest = {
-        tuple(path): walk_weight(path) for path in annotated["shortest"]
-    }
-    maxval = max(heaviest_shortest.values())
-    heaviest_shortest = list(
-        [x for x in heaviest_shortest if heaviest_shortest[x] == maxval]
-    )
-
-    heaviest_fastest = {tuple(path): walk_weight(path) for path in annotated["fastest"]}
-    maxval = max(heaviest_fastest.values())
-    heaviest_fastest = list(
-        [x for x in heaviest_fastest if heaviest_fastest[x] == maxval]
-    )
-
-    annotated["fastest_shortest"] = [list(p) for p in fastest_shortest]
-    annotated["fastest_heaviest"] = [list(p) for p in fastest_heaviest]
-    annotated["shortest_fastest"] = [list(p) for p in shortest_fastest]
-    annotated["shortest_heaviest"] = [list(p) for p in shortest_heaviest]
-    annotated["heaviest_shortest"] = [list(p) for p in heaviest_shortest]
-    annotated["heaviest_fastest"] = [list(p) for p in heaviest_fastest]
-
-    return annotated
 
 
 def walk_length(path: list) -> int:
     """
+    Compute the number of edges in a temporal walk.
 
-    :param path:
-    :return:
+    :param path: The walk to measure.
+
+    :returns: Number of steps in the walk.
     """
     return len(path)
 
 
 def walk_duration(path: list) -> int:
     """
+    Compute the duration of a temporal walk.
 
-    :param path:
-    :return:
+    :param path: The walk to measure.
+
+    :returns: Time difference between first and last edge.
     """
-
-    return int(path[-1][-1]) - int(path[0][-1])
+    return int(path[-1].tid) - int(path[0].tid)
 
 
 def walk_weight(path: list) -> int:
     """
+    Compute the total weight of a temporal walk.
 
-    :param path:
-    :return:
+    :param path: The walk to measure.
+
+    :returns: Cumulative weight of the walk.
     """
-    return sum([p.weight for p in path])
+    return sum(p.weight for p in path)
