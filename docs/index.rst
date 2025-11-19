@@ -9,7 +9,7 @@ If you would like to test ``ash_model`` functionalities without installing it on
 
 ================ =================== ==================  ==========  ===============
    **Date**      **Python Versions**   **Main Author**   **GitHub**      **pypl**
-      2023                 3.9       `Giulio Rossetti`_  `Source`_   `Distribution`_
+      2025                 3.9       `Giulio Rossetti`_  `Source`_   `Distribution`_
 ================ =================== ==================  ==========  ===============
 
 
@@ -19,8 +19,8 @@ Ash Dev Team
 
 ======================= ==============================
 **Name**                **Contribution**
-`Giulio Rossetti`_      Library Design, implementation
-`Andrea Failla`_        Implementation, Documentation
+`Giulio Rossetti`_      Library Design, Implementation
+`Andrea Failla`_        Library Design, Implementation, Documentation
 `Salvatore Citraro`_    Implementation
 ======================= ==============================
 
@@ -33,10 +33,9 @@ Ash Dev Team
    tutorial.rst
    install.rst
 
-
 .. _`Giulio Rossetti`: http://www.about.giuliorossetti.net
-.. _`Andrea Failla`: https://github.com/andreafailla
+.. _`Andrea Failla`: https://andreafailla.github.io
 .. _`Salvatore Citraro`: https://github.com/dsalvaz
 .. _`Source`: https://github.com/GiulioRossetti/ASH
-.. _`Distribution`: https://pypi.python.org/pypi/ASH
+.. _`Distribution`: https://pypi.python.org/pypi/ash_model
 .. _`SoBigData++`: https://sobigdata.d4science.org/group/sobigdata-gateway/explore?siteId=20371853

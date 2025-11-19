@@ -1,5 +1,8 @@
-from ash_model.measures import *
-from ash_model.paths.walks import *
+from ash_model.paths.walks import all_shortest_s_walk_lengths, s_components
+from ash_model.utils import hyperedge_most_frequent_node_attribute_value
+from ash_model import ASH
+
+import networkx as nx
 from itertools import combinations
 from collections import defaultdict
 import tqdm
@@ -15,6 +18,7 @@ def __label_frequency(
     :param u: node id
     :param labels: list of node categorical labels
     :param hierarchies: dict of labels hierarchies
+
     :return: node profiles similarity score in [-1, 1]
     """
     s = 1
@@ -53,6 +57,7 @@ def __label_frequency(
 def __distance(label: str, v1: str, v2: str, hierarchies: dict = None) -> float:
     """
     Compute the distance of two labels in a plain hierarchy
+
     :param label: label name
     :param v1: first label value
     :param v2: second label value
@@ -73,6 +78,7 @@ def __normalize(u: object, scores: list, max_dist: int, alphas: list) -> list:
     :param u: node
     :param scores: datastructure containing the computed scores for u
     :param alphas: list of damping factor
+
     :return: scores updated
     """
     for alpha in alphas:
@@ -96,6 +102,7 @@ def hyper_conformity(
 ) -> dict:
     """
     Compute the Attribute-Profile Conformity for the considered graph
+
     :param h:
     :param alphas: list of damping factors
     :param labels: list of node categorical labels
@@ -103,11 +110,29 @@ def hyper_conformity(
     :param profile_size:
     :param hierarchies: label hierarchies
     :param tid:
+
     :return: conformity value for each node in [-1, 1]
 
-    -- Example --
-    >> g = nx.karate_club_graph()
-    >> pc = profile_conformity(g, 1, ['club'])
+    Examples
+    --------
+    Build the dataset described in the docs and compute hyper-conformity for label 'color' at tid=0:
+
+    >>> import numpy as np, networkx as nx
+    >>> from ash_model.utils.networkx import from_networkx_maximal_cliques_list
+    >>> Gs = [nx.barabasi_albert_graph(100, 3, seed=i) for i in range(10)]
+    >>> rng = np.random.default_rng(42)
+    >>> for G in Gs:
+    ...     for n in G.nodes():
+    ...         G.nodes[n]['color'] = 'red' if rng.integers(0, 2) == 0 else 'blue'
+    >>> h = from_networkx_maximal_cliques_list(Gs)
+    >>> res = hyper_conformity(h, alphas=[1], labels=['color'], s=1, profile_size=1, tid=0)
+    >>> len(res)
+    1
+    >>> ap = list(res[0].keys())[0]
+    >>> feat = list(res[0][ap].keys())[0]
+    >>> sorted(list(res[0][ap][feat].items()))[:3]
+    [('e1', 0.6287411100578744), ('e10', 0.5843765336901121), ('e100', 0.6358755716986335)]
+
     """
 
     full_res = []
@@ -136,7 +161,7 @@ def hyper_conformity(
             labels_value_frequency = defaultdict(lambda: defaultdict(int))
 
             # hyperedge most frequent label
-            for he in b.hyperedge_id_iterator():
+            for he in b.hyperedges():
                 for label in labels:
                     v = list(
                         hyperedge_most_frequent_node_attribute_value(
@@ -169,7 +194,7 @@ def hyper_conformity(
             }
 
             for u in tqdm.tqdm(g1.nodes()):
-                sp = dict(all_shortest_s_walk_length(b, s, u))
+                sp = dict(all_shortest_s_walk_lengths(b, s, u))
 
                 dist_to_nodes = defaultdict(list)
                 for _, nodelist in sp.items():

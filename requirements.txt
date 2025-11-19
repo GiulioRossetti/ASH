@@ -1,8 +1,6 @@
-halp
-numpy
-scipy
+numpy<2.0
 networkx
-matplotlib
-seaborn
-pandas
+scipy
+csrgraph
 tqdm
+matplotlib
