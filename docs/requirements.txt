@@ -1,0 +1,10 @@
+sphinx>=4.0
+furo
+nbsphinx>=0.8.0
+pypandoc-binary
+ipykernel
+jupyter
+numpy<2.0
+networkx
+scipy
+matplotlib

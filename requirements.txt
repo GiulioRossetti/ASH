@@ -1,5 +1,6 @@
-numpy
+numpy<2.0
 networkx
 scipy
 csrgraph
 tqdm
+matplotlib

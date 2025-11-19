@@ -20,7 +20,7 @@ def rwhs(
     threads: int = -1,
 ) -> Dict:
     """
-    Compute Random Walk Hypergraph Similarity (RWHS) scores for nodes in a hypergraph.
+    Compute Random Walk Hypergraph Segregation (RWHS) scores for nodes in a hypergraph.
 
     :param h: ASH instance.
     :param s: Minimum s-incidence threshold. For node walks: nodes must co-occur in at least s hyperedges.
@@ -105,7 +105,7 @@ def temporal_rwhs(
     threads: int = -1,
 ) -> Dict:
     """
-    Compute Temporal Random Walk Hypergraph Similarity (RWHS) scores for nodes in a hypergraph.
+    Compute Temporal Random Walk Hypergraph Segregation (RWHS) scores for nodes in a hypergraph.
 
     :param h: ASH instance.
     :param s: Order of the hypergraph (minimum s-incidence threshold).
