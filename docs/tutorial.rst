@@ -7,17 +7,18 @@ Each tutorial is a Jupyter notebook that demonstrates different aspects of the l
 
 All tutorial notebooks are available in the `tutorial/ <https://github.com/GiulioRossetti/ASH/tree/main/tutorial>`_ folder of the repository.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorial Notebooks
+Tutorial notebooks (links on GitHub)
+-----------------------------------
 
-   tutorial/00-basics
-   tutorial/01-attribute_analysis
-   tutorial/02-walks
-   tutorial/03-generators
-   tutorial/04-io
-   tutorial/05-multiego
-   tutorial/06-segregation
+The notebooks are kept in the repository under the `tutorial/` folder and are intended to be opened on GitHub or in your local Jupyter environment. The documentation build no longer renders notebooks into the HTML site; instead use the links below to view or download the notebooks from GitHub:
+
+- `00-basics.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/00-basics.ipynb>`_
+- `01-attribute_analysis.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/01-attribute_analysis.ipynb>`_
+- `02-walks.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/02-walks.ipynb>`_
+- `03-generators.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/03-generators.ipynb>`_
+- `04-io.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/04-io.ipynb>`_
+- `05-multiego.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/05-multiego.ipynb>`_
+- `06-segregation.ipynb <https://github.com/GiulioRossetti/ASH/blob/main/tutorial/06-segregation.ipynb>`_
 
 Getting Started
 ---------------
