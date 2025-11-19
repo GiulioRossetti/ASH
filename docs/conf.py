@@ -14,15 +14,7 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure pandoc is in PATH for nbsphinx
-try:
-    import pypandoc
-
-    pandoc_dir = str(Path(pypandoc.get_pandoc_path()).parent)
-    if pandoc_dir not in os.environ.get("PATH", ""):
-        os.environ["PATH"] = f"{pandoc_dir}{os.pathsep}{os.environ.get('PATH', '')}"
-except ImportError:
-    pass  # pypandoc not available, assume system pandoc
+# (removed pypandoc handling; notebooks are not processed during docs build)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -75,7 +67,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",  # supporto Google/NumPy style docstrings
     "sphinx.ext.intersphinx",  # cross-link con altra doc
-    "nbsphinx",  # Jupyter notebook support
 ]
 
 # Make autosummary scan pages and create stubs automatically
@@ -127,45 +118,7 @@ autodoc_member_order = "bysource"
 # Evita warning se mancano __all__
 autodoc_inherit_docstrings = True
 
-# -- nbsphinx configuration --------------------------------------------------
-
-# Add the tutorial directory to the source paths
-import shutil
-
-tutorial_source = ROOT / "tutorial"
-tutorial_dest = Path(__file__).parent / "tutorial"
-
-# Create symlink or copy notebooks to docs/tutorial if they don't exist
-if not tutorial_dest.exists():
-    tutorial_dest.mkdir(exist_ok=True)
-
-# This is processed by Jinja2 and inserted before each notebook
-nbsphinx_prolog = r"""
-{% set docname = env.doc2path(env.docname, base=None) %}
-
-.. raw:: html
-
-    <div class="admonition note">
-      <p class="admonition-title">Note</p>
-      <p>This page was generated from
-        <a class="reference external" href="https://github.com/GiulioRossetti/ASH/blob/{{ env.config.release|e }}/{{ docname|e }}">{{ docname|e }}</a>.
-      </p>
-    </div>
-"""
-
-# Execute notebooks before conversion: 'always', 'never', 'auto' (default)
-nbsphinx_execute = (
-    "never"  # Don't execute notebooks during build (they should be pre-executed)
-)
-
-# Allow errors in notebook execution
-nbsphinx_allow_errors = True
-
-# Timeout for notebook execution (in seconds)
-nbsphinx_timeout = 180
-
-# Exclude output files and checkpoint folders
-nbsphinx_exclude_output_prompt = False
+# Notebooks in `tutorial/` are intended to live in the repo and be browsed on GitHub.
 
 # -- Options for HTML output -------------------------------------------------
 
