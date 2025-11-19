@@ -5,3 +5,5 @@ matplotlib
 pandas
 tqdm
 sphinx_rtd_theme
+nbsphinx
+furo
